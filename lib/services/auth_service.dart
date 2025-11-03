@@ -2,21 +2,37 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
-  final _auth = FirebaseAuth.instance;
-  final _googleSignIn = GoogleSignIn();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<UserCredential> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    final googleAuth = await googleUser!.authentication;
+  // 🔹 Sign in with Email and Password
+  Future<User?> signInWithEmailPassword(String email, String password) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    return credential.user;
+  }
+
+  // 🔹 Google Sign-In
+  Future<User?> signInWithGoogle() async {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) return null;
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
     final credential = GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
-    return await _auth.signInWithCredential(credential);
+
+    final userCredential = await _auth.signInWithCredential(credential);
+    return userCredential.user;
   }
 
+  // 🔹 Sign Out
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
     await _auth.signOut();
+    await GoogleSignIn().signOut();
   }
 }
