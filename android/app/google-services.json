@@ -12,7 +12,20 @@
           "package_name": "com.example.zynkup"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "659234851207-tn1bsia4vtdtavh2gi4q9k9ch4t9u1gs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.zynkup",
+            "certificate_hash": "79f1800fe8b156068a167bafb17d42907d33937b"
+          }
+        },
+        {
+          "client_id": "659234851207-o80f3633j9f09j79d0ml7376o7v4iv58.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB7c7urdp1ICDgJkX5IE3sAfGWspiRd62s"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "659234851207-o80f3633j9f09j79d0ml7376o7v4iv58.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "659234851207-fl9gfob5pr92m2gkjn0rthpboftgvtun.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.zynkup"
+              }
+            }
+          ]
         }
       }
     }
