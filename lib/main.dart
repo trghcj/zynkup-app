@@ -1,54 +1,45 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart'; // ADD: kIsWeb + kDebugMode
 import 'package:flutter/material.dart';
-import 'package:zynkup/firebase_options.dart';
 import 'package:zynkup/features/auth/screens/login_screen.dart';
 import 'package:zynkup/features/events/screens/home_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ADD THIS
+import 'package:zynkup/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // INITIALIZE FIREBASE
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    // Initialize Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  // ONE-TIME: GENERATE INDEX LINKS (DELETE AFTER INDEXES ARE CREATED)
-  await _generateFirestoreIndexes();
+    if (kDebugMode) {
+      print('Firebase initialized successfully');
+    }
 
-  runApp(const MyApp());
-}
+    // Web-specific Firestore settings
+    if (kIsWeb) {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: false,
+        sslEnabled: true,
+      );
 
-/// GENERATE INDEX LINKS FOR ALL CATEGORIES (RUN ONCE)
-Future<void> _generateFirestoreIndexes() async {
-  final categories = ['tech', 'cultural', 'sports', 'workshop'];
-  print('\nGENERATING FIRESTORE INDEX LINKS...');
-
-  for (var cat in categories) {
-    try {
-      await FirebaseFirestore.instance
-          .collection('events')
-          .where('category', isEqualTo: cat)
-          .limit(1)
-          .get();
-    } catch (e) {
-      if (e is FirebaseException && e.code == 'failed-precondition') {
-        final link = e.message?.split('here: ').last ?? '';
-        if (link.isNotEmpty) {
-          print('\nINDEX FOR "$cat":');
-          print(link);
-          print('→ Paste in browser → Create Index\n');
-        }
-      } else {
-        // rethrow unexpected errors so they're not silently swallowed
-        rethrow;
+      if (kDebugMode) {
+        print('Firestore Web settings applied');
       }
     }
-  }
 
-  print('INDEX LINKS GENERATED! Create all 4 → Then DELETE _generateFirestoreIndexes()');
-  print('─────────────────────────────────────────────────────────────\n');
+    runApp(const MyApp());
+  } catch (e) {
+    if (kDebugMode) {
+      print('Firebase init failed: $e');
+    }
+    // Fallback: still run app
+    runApp(const MyApp());
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -60,17 +51,9 @@ class MyApp extends StatelessWidget {
       title: 'Zynkup',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
         fontFamily: 'Roboto',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.deepPurple,
-          foregroundColor: Colors.white,
-          elevation: 4,
-        ),
       ),
       home: const AuthWrapper(),
     );
@@ -85,28 +68,43 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // SHOW LOADER
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   CircularProgressIndicator(color: Colors.deepPurple),
                   SizedBox(height: 16),
-                  Text('Loading Zynkup...', style: TextStyle(fontSize: 16)),
+                  Text(
+                    'Zynkup Loading...',
+                    style: TextStyle(fontSize: 16, color: Colors.deepPurple),
+                  ),
                 ],
               ),
             ),
           );
         }
 
-        // LOGGED IN → HOME
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error, color: Colors.red, size: 48),
+                  SizedBox(height: 16),
+                  Text('Auth Error: ${snapshot.error}', textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          );
+        }
+
         if (snapshot.hasData) {
           return const HomeScreen();
         }
 
-        // NOT LOGGED IN → LOGIN
         return const LoginScreen();
       },
     );

@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:zynkup/core/utils/string_extensions.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_list_screen.dart';
 import 'package:zynkup/features/auth/services/auth_service.dart';
+import 'package:zynkup/features/events/screens/create_event_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,50 +16,26 @@ class _HomeScreenState extends State<HomeScreen> {
   EventCategory _selectedCategory = EventCategory.tech;
 
   @override
-  void initState() {
-    super.initState();
-    _generateIndexesOnce(); // ONE-TIME INDEX LINK GENERATOR
-  }
-
-  /// GENERATE INDEX LINKS (RUN ONCE, THEN DELETE)
-  void _generateIndexesOnce() {
-    final categories = ['tech', 'cultural', 'sports', 'workshop'];
-    for (var cat in categories) {
-      FirebaseFirestore.instance
-          .collection('events')
-          .where('category', isEqualTo: cat)
-          .limit(1)
-          .get()
-          // ignore: body_might_complete_normally_catch_error
-          .catchError((e) {
-        if (e is FirebaseException && e.code == 'failed-precondition') {
-          final link = e.message?.split('here: ').last ?? '';
-          if (link.isNotEmpty) {
-            print('\nCREATE INDEX FOR "$cat":');
-            print(link);
-            print('\n');
-          }
-        }
-      });
-    }
-    print('Index links generated! Paste in browser → Create → DELETE this function.');
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Zynkup Home'),
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
+        elevation: 4,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
             onPressed: () async {
               await AuthService().signOut();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logged out!')),
+                  const SnackBar(
+                    content: Text('Logged out successfully!'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
                 );
               }
             },
@@ -67,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // CATEGORY TABS
+          // Category Chips
           SizedBox(
             height: 56,
             child: ListView(
@@ -75,18 +52,19 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: EventCategory.values.map((category) {
                 final label = category.name.capitalize();
+                final isSelected = _selectedCategory == category;
+
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
                     label: Text(
                       label,
                       style: TextStyle(
-                        fontWeight: _selectedCategory == category
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
                       ),
                     ),
-                    selected: _selectedCategory == category,
+                    selected: isSelected,
                     onSelected: (selected) {
                       if (selected) {
                         setState(() => _selectedCategory = category);
@@ -94,10 +72,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     selectedColor: Colors.deepPurple,
                     backgroundColor: Colors.grey[200],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     labelStyle: TextStyle(
-                      color: _selectedCategory == category
-                          ? Colors.white
-                          : Colors.black87,
+                      color: isSelected ? Colors.white : Colors.black87,
                     ),
                   ),
                 );
@@ -105,58 +84,31 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // EVENT LIST
+          // Event List
           Expanded(
             child: EventListScreen(category: _selectedCategory),
           ),
         ],
       ),
 
-      // CREATE EVENT BUTTON
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.deepPurple,
+      // FAB
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // WEEK 4: UNCOMMENT BELOW
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CreateEventScreen()),
           );
-
-          // TEMP: REMOVE AFTER CREATE SCREEN IS READY
-          // ScaffoldMessenger.of(context).showSnackBar(
-          //   const SnackBar(content: Text('Create Event Coming Soon!')),
-          // );
         },
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
-}
-
-// Simple Create Event screen placeholder so navigation has a concrete class.
-// Replace or remove this once the real create_event_screen.dart is implemented.
-class CreateEventScreen extends StatelessWidget {
-  const CreateEventScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Event'),
         backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Create Event',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        tooltip: 'Create New Event',
+        elevation: 6,
       ),
-      body: const Center(
-        child: Text('Create Event Screen - implement form here'),
-      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
-  }
-}
-
-// CAPITALIZE EXTENSION
-extension StringExtension on String {
-  String capitalize() {
-    if (isEmpty) return this;
-    return "${this[0].toUpperCase()}${substring(1)}";
   }
 }
