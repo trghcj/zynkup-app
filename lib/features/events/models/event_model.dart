@@ -1,13 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum EventCategory { tech, cultural, sports, workshop }
+enum EventCategory {
+  tech,
+  cultural,
+  sports,
+  workshop,
+}
 
 class Event {
   final String id;
   final String title;
   final String description;
-  final DateTime date;
   final String venue;
+  final DateTime date;
   final EventCategory category;
   final String organizerId;
   final List<String> registeredUsers;
@@ -16,69 +21,64 @@ class Event {
     required this.id,
     required this.title,
     required this.description,
-    required this.date,
     required this.venue,
+    required this.date,
     required this.category,
     required this.organizerId,
     this.registeredUsers = const [],
   });
 
-  /// Convert Firestore Document → Event
+  // FROM FIRESTORE
   factory Event.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>?;
-
-    if (data == null) {
-      throw Exception('Document data is null');
-    }
-
-    // SAFE CATEGORY PARSING
-    EventCategory parseCategory(String? value) {
-      if (value == null) return EventCategory.tech;
-      return EventCategory.values.firstWhere(
-        (e) => e.name == value,
-        orElse: () => EventCategory.tech,
-      );
-    }
-
+    final data = doc.data() as Map<String, dynamic>;
     return Event(
       id: doc.id,
-      title: data['title'] as String? ?? '',
-      description: data['description'] as String? ?? '',
-      date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      venue: data['venue'] as String? ?? '',
-      category: parseCategory(data['category'] as String?),
-      organizerId: data['organizerId'] as String? ?? '',
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      venue: data['venue'] ?? '',
+      date: (data['date'] as Timestamp).toDate(),
+      category: EventCategory.values.firstWhere(
+        (e) => e.name == data['category'],
+        orElse: () => EventCategory.tech,
+      ),
+      organizerId: data['organizerId'] ?? '',
       registeredUsers: List<String>.from(data['registeredUsers'] ?? []),
     );
   }
 
-  /// Convert Event → Firestore Map
+  // TO FIRESTORE
   Map<String, dynamic> toFirestore() {
     return {
-      'id': id, // FIXED: Include ID in Firestore
       'title': title,
       'description': description,
-      'date': Timestamp.fromDate(date),
       'venue': venue,
+      'date': Timestamp.fromDate(date),
       'category': category.name,
       'organizerId': organizerId,
       'registeredUsers': registeredUsers,
     };
   }
 
-  /// For debugging
-  @override
-  String toString() {
-    return 'Event(id: $id, title: $title, category: $category, date: $date)';
+  // ADD THIS: copyWith METHOD
+  Event copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? venue,
+    DateTime? date,
+    EventCategory? category,
+    String? organizerId,
+    List<String>? registeredUsers,
+  }) {
+    return Event(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      venue: venue ?? this.venue,
+      date: date ?? this.date,
+      category: category ?? this.category,
+      organizerId: organizerId ?? this.organizerId,
+      registeredUsers: registeredUsers ?? this.registeredUsers,
+    );
   }
-
-  /// For equality checks (e.g., in lists)
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Event && other.id == id;
-  }
-
-  @override
-  int get hashCode => id.hashCode;
 }
