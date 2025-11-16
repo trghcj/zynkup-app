@@ -11,16 +11,18 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase
-  firebase_core: ^2.32.0
-  firebase_auth: ^4.20.0
-  cloud_firestore: ^4.13.0
+  # Firebase (v3+ - RESOLVED CONFLICTS)
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  firebase_messaging: ^15.1.3
+  flutter_local_notifications: ^17.2.2
 
   # Google Sign-In
-  google_sign_in: ^6.1.6
+  google_sign_in: ^6.2.1
 
   # Date & Time
-  intl: ^0.18.0
+  intl: ^0.19.0
 
   # UI & Icons
   cupertino_icons: ^1.0.8

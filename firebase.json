@@ -1,1 +1,50 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"zynkup-app","appId":"1:659234851207:android:a5c4d2ea4faf3a5a43eb22","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"zynkup-app","configurations":{"android":"1:659234851207:android:a5c4d2ea4faf3a5a43eb22","ios":"1:659234851207:ios:3fdcd4af05367b7543eb22","web":"1:659234851207:web:04ea61ec5ba0429943eb22"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "zynkup-app",
+          "appId": "1:659234851207:android:a5c4d2ea4faf3a5a43eb22",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "zynkup-app",
+          "configurations": {
+            "android": "1:659234851207:android:a5c4d2ea4faf3a5a43eb22",
+            "ios": "1:659234851207:ios:3fdcd4af05367b7543eb22",
+            "web": "1:659234851207:web:04ea61ec5ba0429943eb22"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

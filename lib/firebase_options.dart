@@ -69,6 +69,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '659234851207',
     projectId: 'zynkup-app',
     storageBucket: 'zynkup-app.firebasestorage.app',
+    androidClientId: '659234851207-tn1bsia4vtdtavh2gi4q9k9ch4t9u1gs.apps.googleusercontent.com',
+    iosClientId: '659234851207-fl9gfob5pr92m2gkjn0rthpboftgvtun.apps.googleusercontent.com',
     iosBundleId: 'com.example.zynkup',
   );
+
 }
