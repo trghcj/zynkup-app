@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:zynkup/core/utils/string_extensions.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/services/event_service.dart';
+import 'package:zynkup/features/events/screens/edit_event_screen.dart'; // ADD
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 
 class EventListScreen extends StatelessWidget {
@@ -146,13 +147,26 @@ class EventListScreen extends StatelessWidget {
                         backgroundColor: _getCategoryColor(event.category).withOpacity(0.2),
                         labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
-                      // DELETE BUTTON (Organizer Only)
-                      if (isOrganizer)
+                      // ORGANIZER CONTROLS
+                      if (isOrganizer) ...[
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blueAccent, size: 20),
+                          tooltip: 'Edit Event',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditEventScreen(event: event),
+                              ),
+                            );
+                          },
+                        ),
                         IconButton(
                           icon: const Icon(Icons.delete_forever, color: Colors.redAccent, size: 22),
                           tooltip: 'Delete Event',
                           onPressed: () => _showDeleteDialog(context, eventService, event),
                         ),
+                      ],
                     ],
                   ),
                   onTap: () {
