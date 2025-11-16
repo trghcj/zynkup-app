@@ -1,0 +1,36 @@
+{
+  "components": [
+    {
+      "dependencies": [
+        "core",
+        "powershell-windows"
+      ],
+      "details": {
+        "description": "PowerShell cmdlets for the Google Cloud Platform.",
+        "display_name": "Cloud Tools for PowerShell"
+      },
+      "gdu_only": true,
+      "id": "powershell",
+      "is_configuration": false,
+      "is_hidden": true,
+      "is_required": false,
+      "platform": {
+        "operating_systems": [
+          "WINDOWS"
+        ]
+      },
+      "platform_required": false,
+      "version": {
+        "build_number": 0,
+        "version_string": "1.0.1.10"
+      }
+    }
+  ],
+  "revision": 20251107144733,
+  "schema_version": {
+    "no_update": false,
+    "url": "https://dl.google.com/dl/cloudsdk/channels/rapid/google-cloud-sdk.tar.gz",
+    "version": 3
+  },
+  "version": "547.0.0"
+}
