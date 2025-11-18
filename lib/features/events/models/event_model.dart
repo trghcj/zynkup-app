@@ -1,10 +1,12 @@
+// lib/features/events/models/event_model.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum EventCategory {
   tech,
   cultural,
   sports,
-  workshop,
+  workshop, seminar,
 }
 
 class Event {
@@ -16,6 +18,7 @@ class Event {
   final EventCategory category;
   final String organizerId;
   final List<String> registeredUsers;
+  final String? imageUrl;
 
   Event({
     required this.id,
@@ -26,9 +29,9 @@ class Event {
     required this.category,
     required this.organizerId,
     this.registeredUsers = const [],
+    this.imageUrl,
   });
 
-  // FROM FIRESTORE
   factory Event.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Event(
@@ -37,16 +40,13 @@ class Event {
       description: data['description'] ?? '',
       venue: data['venue'] ?? '',
       date: (data['date'] as Timestamp).toDate(),
-      category: EventCategory.values.firstWhere(
-        (e) => e.name == data['category'],
-        orElse: () => EventCategory.tech,
-      ),
+      category: _parseCategory(data['category'] ?? 'tech'),
       organizerId: data['organizerId'] ?? '',
       registeredUsers: List<String>.from(data['registeredUsers'] ?? []),
+      imageUrl: data['imageUrl'] as String?,
     );
   }
 
-  // TO FIRESTORE
   Map<String, dynamic> toFirestore() {
     return {
       'title': title,
@@ -56,10 +56,10 @@ class Event {
       'category': category.name,
       'organizerId': organizerId,
       'registeredUsers': registeredUsers,
+      if (imageUrl != null) 'imageUrl': imageUrl,
     };
   }
 
-  // ADD THIS: copyWith METHOD
   Event copyWith({
     String? id,
     String? title,
@@ -69,6 +69,7 @@ class Event {
     EventCategory? category,
     String? organizerId,
     List<String>? registeredUsers,
+    String? imageUrl,
   }) {
     return Event(
       id: id ?? this.id,
@@ -79,6 +80,14 @@ class Event {
       category: category ?? this.category,
       organizerId: organizerId ?? this.organizerId,
       registeredUsers: registeredUsers ?? this.registeredUsers,
+      imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
+
+  static EventCategory _parseCategory(String value) {
+    return EventCategory.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => EventCategory.tech,
     );
   }
 }
