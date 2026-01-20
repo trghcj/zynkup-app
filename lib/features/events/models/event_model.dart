@@ -1,12 +1,11 @@
-// lib/features/events/models/event_model.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum EventCategory {
   tech,
   cultural,
   sports,
-  workshop, seminar,
+  workshop,
+  seminar,
 }
 
 class Event {
@@ -18,7 +17,9 @@ class Event {
   final EventCategory category;
   final String organizerId;
   final List<String> registeredUsers;
-  final String? imageUrl;
+
+  /// ✅ MULTIPLE IMAGES SUPPORT
+  final List<String> imageUrls;
 
   Event({
     required this.id,
@@ -29,11 +30,13 @@ class Event {
     required this.category,
     required this.organizerId,
     this.registeredUsers = const [],
-    this.imageUrl,
+    this.imageUrls = const [],
   });
 
+  // ---------------- FROM FIRESTORE ----------------
   factory Event.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+
     return Event(
       id: doc.id,
       title: data['title'] ?? '',
@@ -42,11 +45,19 @@ class Event {
       date: (data['date'] as Timestamp).toDate(),
       category: _parseCategory(data['category'] ?? 'tech'),
       organizerId: data['organizerId'] ?? '',
-      registeredUsers: List<String>.from(data['registeredUsers'] ?? []),
-      imageUrl: data['imageUrl'] as String?,
+      registeredUsers:
+          List<String>.from(data['registeredUsers'] ?? []),
+
+      /// ✅ SAFE READ (old + new data compatible)
+      imageUrls: data['imageUrls'] != null
+          ? List<String>.from(data['imageUrls'])
+          : data['imageUrl'] != null
+              ? [data['imageUrl']]
+              : [],
     );
   }
 
+  // ---------------- TO FIRESTORE ----------------
   Map<String, dynamic> toFirestore() {
     return {
       'title': title,
@@ -56,10 +67,11 @@ class Event {
       'category': category.name,
       'organizerId': organizerId,
       'registeredUsers': registeredUsers,
-      if (imageUrl != null) 'imageUrl': imageUrl,
+      'imageUrls': imageUrls,
     };
   }
 
+  // ---------------- COPY WITH ----------------
   Event copyWith({
     String? id,
     String? title,
@@ -69,7 +81,7 @@ class Event {
     EventCategory? category,
     String? organizerId,
     List<String>? registeredUsers,
-    String? imageUrl,
+    List<String>? imageUrls,
   }) {
     return Event(
       id: id ?? this.id,
@@ -80,10 +92,11 @@ class Event {
       category: category ?? this.category,
       organizerId: organizerId ?? this.organizerId,
       registeredUsers: registeredUsers ?? this.registeredUsers,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
     );
   }
 
+  // ---------------- CATEGORY PARSER ----------------
   static EventCategory _parseCategory(String value) {
     return EventCategory.values.firstWhere(
       (e) => e.name == value,

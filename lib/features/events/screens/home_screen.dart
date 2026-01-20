@@ -1,71 +1,87 @@
-// lib/features/events/screens/home_screen.dart
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:zynkup/features/auth/screens/login_choice_screen.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
-import 'package:zynkup/features/widgets/event_list_widget.dart'; // your event list
+import 'package:zynkup/features/widgets/event_list_widget.dart';
+import 'package:zynkup/features/user/services/user_service.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // ADD YOUR ADMIN EMAILS HERE (same as main.dart)
-  static const List<String> adminEmails = [
-    'admin@zynkup.com',
-    'cdc@mait.ac.in',
-    'faculty@mait.ac.in',
-    'organizer@gmail.com',
-    'admin@gmail.com', // YOUR TEST EMAIL
-  ];
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
 
-  bool get isAdmin {
-    final email = FirebaseAuth.instance.currentUser?.email?.toLowerCase();
-    return email != null && adminEmails.contains(email);
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginChoiceScreen()),
+        (_) => false,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isAdmin = this.isAdmin;
+    final user = FirebaseAuth.instance.currentUser!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isAdmin ? 'Admin Panel' : 'Zynkup Events',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () => FirebaseAuth.instance.signOut(),
-              tooltip: 'Logout',
-            ),
-        ],
-      ),
+    return FutureBuilder<bool>(
+      future: UserService().isAdmin(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-      body: const EventListWidget(), // YOUR EVENT LIST (same for all)
+        final isAdmin = snapshot.data ?? false;
 
-      // ONLY ADMIN SEES THIS BUTTON
-      floatingActionButton: isAdmin
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreateEventScreen()),
-                );
-              },
-              backgroundColor: Colors.deepPurple,
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
-                'Create Event',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              isAdmin ? 'Admin Dashboard' : 'Zynkup Events',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
-            )
-          : null,
+            ),
+            backgroundColor: Colors.deepPurple,
+            foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () => _logout(context),
+              ),
+            ],
+          ),
 
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          body: const EventListWidget(),
+
+          floatingActionButton: isAdmin
+              ? FloatingActionButton.extended(
+                  backgroundColor: Colors.deepPurple,
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    'Create Event',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreateEventScreen(),
+                      ),
+                    );
+                  },
+                )
+              : null,
+
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+        );
+      },
     );
   }
 }

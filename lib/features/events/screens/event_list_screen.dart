@@ -255,7 +255,6 @@ class EventListScreen extends StatelessWidget {
       case EventCategory.workshop:
         return Colors.orange;
       case EventCategory.seminar:
-        // TODO: Handle this case.
         throw UnimplementedError();
     }
   }

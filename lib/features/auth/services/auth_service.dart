@@ -1,102 +1,123 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart'; // ADD: kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // ADD: Web client ID for localhost
     clientId: kIsWeb
         ? '659234851207-o80f3633j9f09j79d0ml7376o7v4iv58.apps.googleusercontent.com'
         : null,
   );
 
-  // Sign in with Email and Password
-  Future<User?> signInWithEmailPassword(String email, String password) async {
+  // =========================
+  // EMAIL LOGIN
+  // =========================
+  Future<User?> signInWithEmailPassword(
+    String email,
+    String password,
+  ) async {
     try {
       final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      await _createUserIfNotExists(credential.user!);
       return credential.user;
     } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+      throw _mapFirebaseError(e);
     }
   }
 
-  // Sign up with Email and Password
+  // =========================
+  // EMAIL SIGN UP
+  // =========================
   Future<User?> signUp(String email, String password) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      await _createUserIfNotExists(credential.user!);
       return credential.user;
     } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+      throw _mapFirebaseError(e);
     }
   }
 
-  // Google Sign-In
+  // =========================
+  // GOOGLE SIGN-IN
+  // =========================
   Future<User?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) throw 'Google Sign-In cancelled';
 
-      if (googleUser == null) {
-        throw Exception('Google Sign-In was cancelled');
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      if (googleAuth.accessToken == null && googleAuth.idToken == null) {
-        throw Exception('Failed to get Google credentials');
-      }
+      final googleAuth = await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final userCredential = await _auth.signInWithCredential(credential);
+      final userCredential =
+          await _auth.signInWithCredential(credential);
+
+      await _createUserIfNotExists(userCredential.user!);
       return userCredential.user;
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
     } catch (e) {
-      print('Google Sign-In Error: $e');
-      rethrow;
+      throw 'Google Sign-In failed';
     }
   }
 
-  // Sign Out
-  Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+  // =========================
+  // CREATE USER IN FIRESTORE
+  // =========================
+  Future<void> _createUserIfNotExists(User user) async {
+    final ref = _firestore.collection('users').doc(user.uid);
+    final doc = await ref.get();
+
+    if (!doc.exists) {
+      await ref.set({
+        'email': user.email,
+        'role': 'user', // 👈 DEFAULT ROLE
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
-  // Get current user
+  // =========================
+  // SIGN OUT
+  // =========================
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+    await _auth.signOut();
+  }
+
   User? get currentUser => _auth.currentUser;
 
-  // Helper: Convert Firebase errors to user-friendly messages
-  String _handleAuthException(FirebaseAuthException e) {
+  // =========================
+  // ERROR MAPPER
+  // =========================
+  String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        return 'No user found with this email.';
+        return 'No account found';
       case 'wrong-password':
-        return 'Incorrect password.';
+        return 'Incorrect password';
       case 'invalid-email':
-        return 'Invalid email address.';
+        return 'Invalid email';
       case 'email-already-in-use':
-        return 'This email is already registered.';
+        return 'Email already registered';
       case 'weak-password':
-        return 'Password should be at least 6 characters.';
-      case 'operation-not-allowed':
-        return 'Sign-in method is disabled.';
-      case 'network-request-failed':
-        return 'Network error. Check your connection.';
+        return 'Weak password';
       default:
-        return e.message ?? 'Authentication failed.';
+        return e.message ?? 'Auth failed';
     }
   }
 }

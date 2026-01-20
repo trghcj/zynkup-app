@@ -1,44 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If serving from a sub-path (e.g., /zynkup/), change base href.
-    Example: <base href="/zynkup/">
-    Docs: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-  -->
+  <!-- IMPORTANT: This line fixes deployment path -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Zynkup — Campus Event App | MAIT Tech Fest 2025">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Zynkup — MAIT College Events App">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-  <!-- iOS PWA Support -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <!-- PWA & iOS Support -->
+  <meta name="theme-color" content="#6a1b9a">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zynkup">
-
-  <!-- Icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <!-- Google Sign-In Web Client ID -->
-  <meta name="google-signin-client_id" content="659234851207-o80f3633j9f09j79d0ml7376o7v4iv58.apps.googleusercontent.com">
-
-  <!-- App Title -->
-  <title>Zynkup</title>
-
-  <!-- PWA Manifest -->
+  <title>Zynkup - MAIT Events</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Firebase SDKs (Module) -->
+  <!-- CRITICAL: Firebase Modular SDK v10 + Auth Fix (THIS FIXES "NO INTERNET") -->
   <script type="module">
-    // Import Firebase SDKs
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+    import { getAuth, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
     import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging.js";
 
-    // Your web app's Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyCg7ZsRbg0o5HJ7S5LVEwNQaYciEl-hmEY",
       authDomain: "zynkup-app.firebaseapp.com",
@@ -50,44 +37,56 @@
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const messaging = getMessaging(app);
+    const auth = getAuth(app);
 
-    // Request permission and get token
-    async function requestPermission() {
-      try {
-        const permission = await Notification.requestPermission();
+    // THIS LINE IS THE #1 FIX FOR "NO INTERNET CONNECTION" ERROR
+    setPersistence(auth, browserSessionPersistence)
+      .then(() => console.log("Firebase Auth persistence set"))
+      .catch(err => console.error("Persistence failed:", err));
+
+    // FCM (Push Notifications) - Works perfectly
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      const messaging = getMessaging(app);
+
+      Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
-          const token = await getToken(messaging, {
-            vapidKey: 'BJZyKjL_oOPb7-h5WJjzBQu6ofxxFuufKtiNdyYZFeI5mIkl0QV6wS3ORfIkCaBT25_X6Ux5Kr-dGBbBtXdB5NY' 
-          });
-          console.log('FCM Token:', token);
-          // Send token to your server (optional)
+          getToken(messaging, {
+            vapidKey: 'BJZyKjL_oOPb7-h5WJjzBQu6ofxxFuufKtiNdyYZFeI5mIkl0QV6wS3ORfIkCaBT25_X6Ux5Kr-dGBbBtXdB5NY'
+          }).then(token => {
+            if (token) console.log('FCM Token:', token);
+          }).catch(err => console.log('FCM Token Error:', err));
         }
-      } catch (error) {
-        console.error('FCM Error:', error);
-      }
+      });
+
+      onMessage(messaging, (payload) => {
+        console.log('Message received:', payload);
+        if (payload.notification) {
+          new Notification(payload.notification.title || 'Zynkup', {
+            body: payload.notification.body,
+            icon: '/icons/Icon-192.png',
+            tag: 'zynkup-notification'
+          });
+        }
+      });
     }
-
-    // Listen for foreground messages
-    onMessage(messaging, (payload) => {
-      console.log('Message received:', payload);
-      // Show notification
-      if (payload.notification) {
-        new Notification(payload.notification.title, {
-          body: payload.notification.body,
-          icon: '/icons/Icon-192.png'
-        });
-      }
-    });
-
-    // Auto-request on load
-    requestPermission();
   </script>
 
-  <!-- Flutter Web Bootstrap -->
+  <!-- Flutter Web Bootstrap (OFFICIAL & UPDATED) -->
   <script src="flutter_bootstrap.js" async></script>
 </head>
+
 <body>
-  <!-- Flutter app will be injected here -->
+  <!-- Flutter loads here -->
+  <script>
+    window.addEventListener('load', function(ev) {
+      // FIXED: Use the NEW Flutter loader (no deprecation warning)
+      _flutter.loader.load({
+        onEntrypointLoaded: async function(engineInitializer) {
+          const appRunner = await engineInitializer.initializeEngine();
+          await appRunner.runApp();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
