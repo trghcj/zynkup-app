@@ -3,8 +3,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:zynkup/core/utils/string_extensions.dart';
+
 import 'package:zynkup/features/events/models/event_model.dart';
+import 'package:zynkup/features/events/screens/event_details_screen.dart';
+import 'package:zynkup/core/utils/string_extensions.dart';
 
 class EventListWidget extends StatelessWidget {
   const EventListWidget({super.key});
@@ -33,21 +35,13 @@ class EventListWidget extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.event_busy, size: 80, color: Colors.grey[400]),
-                const SizedBox(height: 16),
-                Text(
-                  'No events yet',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Check back later!',
-                  style: TextStyle(color: Colors.grey[500]),
-                ),
+                Icon(Icons.event_busy, size: 80, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No events yet', style: TextStyle(fontSize: 18)),
               ],
             ),
           );
@@ -73,9 +67,11 @@ class EventListWidget extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),
                 onTap: () {
-                  // Optional: Open event details later
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Event: ${event.title}')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EventDetailsScreen(event: event),
+                    ),
                   );
                 },
                 child: Padding(
@@ -83,82 +79,94 @@ class EventListWidget extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Event Image or Placeholder
+                      /// IMAGE (FIRST IMAGE ONLY)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: event.imageUrl != null && event.imageUrl!.isNotEmpty
+                        child: event.imageUrls.isNotEmpty
                             ? Image.network(
-                                event.imageUrl!,
+                                event.imageUrls.first,
                                 width: 100,
                                 height: 100,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _buildImagePlaceholder(event),
+                                errorBuilder: (_, __, ___) =>
+                                    _imagePlaceholder(event),
                               )
-                            : _buildImagePlaceholder(event),
+                            : _imagePlaceholder(event),
                       ),
+
                       const SizedBox(width: 16),
 
-                      // Event Details
+                      /// DETAILS
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Category Badge
+                            /// CATEGORY
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: _getCategoryColor(event.category).withOpacity(0.2),
+                                color: _categoryColor(event.category)
+                                    .withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 event.category.name.capitalize(),
                                 style: TextStyle(
-                                  color: _getCategoryColor(event.category),
+                                  color: _categoryColor(event.category),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
                               ),
                             ),
+
                             const SizedBox(height: 8),
 
-                            // Title
+                            /// TITLE
                             Text(
                               event.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
+
                             const SizedBox(height: 8),
 
-                            // Date & Time
+                            /// DATE & TIME
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today, size: 16, color: Colors.deepPurple),
+                                const Icon(Icons.calendar_today,
+                                    size: 16,
+                                    color: Colors.deepPurple),
                                 const SizedBox(width: 6),
                                 Text(
-                                  DateFormat('EEE, MMM dd • hh:mm a').format(event.date),
+                                  DateFormat(
+                                          'EEE, MMM dd • hh:mm a')
+                                      .format(event.date),
                                   style: TextStyle(
-                                    color: isUpcoming ? Colors.green[700] : Colors.grey[600],
+                                    color: isUpcoming
+                                        ? Colors.green
+                                        : Colors.grey,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
+
                             const SizedBox(height: 6),
 
-                            // Venue
+                            /// VENUE
                             Row(
                               children: [
-                                const Icon(Icons.location_on, size: 16, color: Colors.red),
+                                const Icon(Icons.location_on,
+                                    size: 16, color: Colors.red),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
                                     event.venue,
-                                    style: TextStyle(color: Colors.grey[700]),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -168,10 +176,11 @@ class EventListWidget extends StatelessWidget {
                         ),
                       ),
 
-                      // Status Indicator
+                      /// STATUS
                       if (!isUpcoming)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.grey.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(20),
@@ -179,9 +188,8 @@ class EventListWidget extends StatelessWidget {
                           child: const Text(
                             'PAST',
                             style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
                               fontSize: 10,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -196,20 +204,22 @@ class EventListWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildImagePlaceholder(Event event) {
+  // ================= HELPERS =================
+
+  Widget _imagePlaceholder(Event event) {
     return Container(
       width: 100,
       height: 100,
-      color: _getCategoryColor(event.category).withOpacity(0.3),
+      color: _categoryColor(event.category).withOpacity(0.3),
       child: Icon(
-        _getCategoryIcon(event.category),
+        _categoryIcon(event.category),
         size: 40,
-        color: _getCategoryColor(event.category),
+        color: _categoryColor(event.category),
       ),
     );
   }
 
-  Color _getCategoryColor(EventCategory category) {
+  Color _categoryColor(EventCategory category) {
     switch (category) {
       case EventCategory.tech:
         return Colors.blue;
@@ -221,10 +231,10 @@ class EventListWidget extends StatelessWidget {
         return Colors.orange;
       case EventCategory.seminar:
         return Colors.red;
-      }
+    }
   }
 
-  IconData _getCategoryIcon(EventCategory category) {
+  IconData _categoryIcon(EventCategory category) {
     switch (category) {
       case EventCategory.tech:
         return Icons.code;
@@ -236,6 +246,6 @@ class EventListWidget extends StatelessWidget {
         return Icons.build;
       case EventCategory.seminar:
         return Icons.mic;
-      }
+    }
   }
 }
