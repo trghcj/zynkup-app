@@ -1,9 +1,10 @@
 // lib/features/user/screens/user_login_screen.dart
-
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:zynkup/features/auth/services/auth_service.dart';
+import 'package:zynkup/core/api/api_service.dart';
+import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/auth/screens/signup_screen.dart';
+import 'package:zynkup/features/user/screens/user_home_screen.dart';
+import 'package:zynkup/features/admin/screens/admin_home_screen.dart';
 
 class UserLoginScreen extends StatefulWidget {
   const UserLoginScreen({super.key});
@@ -14,184 +15,220 @@ class UserLoginScreen extends StatefulWidget {
 
 class _UserLoginScreenState extends State<UserLoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _emailC = TextEditingController();
+  final _passC = TextEditingController();
+  bool _loading = false;
+  bool _hidePass = true;
 
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
-  final AuthService _authService = AuthService();
-
-  bool _isLoading = false;
-  bool _obscurePassword = true;
-
-  // ================= EMAIL LOGIN =================
-  Future<void> _loginWithEmailPassword() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
+    FocusScope.of(context).unfocus();
+    setState(() => _loading = true);
     try {
-      await _authService.signInWithEmailPassword(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-
-      // 🚫 DO NOT NAVIGATE HERE
-      // ✅ AuthGate will decide next screen
-
-    } on FirebaseAuthException catch (e) {
-      _showSnackBar(_firebaseErrorMessage(e), Colors.redAccent);
+      final res = await ApiService.login(
+          _emailC.text.trim(), _passC.text.trim());
+      if (!mounted) return;
+      if (res["role"] == "admin") {
+        Navigator.pushAndRemoveUntil(context,
+            MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+            (_) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(context,
+            MaterialPageRoute(builder: (_) => const UserHomeScreen()),
+            (_) => false);
+      }
+    } on ApiException catch (e) {
+      _snack(e.message);
     } catch (_) {
-      _showSnackBar('Something went wrong. Try again.', Colors.orange);
+      _snack("Connection error. Is the server running?");
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  // ================= GOOGLE LOGIN =================
-  Future<void> _loginWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      await _authService.signInWithGoogle();
-      // AuthGate handles navigation
-    } catch (_) {
-      _showSnackBar('Google Sign-In failed', Colors.redAccent);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  String _firebaseErrorMessage(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return 'No account found for this email';
-      case 'wrong-password':
-        return 'Incorrect password';
-      case 'invalid-email':
-        return 'Invalid email address';
-      case 'user-disabled':
-        return 'This account is disabled';
-      case 'too-many-requests':
-        return 'Too many attempts. Try later';
-      default:
-        return e.message ?? 'Login failed';
-    }
-  }
-
-  void _showSnackBar(String message, Color color) {
-    if (!mounted) return;
-
+  void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: color,
+        content: Text(msg),
+        backgroundColor: ZynkColors.error,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _emailC.dispose();
+    _passC.dispose();
     super.dispose();
   }
 
-  // ================= UI =================
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: SafeArea(
-        child: Center(
+      body: Stack(children: [
+        // ── Accent blob top-right ──────────────────────────
+        Positioned(
+          top: -60,
+          right: -60,
+          child: Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: ZynkColors.primary.withOpacity(0.08),
+            ),
+          ),
+        ),
+
+        SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Form(
               key: _formKey,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.event, size: 90, color: Colors.deepPurple),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  const Text(
-                    'User Login',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  // ── Back ──────────────────────────────────
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: dark
+                            ? ZynkColors.darkSurface2
+                            : ZynkColors.lightSurf2,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: dark
+                                ? ZynkColors.darkBorder
+                                : ZynkColors.lightBorder),
+                      ),
+                      child: Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 16,
+                          color: dark
+                              ? ZynkColors.darkText
+                              : ZynkColors.lightText),
+                    ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 36),
 
+                  // ── Heading ───────────────────────────────
+                  ShaderMask(
+                    shaderCallback: (b) =>
+                        ZynkGradients.brand.createShader(b),
+                    child: const Text(
+                      'Welcome\nback.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
+                        height: 1.05,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    'Sign in to your student account',
+                    style: TextStyle(
+                      color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+                      fontSize: 14,
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // ── Fields ────────────────────────────────
                   TextFormField(
-                    controller: _emailController,
+                    controller: _emailC,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
+                      labelText: 'Email address',
+                      prefixIcon: Icon(Icons.alternate_email_rounded),
                     ),
                     validator: (v) =>
-                        v!.isEmpty ? 'Enter email' : null,
+                        v == null || v.isEmpty ? 'Enter your email' : null,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
                   TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
+                    controller: _passC,
+                    obscureText: _hidePass,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock),
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
+                        icon: Icon(_hidePass
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded),
                         onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                            setState(() => _hidePass = !_hidePass),
                       ),
                     ),
                     validator: (v) =>
-                        v!.length < 6 ? 'Min 6 characters' : null,
+                        v == null || v.length < 6 ? 'Min 6 characters' : null,
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 28),
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isLoading ? null : _loginWithEmailPassword,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('LOGIN'),
+                  ZynkButton(
+                    label: 'Sign In',
+                    icon: Icons.login_rounded,
+                    onTap: _login,
+                    isLoading: _loading,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ── Signup link ───────────────────────────
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SignUpScreen()),
+                      ),
+                      child: RichText(
+                        text: TextSpan(
+                          text: "Don't have an account? ",
+                          style: TextStyle(
+                            color: dark
+                                ? ZynkColors.darkMuted
+                                : ZynkColors.lightMuted,
+                            fontSize: 14,
+                          ),
+                          children: const [
+                            TextSpan(
+                              text: 'Sign up →',
+                              style: TextStyle(
+                                color: ZynkColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 16),
-
-                  OutlinedButton(
-                    onPressed: _isLoading ? null : _loginWithGoogle,
-                    child: const Text('Continue with Google'),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SignUpScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('Create New Account'),
-                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
           ),
         ),
-      ),
+      ]),
     );
   }
 }

@@ -1,7 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/features/auth/screens/signup_screen.dart
 import 'package:flutter/material.dart';
-import 'package:zynkup/features/auth/services/auth_service.dart';
-import 'package:zynkup/features/events/screens/home_screen.dart';
+import 'package:zynkup/core/api/api_service.dart';
+import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/features/user/screens/profile_setup_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -12,317 +13,237 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
+  final _emailC = TextEditingController();
+  final _passC = TextEditingController();
+  final _confirmC = TextEditingController();
+  bool _loading = false;
+  bool _hidePass = true;
+  bool _hideConfirm = true;
 
-  bool _isLoading = false;
-  bool _hidePassword = true;
-  bool _hideConfirmPassword = true;
-
-  // ---------------- EMAIL SIGN UP ----------------
-  Future<void> _signUpWithEmail() async {
+  Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
+    setState(() => _loading = true);
     try {
-      final user = await _authService.signUp(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-
-      if (user == null || !mounted) return;
-
+      await ApiService.signUp(_emailC.text.trim(), _passC.text.trim());
+      if (!mounted) return;
+      _snack("Account created! Let's set up your profile 🎉",
+          ZynkColors.success);
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
         (_) => false,
       );
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Sign up failed');
+    } on ApiException catch (e) {
+      _snack(e.message, ZynkColors.error);
     } catch (_) {
-      _showError('Something went wrong. Please try again.');
+      _snack("Signup failed. Please try again.", ZynkColors.error);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  // ---------------- GOOGLE SIGN UP ----------------
-  Future<void> _signUpWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final user = await _authService.signInWithGoogle();
-
-      if (user == null || !mounted) return;
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (_) => false,
-      );
-    } catch (e) {
-      _showError(e.toString().replaceAll('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // ---------------- ERROR HANDLER ----------------
-  void _showError(String message) {
-    if (!mounted) return;
-
+  void _snack(String msg, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade600,
+        content: Text(msg),
+        backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _emailC.dispose();
+    _passC.dispose();
+    _confirmC.dispose();
     super.dispose();
   }
 
-  // ---------------- UI ----------------
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('Create Account'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        elevation: 4,
-      ),
-      body: SafeArea(
-        child: Center(
+      body: Stack(children: [
+        Positioned(
+          bottom: -80,
+          right: -80,
+          child: Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: ZynkColors.accent.withOpacity(0.07),
+            ),
+          ),
+        ),
+
+        SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Form(
               key: _formKey,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  const Icon(
-                    Icons.person_add_alt_1,
-                    size: 90,
-                    color: Colors.deepPurple,
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: dark
+                            ? ZynkColors.darkSurface2
+                            : ZynkColors.lightSurf2,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: dark
+                                ? ZynkColors.darkBorder
+                                : ZynkColors.lightBorder),
+                      ),
+                      child: Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 16,
+                          color: dark
+                              ? ZynkColors.darkText
+                              : ZynkColors.lightText),
+                    ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 36),
 
-                  const Text(
-                    'Join Zynkup',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                  ShaderMask(
+                    shaderCallback: (b) =>
+                        ZynkGradients.brand.createShader(b),
+                    child: const Text(
+                      'Join\nZynkup.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
+                        height: 1.05,
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 8),
 
                   Text(
-                    'Sign up to explore campus events',
+                    'Create your account in seconds',
                     style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey.shade600,
+                      color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+                      fontSize: 14,
                     ),
                   ),
 
                   const SizedBox(height: 36),
 
-                  // EMAIL
                   TextFormField(
-                    controller: _emailController,
+                    controller: _emailC,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: _inputDecoration(
-                      label: 'Email',
-                      icon: Icons.email_outlined,
+                    decoration: const InputDecoration(
+                      labelText: 'Email address',
+                      prefixIcon: Icon(Icons.alternate_email_rounded),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter email';
-                      }
-                      if (!RegExp(
-                        r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$',
-                      ).hasMatch(value)) {
-                        return 'Enter valid email';
-                      }
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Enter your email';
+                      if (!v.contains('@')) return 'Enter a valid email';
                       return null;
                     },
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // PASSWORD
                   TextFormField(
-                    controller: _passwordController,
-                    obscureText: _hidePassword,
-                    decoration: _inputDecoration(
-                      label: 'Password',
-                      icon: Icons.lock_outline,
-                      suffix: IconButton(
-                        icon: Icon(
-                          _hidePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() => _hidePassword = !_hidePassword);
-                        },
+                    controller: _passC,
+                    obscureText: _hidePass,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(_hidePass
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded),
+                        onPressed: () =>
+                            setState(() => _hidePass = !_hidePass),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter password';
-                      }
-                      if (value.length < 6) {
-                        return 'Minimum 6 characters';
-                      }
-                      return null;
-                    },
+                    validator: (v) => v == null || v.length < 8
+                        ? 'Min 8 characters'
+                        : null,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  // CONFIRM PASSWORD
                   TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: _hideConfirmPassword,
-                    decoration: _inputDecoration(
-                      label: 'Confirm Password',
-                      icon: Icons.lock_outline,
-                      suffix: IconButton(
-                        icon: Icon(
-                          _hideConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() => _hideConfirmPassword =
-                              !_hideConfirmPassword);
-                        },
+                    controller: _confirmC,
+                    obscureText: _hideConfirm,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm password',
+                      prefixIcon: const Icon(Icons.lock_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(_hideConfirm
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded),
+                        onPressed: () =>
+                            setState(() => _hideConfirm = !_hideConfirm),
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Confirm your password';
-                      }
-                      if (value != _passwordController.text) {
-                        return 'Passwords do not match';
-                      }
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Confirm password';
+                      if (v != _passC.text) return 'Passwords do not match';
                       return null;
                     },
                   ),
 
                   const SizedBox(height: 28),
 
-                  // EMAIL SIGN UP BUTTON
-                  _isLoading
-                      ? const CircularProgressIndicator(
-                          color: Colors.deepPurple,
-                        )
-                      : SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: _signUpWithEmail,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Create Account',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                  const SizedBox(height: 16),
-
-                  // GOOGLE SIGN UP
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _signUpWithGoogle,
-                      icon: Image.asset(
-                        'assets/google_logo.png',
-                        height: 22,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.g_mobiledata,
-                          size: 30,
-                          color: Colors.red,
-                        ),
-                      ),
-                      label: const Text(
-                        'Sign up with Google',
-                        style: TextStyle(fontSize: 15),
-                      ),
-                    ),
+                  ZynkButton(
+                    label: 'Create Account',
+                    icon: Icons.person_add_rounded,
+                    onTap: _signUp,
+                    isLoading: _loading,
                   ),
 
                   const SizedBox(height: 24),
 
-                  // LOGIN LINK
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text.rich(
-                      TextSpan(
-                        text: 'Already have an account? ',
-                        children: [
-                          TextSpan(
-                            text: 'Login',
-                            style: TextStyle(
-                              color: Colors.deepPurple,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Already have an account? ',
+                          style: TextStyle(
+                            color: dark
+                                ? ZynkColors.darkMuted
+                                : ZynkColors.lightMuted,
+                            fontSize: 14,
                           ),
-                        ],
+                          children: const [
+                            TextSpan(
+                              text: 'Sign in →',
+                              style: TextStyle(
+                                color: ZynkColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required String label,
-    required IconData icon,
-    Widget? suffix,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon),
-      suffixIcon: suffix,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      ]),
     );
   }
 }

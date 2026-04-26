@@ -1,7 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/features/admin/screens/admin_login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:zynkup/core/api/api_service.dart';
+import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/admin/screens/admin_home_screen.dart';
+import 'package:zynkup/features/auth/screens/login_choice_screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -12,215 +14,275 @@ class AdminLoginScreen extends StatefulWidget {
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailC = TextEditingController();
+  final _passC = TextEditingController();
+  bool _loading = false;
+  bool _hidePass = true;
 
-  bool _isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    _checkAlreadyLoggedIn();
+  }
 
-  /// ✅ ALLOWED ADMIN EMAILS
-  static const List<String> adminEmails = [
-    'admin@zynkup.com',
-    'cdc@mait.ac.in',
-    'faculty@mait.ac.in',
-    'organizer@gmail.com',
-    'admin@gmail.com',
-    'ms1778937@gmail.com',
-    'singhdivyansh.016cseai@gmail.com',
-  ];
+  Future<void> _checkAlreadyLoggedIn() async {
+    if (ApiService.hasToken) {
+      final user = await ApiService.getCurrentUser();
+      if (user != null && user["role"] == "admin" && mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+          (_) => false,
+        );
+      }
+    }
+  }
 
-  // =========================
-  // EMAIL + PASSWORD LOGIN
-  // =========================
-  Future<void> _loginAdmin() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
-    final email = _emailController.text.trim().toLowerCase();
-
-    if (!adminEmails.contains(email)) {
-      _showError('You are not authorized as Admin');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
+    FocusScope.of(context).unfocus();
+    setState(() => _loading = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: _passwordController.text.trim(),
-      );
-
+      final res = await ApiService.login(
+          _emailC.text.trim(), _passC.text.trim());
       if (!mounted) return;
-      _goToAdminHome();
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Login failed');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // =========================
-  // GOOGLE SIGN-IN LOGIN
-  // =========================
-  Future<void> _loginAdminWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final googleSignIn = GoogleSignIn();
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-
-      if (googleUser == null) {
-        setState(() => _isLoading = false);
+      if (res["role"] != "admin") {
+        _snack("This account doesn't have admin access.");
+        await ApiService.logout();
         return;
       }
-
-      final googleAuth = await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+        (_) => false,
       );
-
-      final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
-
-      final email = userCredential.user?.email?.toLowerCase();
-
-      if (email == null || !adminEmails.contains(email)) {
-        await FirebaseAuth.instance.signOut();
-        await googleSignIn.signOut();
-        _showError('You are not authorized as Admin');
-        return;
-      }
-
-      if (!mounted) return;
-      _goToAdminHome();
-    } catch (e) {
-      _showError('Google sign-in failed');
+    } on ApiException catch (e) {
+      _snack(e.message);
+    } catch (_) {
+      _snack("Connection error. Is the server running?");
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  // =========================
-  // NAVIGATION
-  // =========================
-  void _goToAdminHome() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
-      (_) => false,
-    );
-  }
-
-  // =========================
-  // ERROR UI
-  // =========================
-  void _showError(String message) {
+  void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red.shade700,
+        content: Text(msg),
+        backgroundColor: ZynkColors.error,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _emailC.dispose();
+    _passC.dispose();
     super.dispose();
   }
 
-  // =========================
-  // UI
-  // =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Login'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const Icon(Icons.admin_panel_settings,
-                    size: 80, color: Colors.deepPurple),
+      body: Stack(children: [
+        // ── Warm dark bg with brand gradient header ────────
+        Container(
+          height: 280,
+          decoration: const BoxDecoration(gradient: ZynkGradients.brand),
+        ),
 
-                const SizedBox(height: 24),
-
-                /// EMAIL
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Admin Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Email required' : null,
-                ),
-
-                const SizedBox(height: 16),
-
-                /// PASSWORD
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) =>
-                      v == null || v.length < 6 ? 'Min 6 characters' : null,
-                ),
-
-                const SizedBox(height: 28),
-
-                /// EMAIL LOGIN
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _loginAdmin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Login as Admin',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                /// GOOGLE LOGIN
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed:
-                        _isLoading ? null : _loginAdminWithGoogle,
-                    icon: const Icon(Icons.g_mobiledata, size: 28),
-                    label: const Text(
-                      'Sign in with Google',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        // ── Decorative pattern ────────────────────────────
+        Positioned(
+          top: 40,
+          right: 20,
+          child: Opacity(
+            opacity: 0.15,
+            child: Icon(Icons.grid_4x4_rounded,
+                size: 180, color: Colors.white),
           ),
         ),
-      ),
+
+        SafeArea(
+          child: Column(
+            children: [
+              // ── Header ────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 16),
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () async {
+                        await ApiService.logout();
+                        if (!mounted) return;
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const LoginChoiceScreen()),
+                          (_) => false,
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(children: [
+                          Icon(Icons.logout_rounded,
+                              color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text('Clear session',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 12)),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Admin\nPortal.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 40,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.5,
+                        height: 1.05,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Restricted access — authorised admins only',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // ── Form card ─────────────────────────────────
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28)),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(28),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── Admin badge ───────────────────
+                          Row(children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                gradient: ZynkGradients.gold,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(children: [
+                                Icon(Icons.verified_rounded,
+                                    color: Colors.white, size: 13),
+                                SizedBox(width: 4),
+                                Text('ADMIN ACCESS',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.8)),
+                              ]),
+                            ),
+                          ]),
+
+                          const SizedBox(height: 24),
+
+                          TextFormField(
+                            controller: _emailC,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Admin email',
+                              prefixIcon:
+                                  Icon(Icons.alternate_email_rounded),
+                            ),
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Enter your email'
+                                : null,
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          TextFormField(
+                            controller: _passC,
+                            obscureText: _hidePass,
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon:
+                                  const Icon(Icons.lock_outline_rounded),
+                              suffixIcon: IconButton(
+                                icon: Icon(_hidePass
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded),
+                                onPressed: () => setState(
+                                    () => _hidePass = !_hidePass),
+                              ),
+                            ),
+                            validator: (v) =>
+                                v == null || v.length < 6
+                                    ? 'Min 6 characters'
+                                    : null,
+                          ),
+
+                          const SizedBox(height: 28),
+
+                          ZynkButton(
+                            label: 'Sign In as Admin',
+                            icon: Icons.admin_panel_settings_rounded,
+                            onTap: _login,
+                            isLoading: _loading,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 }

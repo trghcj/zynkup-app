@@ -88,3 +88,25 @@ migrate_working_dir/
 # Firebase / Google services
 google-services.json
 GoogleService-Info.plist
+
+# ================= PYTHON / FASTAPI =================
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# Google Cloud SDK (IMPORTANT for your issue)
+google-cloud-sdk/
+
+# OS files
+Thumbs.db

@@ -1,251 +1,204 @@
-// lib/features/events/widgets/event_list_widget.dart
-
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
-import 'package:zynkup/core/utils/string_extensions.dart';
 
-class EventListWidget extends StatelessWidget {
+enum EventFilter { all, today, upcoming, past }
+
+class EventListWidget extends StatefulWidget {
   const EventListWidget({super.key});
 
   @override
+  State<EventListWidget> createState() => _EventListWidgetState();
+}
+
+class _EventListWidgetState extends State<EventListWidget> {
+  EventFilter _selectedFilter = EventFilter.all;
+
+  List<Event> _events = [];
+  bool _isLoading = true;
+
+  final String baseUrl = "http://127.0.0.1:8000";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEvents();
+  }
+
+  /// 🔥 FETCH EVENTS FROM API
+  Future<void> fetchEvents() async {
+    try {
+      final res = await http.get(Uri.parse("$baseUrl/events"));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+
+        setState(() {
+          _events = (data as List)
+              .map((e) => Event.fromJson(e))
+              .toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('events')
-          .orderBy('date', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const Center(
-            child: Text(
-              'Something went wrong',
-              style: TextStyle(color: Colors.red),
-            ),
-          );
-        }
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.deepPurple),
-          );
-        }
+    final events = _applyFilter(_events);
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.event_busy, size: 80, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('No events yet', style: TextStyle(fontSize: 18)),
-              ],
-            ),
-          );
-        }
+    if (events.isEmpty) return _emptyState();
 
-        final events = snapshot.data!.docs
-            .map((doc) => Event.fromFirestore(doc))
-            .toList();
+    return Column(
+      children: [
+        _filterDropdown(),
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            final isUpcoming = event.date.isAfter(DateTime.now());
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: fetchEvents,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: events.length,
+              itemBuilder: (_, i) {
+                final event = events[i];
+                final isUpcoming =
+                    event.date.isAfter(DateTime.now());
 
-            return Card(
-              elevation: 6,
-              margin: const EdgeInsets.only(bottom: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EventDetailsScreen(event: event),
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      /// IMAGE (FIRST IMAGE ONLY)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: event.imageUrls.isNotEmpty
-                            ? Image.network(
-                                event.imageUrls.first,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _imagePlaceholder(event),
-                              )
-                            : _imagePlaceholder(event),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      /// DETAILS
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            /// CATEGORY
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _categoryColor(event.category)
-                                    .withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                event.category.name.capitalize(),
-                                style: TextStyle(
-                                  color: _categoryColor(event.category),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            /// TITLE
-                            Text(
-                              event.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            /// DATE & TIME
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today,
-                                    size: 16,
-                                    color: Colors.deepPurple),
-                                const SizedBox(width: 6),
-                                Text(
-                                  DateFormat(
-                                          'EEE, MMM dd • hh:mm a')
-                                      .format(event.date),
-                                  style: TextStyle(
-                                    color: isUpcoming
-                                        ? Colors.green
-                                        : Colors.grey,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 6),
-
-                            /// VENUE
-                            Row(
-                              children: [
-                                const Icon(Icons.location_on,
-                                    size: 16, color: Colors.red),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    event.venue,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      /// STATUS
-                      if (!isUpcoming)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'PAST',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(12),
+
+                    /// 🖼 IMAGE
+                    leading: event.imageUrls.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              event.imageUrls.first,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : const Icon(Icons.event, size: 40),
+
+                    /// 📝 TITLE
+                    title: Text(
+                      event.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold),
+                    ),
+
+                    /// 📍 DETAILS
+                    subtitle: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(event.venue),
+                        Text(
+                          DateFormat('MMM dd • hh:mm a')
+                              .format(event.date),
+                        ),
+                      ],
+                    ),
+
+                    /// 🟢 STATUS
+                    trailing: isUpcoming
+                        ? const Chip(
+                            label: Text("Upcoming"),
+                            backgroundColor: Colors.green,
+                          )
+                        : const Chip(
+                            label: Text("Past"),
+                            backgroundColor: Colors.grey,
+                          ),
+
+                    /// 🔗 NAVIGATION
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              EventDetailsScreen(event: event),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  // ================= HELPERS =================
+  /// 🔽 FILTER
+  List<Event> _applyFilter(List<Event> events) {
+    final now = DateTime.now();
 
-  Widget _imagePlaceholder(Event event) {
-    return Container(
-      width: 100,
-      height: 100,
-      color: _categoryColor(event.category).withOpacity(0.3),
-      child: Icon(
-        _categoryIcon(event.category),
-        size: 40,
-        color: _categoryColor(event.category),
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final endOfToday = startOfToday.add(const Duration(days: 1));
+
+    return events.where((event) {
+      /// 🔐 ONLY SHOW APPROVED EVENTS
+      if (!event.isApproved) return false;
+
+      switch (_selectedFilter) {
+        case EventFilter.today:
+          return event.date.isAfter(startOfToday) &&
+              event.date.isBefore(endOfToday);
+
+        case EventFilter.upcoming:
+          return event.date.isAfter(now);
+
+        case EventFilter.past:
+          return event.date.isBefore(now);
+
+        case EventFilter.all:
+          return true;
+      }
+    }).toList();
+  }
+
+  /// 🎛 FILTER UI
+  Widget _filterDropdown() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: DropdownButtonFormField<EventFilter>(
+        value: _selectedFilter,
+        decoration: const InputDecoration(
+          labelText: "Filter Events",
+          border: OutlineInputBorder(),
+        ),
+        items: EventFilter.values
+            .map((e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(e.name.toUpperCase()),
+                ))
+            .toList(),
+        onChanged: (v) => setState(() => _selectedFilter = v!),
       ),
     );
   }
 
-  Color _categoryColor(EventCategory category) {
-    switch (category) {
-      case EventCategory.tech:
-        return Colors.blue;
-      case EventCategory.cultural:
-        return Colors.purple;
-      case EventCategory.sports:
-        return Colors.green;
-      case EventCategory.workshop:
-        return Colors.orange;
-      case EventCategory.seminar:
-        return Colors.red;
-    }
-  }
-
-  IconData _categoryIcon(EventCategory category) {
-    switch (category) {
-      case EventCategory.tech:
-        return Icons.code;
-      case EventCategory.cultural:
-        return Icons.music_note;
-      case EventCategory.sports:
-        return Icons.sports_soccer;
-      case EventCategory.workshop:
-        return Icons.build;
-      case EventCategory.seminar:
-        return Icons.mic;
-    }
+  Widget _emptyState() {
+    return const Center(
+      child: Text("No events found 📭"),
+    );
   }
 }

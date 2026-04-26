@@ -1,261 +1,299 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:zynkup/core/utils/string_extensions.dart';
+import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
-import 'package:zynkup/features/events/services/event_service.dart';
-import 'package:zynkup/features/events/screens/edit_event_screen.dart'; // ADD
+import 'package:zynkup/features/events/screens/edit_event_screen.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 
-class EventListScreen extends StatelessWidget {
+class EventListScreen extends StatefulWidget {
   final EventCategory? category;
   const EventListScreen({super.key, this.category});
 
   @override
+  State<EventListScreen> createState() => _EventListScreenState();
+}
+
+class _EventListScreenState extends State<EventListScreen> {
+  List<Event> _events = [];
+  bool _isLoading = true;
+  final String baseUrl = "http://127.0.0.1:8000";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEvents();
+  }
+
+  Future<void> fetchEvents() async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/events"));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _events = (data as List).map((e) => Event.fromJson(e)).toList();
+          _isLoading = false;
+        });
+      } else {
+        throw Exception("Failed to load events");
+      }
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> deleteEvent(String id) async {
+    try {
+      final res = await http.delete(Uri.parse("$baseUrl/events/$id"));
+      if (res.statusCode == 200) fetchEvents();
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final EventService eventService = EventService();
-    final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final events = widget.category == null
+        ? _events
+        : _events.where((e) => e.category == widget.category).toList();
 
-    return StreamBuilder<List<Event>>(
-      stream: category == null
-          ? eventService.getEvents()
-          : eventService.getEventsByCategory(category!),
-      builder: (context, snapshot) {
-        // Loading
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: Colors.deepPurple),
-                SizedBox(height: 16),
-                Text('Loading events...', style: TextStyle(color: Colors.deepPurple)),
-              ],
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator(color: ZynkColors.primary));
+    }
+
+    if (events.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_busy_rounded,
+                size: 48, color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted),
+            const SizedBox(height: 12),
+            Text(
+              'No events found',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+              ),
             ),
-          );
-        }
+          ],
+        ),
+      );
+    }
 
-        // Error
-        if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error, color: Colors.red, size: 48),
-                const SizedBox(height: 16),
-                Text('Error: ${snapshot.error}', textAlign: TextAlign.center),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => eventService.getEvents(),
-                  child: const Text('Retry'),
-                ),
-              ],
+    return RefreshIndicator(
+      color: ZynkColors.primary,
+      onRefresh: fetchEvents,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        itemCount: events.length,
+        itemBuilder: (_, index) {
+          final event = events[index];
+          final catColor = ZynkColors.forCategory(event.category.name);
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
+              ),
             ),
-          );
-        }
-
-        // Empty
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: () async => await Future.delayed(const Duration(seconds: 1)),
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        category == null
-                            ? 'No events yet'
-                            : 'No ${category!.name.capitalize()} events',
-                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => EventDetailsScreen(event: event)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    // ── Category Color Strip + Icon ───────
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: catColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      const SizedBox(height: 8),
-                      Text('Pull to refresh', style: TextStyle(color: Colors.grey[500])),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+                      child: Icon(_categoryIcon(event.category),
+                          color: catColor, size: 22),
+                    ),
 
-        final events = snapshot.data!;
+                    const SizedBox(width: 12),
 
-        return RefreshIndicator(
-          onRefresh: () async => await Future.delayed(const Duration(milliseconds: 800)),
-          color: Colors.deepPurple,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: events.length,
-            itemBuilder: (context, index) {
-              final event = events[index];
-              final isOrganizer = currentUserId == event.organizerId;
-
-              return Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  title: Text(
-                    event.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Row(
+                    // ── Info ─────────────────────────────
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.calendar_today, size: 14, color: Colors.deepPurple),
-                          const SizedBox(width: 4),
-                          Text(
-                            DateFormat('MMM dd, yyyy • hh:mm a').format(event.date),
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, size: 14, color: Colors.red),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              event.venue,
-                              style: const TextStyle(fontSize: 13),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Category Chip
-                      Chip(
-                        label: Text(
-                          event.category.name.capitalize(),
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                        ),
-                        backgroundColor: _getCategoryColor(event.category).withOpacity(0.2),
-                        labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                      // ORGANIZER CONTROLS
-                      if (isOrganizer) ...[
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blueAccent, size: 20),
-                          tooltip: 'Edit Event',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EditEventScreen(event: event),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  event.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    color: dark
+                                        ? ZynkColors.darkText
+                                        : ZynkColors.lightText,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            );
-                          },
+                              const SizedBox(width: 8),
+                              if (!event.isApproved)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: ZynkColors.warning.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'PENDING',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      color: ZynkColors.warning,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today_rounded,
+                                  size: 12,
+                                  color: dark
+                                      ? ZynkColors.darkMuted
+                                      : ZynkColors.lightMuted),
+                              const SizedBox(width: 4),
+                              Text(
+                                DateFormat('MMM dd, yyyy • hh:mm a')
+                                    .format(event.date),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: dark
+                                      ? ZynkColors.darkMuted
+                                      : ZynkColors.lightMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on_rounded,
+                                  size: 12,
+                                  color: dark
+                                      ? ZynkColors.darkMuted
+                                      : ZynkColors.lightMuted),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  event.venue,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: dark
+                                        ? ZynkColors.darkMuted
+                                        : ZynkColors.lightMuted,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Actions ──────────────────────────
+                    Column(
+                      children: [
+                        _iconBtn(
+                          icon: Icons.edit_rounded,
+                          color: ZynkColors.catTech,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => EditEventScreen(event: event)),
+                          ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_forever, color: Colors.redAccent, size: 22),
-                          tooltip: 'Delete Event',
-                          onPressed: () => _showDeleteDialog(context, eventService, event),
+                        const SizedBox(height: 4),
+                        _iconBtn(
+                          icon: Icons.delete_rounded,
+                          color: ZynkColors.error,
+                          onTap: () => _showDeleteDialog(event),
                         ),
                       ],
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => EventDetailsScreen(event: event)),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
-        );
-      },
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
-  // DELETE CONFIRMATION DIALOG
-  void _showDeleteDialog(BuildContext context, EventService service, Event event) {
+  Widget _iconBtn({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 16),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(Event event) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Delete Event?'),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to delete "${event.title}"?\n\nThis action cannot be undone.',
-          style: const TextStyle(fontSize: 15),
-        ),
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Event'),
+        content: Text("Delete '${event.title}'?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await service.deleteEvent(event.id);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Event deleted successfully!'),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to delete: $e'),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              }
+            onPressed: () {
+              Navigator.pop(context);
+              deleteEvent(event.id);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ZynkColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
   }
 
-  // Category color mapping
-  Color _getCategoryColor(EventCategory category) {
-    switch (category) {
-      case EventCategory.tech:
-        return Colors.blue;
-      case EventCategory.cultural:
-        return Colors.purple;
-      case EventCategory.sports:
-        return Colors.green;
-      case EventCategory.workshop:
-        return Colors.orange;
-      case EventCategory.seminar:
-        throw UnimplementedError();
+  IconData _categoryIcon(EventCategory cat) {
+    switch (cat) {
+      case EventCategory.tech: return Icons.computer_rounded;
+      case EventCategory.cultural: return Icons.palette_rounded;
+      case EventCategory.sports: return Icons.sports_rounded;
+      case EventCategory.workshop: return Icons.build_rounded;
+      case EventCategory.seminar: return Icons.school_rounded;
     }
   }
 }
