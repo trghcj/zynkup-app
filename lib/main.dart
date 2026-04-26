@@ -1,24 +1,35 @@
 // lib/main.dart
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'features/auth/screens/login_choice_screen.dart';
-import 'features/events/screens/home_screen.dart';
+
+import 'features/auth/auth_gate.dart';
+import 'core/notifications/fcm_service.dart';
+import 'core/api/api_service.dart';
+
+/// 🔔 BACKGROUND HANDLER — must be top-level function
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  debugPrint("🔔 Background message: ${message.notification?.title}");
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  /// ✅ FIREBASE INIT
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // REQUIRED FOR FLUTTER WEB AUTH
-  if (kIsWeb) {
-    await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
-  }
+  /// 🔔 BACKGROUND HANDLER
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  /// 🔔 INIT FCM
+  await FCMService().init();
+
+  /// 🔐 LOAD SAVED TOKEN — must happen before AuthGate checks it
+  await ApiService.loadToken();
 
   runApp(const MyApp());
 }
@@ -32,34 +43,10 @@ class MyApp extends StatelessWidget {
       title: 'Zynkup',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorSchemeSeed: Colors.deepPurple,
         useMaterial3: true,
       ),
       home: const AuthGate(),
-    );
-  }
-}
-
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasData) {
-          return const HomeScreen();
-        }
-
-        return const LoginChoiceScreen();
-      },
     );
   }
 }

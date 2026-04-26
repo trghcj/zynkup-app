@@ -1,101 +1,99 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:zynkup/features/events/models/event_model.dart';
 
 class EventService {
-  final CollectionReference _events;
+  final String baseUrl = "http://127.0.0.1:8000";
 
-  EventService()
-      : _events = FirebaseFirestore.instance.collection('events') {
-    // Web-specific Firestore settings
-    if (kIsWeb) {
-      FirebaseFirestore.instance.settings = const Settings(
-        persistenceEnabled: false,
-        sslEnabled: true,
-      );
+  /// 🔥 GET ALL EVENTS
+  Future<List<Event>> getEvents() async {
+    final res = await http.get(Uri.parse("$baseUrl/events"));
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      return (data as List)
+          .map((e) => Event.fromJson(e))
+          .toList();
+    } else {
+      throw Exception("Failed to load events");
     }
   }
 
-  // Get all events (latest first)
-  Stream<List<Event>> getEvents() {
-    return _events
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((s) => s.docs.map((d) => Event.fromFirestore(d)).toList());
+  /// 🔥 GET EVENTS BY CATEGORY
+  Future<List<Event>> getEventsByCategory(EventCategory category) async {
+    final res = await http.get(
+      Uri.parse("$baseUrl/events?category=${category.name}"),
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      return (data as List)
+          .map((e) => Event.fromJson(e))
+          .toList();
+    } else {
+      throw Exception("Failed to load category events");
+    }
   }
 
-  // Get events by category (latest first)
-  Stream<List<Event>> getEventsByCategory(EventCategory category) {
-    return _events
-        .where('category', isEqualTo: category.name)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((s) => s.docs.map((d) => Event.fromFirestore(d)).toList());
-  }
-
-  // Create event
+  /// 🔥 CREATE EVENT
   Future<String> createEvent(Event event) async {
-    try {
-      final docRef = await _events.add(event.toFirestore());
-      await docRef.update({'id': docRef.id});
-      return docRef.id;
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw Exception('Permission denied. Check Firestore rules.');
-      }
-      rethrow;
+    final res = await http.post(
+      Uri.parse("$baseUrl/events"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(event.toJson()),
+    );
+
+    if (res.statusCode == 201 || res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      return data["id"].toString();
+    } else {
+      throw Exception("Failed to create event");
     }
   }
 
-  // Update event
+  /// 🔥 UPDATE EVENT
   Future<void> updateEvent(Event event) async {
-    try {
-      await _events.doc(event.id).set(event.toFirestore(), SetOptions(merge: true));
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw Exception('Only the organizer can edit this event.');
-      }
-      rethrow;
+    final res = await http.put(
+      Uri.parse("$baseUrl/events/${event.id}"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(event.toJson()),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception("Failed to update event");
     }
   }
 
-  // Delete event
+  /// 🔥 DELETE EVENT
   Future<void> deleteEvent(String eventId) async {
-    try {
-      await _events.doc(eventId).delete();
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') {
-        throw Exception('Only the organizer can delete this event.');
-      }
-      rethrow;
+    final res = await http.delete(
+      Uri.parse("$baseUrl/events/$eventId"),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception("Failed to delete event");
     }
   }
 
-  // Register user
-  Future<void> registerUser(String eventId, String userId) async {
-    try {
-      await _events.doc(eventId).update({
-        'registeredUsers': FieldValue.arrayUnion([userId])
-      });
-    } on FirebaseException catch (e) {
-      if (e.code == 'not-found') {
-        throw Exception('Event not found.');
-      }
-      rethrow;
+  /// 🔥 REGISTER USER
+  Future<void> registerUser(String eventId) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/events/$eventId/register"),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception("Failed to register");
     }
   }
 
-  // Unregister user
-  Future<void> unregisterUser(String eventId, String userId) async {
-    try {
-      await _events.doc(eventId).update({
-        'registeredUsers': FieldValue.arrayRemove([userId])
-      });
-    } on FirebaseException catch (e) {
-      if (e.code == 'not-found') {
-        throw Exception('Event not found.');
-      }
-      rethrow;
+  /// 🔥 UNREGISTER USER
+  Future<void> unregisterUser(String eventId) async {
+    final res = await http.post(
+      Uri.parse("$baseUrl/events/$eventId/unregister"),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception("Failed to unregister");
     }
   }
 }
