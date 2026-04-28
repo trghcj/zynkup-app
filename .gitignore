@@ -97,6 +97,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.sqlite3
+*.db
 
 # Environment variables
 .env
