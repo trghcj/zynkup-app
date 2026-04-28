@@ -1,20 +1,17 @@
 import os
-import uuid
 import logging
 
-from fastapi import FastAPI, Request, UploadFile, File, Depends
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from dotenv import load_dotenv  # type: ignore
+from dotenv import load_dotenv # type: ignore
 from pathlib import Path
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import Base, engine
-from app.routes import users, events, admin, analytics
-from app.auth import get_current_user
-from app import models
+from app.routes import users, events, admin
+from app.routes import analytics
 
 ENV = os.getenv("ENV", "development")
 logging.basicConfig(
@@ -62,51 +59,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── DB ────────────────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
 
-# ── Upload directory ──────────────────────────────────────────────────────────
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
-# ── Upload endpoint ───────────────────────────────────────────────────────────
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
-
-@app.post("/upload", tags=["Upload"])
-async def upload_file(
-    file: UploadFile = File(...),
-    current_user: models.User = Depends(get_current_user),
-):
-    if file.content_type not in ALLOWED_TYPES:
-        return JSONResponse(
-            status_code=400,
-            content={"detail": "Only JPEG, PNG, WEBP images allowed"},
-        )
-
-    contents = await file.read()
-
-    if len(contents) > 5 * 1024 * 1024:
-        return JSONResponse(
-            status_code=400,
-            content={"detail": "File too large. Max 5MB"},
-        )
-
-    ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
-    filename = f"{uuid.uuid4().hex}{ext}"
-    dest = UPLOAD_DIR / filename
-
-    with open(dest, "wb") as f:
-        f.write(contents)
-
-    url = f"http://127.0.0.1:8000/uploads/{filename}"
-    logger.info(f"File uploaded: {filename} by user {current_user.id}")
-    return {"url": url, "filename": filename}
-
-
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(users.router)
 app.include_router(events.router)
 app.include_router(admin.router)
 app.include_router(analytics.router)
-
 
 @app.get("/", tags=["Health"])
 def home():
