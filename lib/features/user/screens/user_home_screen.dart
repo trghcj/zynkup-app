@@ -1,5 +1,4 @@
 // lib/features/user/screens/user_home_screen.dart
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/api/api_service.dart';
@@ -7,7 +6,7 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/auth/screens/login_choice_screen.dart';
 import 'package:zynkup/features/user/screens/profile_setup_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
-import 'package:zynkup/features/user/screens/user_event_details_screen.dart';
+import 'package:zynkup/features/events/screens/event_details_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
@@ -20,7 +19,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   List<Event> _events = [];
   bool _loading = true;
   String? _userName;
-  String? _avatarUrl;       // ← profile pic URL
   String _filter = "All";
   final _filters = ["All", "Upcoming", "Today", "Past"];
 
@@ -37,10 +35,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Future<void> _loadUser() async {
     final u = await ApiService.getCurrentUser();
     if (u != null && mounted) {
-      setState(() {
-        _userName  = u["name"] ?? u["email"];
-        _avatarUrl = u["avatar_url"] as String?;
-      });
+      setState(() => _userName = u["name"] ?? u["email"]);
     }
   }
 
@@ -89,22 +84,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     );
   }
 
-  // Reload user + events when coming back from profile screen
-  Future<void> _openProfile() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
-    );
-    // Refresh avatar after returning
-    final u = await ApiService.getCurrentUser(force: true);
-    if (u != null && mounted) {
-      setState(() {
-        _userName  = u["name"] ?? u["email"];
-        _avatarUrl = u["avatar_url"] as String?;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -146,37 +125,32 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       ],
                     ),
                   ),
-
-                  // ── Profile avatar button ───────────────────
+                  // ── Profile button ──────────────────────────
                   GestureDetector(
-                    onTap: _openProfile,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const ProfileSetupScreen()),
+                    ),
                     child: Container(
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
+                        gradient: ZynkGradients.brand,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: ZynkColors.primary.withOpacity(0.4),
-                          width: 2,
-                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: ZynkColors.primary.withOpacity(0.2),
+                            color: ZynkColors.primary.withOpacity(0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 3),
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: _buildAvatar(),
-                      ),
+                      child: const Icon(Icons.person_rounded,
+                          color: Colors.white, size: 20),
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
-                  // ── Logout button ───────────────────────────
                   GestureDetector(
                     onTap: _logout,
                     child: Container(
@@ -205,7 +179,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
             const SizedBox(height: 18),
 
-            // ── Filter chips ──────────────────────────────────
+            // ── Filter chips ─────────────────────────────────
             SizedBox(
               height: 36,
               child: ListView.separated(
@@ -240,7 +214,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                             ? [
                                 BoxShadow(
                                   color: ZynkColors.primary.withOpacity(0.3),
-                                  blurRadius: 6,
+                                  blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 )
                               ]
@@ -254,10 +228,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                               : dark
                                   ? ZynkColors.darkMuted
                                   : ZynkColors.lightMuted,
-                          fontSize: 13,
                           fontWeight: active
                               ? FontWeight.w700
                               : FontWeight.w500,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -280,7 +254,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       child: events.isEmpty
                           ? _empty(dark)
                           : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                              padding: const EdgeInsets.fromLTRB(
+                                  20, 0, 20, 24),
                               itemCount: events.length,
                               separatorBuilder: (_, __) =>
                                   const SizedBox(height: 12),
@@ -294,38 +269,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       ),
     );
   }
-
-  /// Shows avatar image if available, otherwise gradient icon
-  Widget _buildAvatar() {
-    if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
-      // base64 data URL (e.g. "data:image/jpeg;base64,/9j/...")
-      if (_avatarUrl!.startsWith('data:')) {
-        try {
-          final base64Str = _avatarUrl!.split(',').last;
-          final bytes = base64Decode(base64Str);
-          return Image.memory(
-            bytes,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _avatarFallback(),
-          );
-        } catch (_) {
-          return _avatarFallback();
-        }
-      }
-      // Regular http/https URL
-      return Image.network(
-        _avatarUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _avatarFallback(),
-      );
-    }
-    return _avatarFallback();
-  }
-
-  Widget _avatarFallback() => Container(
-        decoration: const BoxDecoration(gradient: ZynkGradients.brand),
-        child: const Icon(Icons.person_rounded, color: Colors.white, size: 22),
-      );
 
   Widget _empty(bool dark) {
     return Center(
@@ -356,8 +299,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 }
 
-// ── Event Card ────────────────────────────────────────────────────────────────
-
 class _EventCard extends StatelessWidget {
   final Event event;
   const _EventCard({required this.event});
@@ -372,9 +313,7 @@ class _EventCard extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          // ✅ Fixed: use UserEventDetailsScreen not EventDetailsScreen
-          builder: (_) => UserEventDetailsScreen(event: event),
-        ),
+            builder: (_) => EventDetailsScreen(event: event)),
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -394,14 +333,14 @@ class _EventCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ── Category colour strip ───────────────────────
+            // ── Category strip ──────────────────────────────
             Container(
               width: 5,
               height: 90,
               decoration: BoxDecoration(
                 gradient: ZynkGradients.forCategory(cat),
-                borderRadius:
-                    const BorderRadius.horizontal(left: Radius.circular(16)),
+                borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(16)),
               ),
             ),
 
@@ -414,39 +353,40 @@ class _EventCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [
-                      CategoryBadge(cat),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: (isUpcoming
+                    Row(
+                      children: [
+                        CategoryBadge(cat),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: (isUpcoming
+                                    ? ZynkColors.success
+                                    : ZynkColors.lightMuted)
+                                .withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            isUpcoming ? 'Upcoming' : 'Past',
+                            style: TextStyle(
+                              color: isUpcoming
                                   ? ZynkColors.success
-                                  : ZynkColors.lightMuted)
-                              .withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          isUpcoming ? 'Upcoming' : 'Past',
-                          style: TextStyle(
-                            color: isUpcoming
-                                ? ZynkColors.success
-                                : ZynkColors.lightMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
+                                  : ZynkColors.lightMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                    ]),
+                      ],
+                    ),
                     const SizedBox(height: 7),
                     Text(
                       event.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color:
-                            dark ? ZynkColors.darkText : ZynkColors.lightText,
+                        color: dark ? ZynkColors.darkText : ZynkColors.lightText,
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
@@ -497,8 +437,7 @@ class _EventCard extends StatelessWidget {
             const SizedBox(width: 14),
 
             Icon(Icons.chevron_right_rounded,
-                color:
-                    dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
+                color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
                 size: 20),
 
             const SizedBox(width: 12),
