@@ -15,7 +15,7 @@ class ApiException implements Exception {
 
 // ── ApiService ────────────────────────────────────────────────────────────────
 class ApiService {
-  static const String baseUrl = "http://127.0.0.1:8000";
+  static const String baseUrl = "https://zynkup-app.onrender.com";
 
   static const _storage = FlutterSecureStorage();
   static String? _token;

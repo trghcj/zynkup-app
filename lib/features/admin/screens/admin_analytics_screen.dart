@@ -28,7 +28,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
     setState(() => _isLoading = true);
     try {
       // Uses ApiService which automatically sends the Bearer token
-      final data = await ApiService.getAnalytics();
+      final data = await (ApiService() as dynamic).get('analytics');
       if (data != null && mounted) {
         setState(() {
           totalEvents = data["total_events"]    ?? 0;
