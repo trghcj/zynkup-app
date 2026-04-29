@@ -38,11 +38,9 @@ DEV_ORIGINS = [
 ]
 PROD_ORIGINS = [
     "https://zynkup-app.onrender.com",
-    "https://zynkup.netlify.app",
-    "https://zynkup.vercel.app",
-    # Add your actual domain here once deployed
+    "https://endearing-alpaca-a16035.netlify.app",
 ]
-origins = DEV_ORIGINS + PROD_ORIGINS  # Allow both always during transition
+origins = DEV_ORIGINS + PROD_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
