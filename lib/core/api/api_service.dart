@@ -130,6 +130,7 @@ class ApiService {
     String? avatarUrl,
   }) async {
     try {
+      await loadToken();
       final res = await http.post(
         Uri.parse("$baseUrl/users/create-profile"),
         headers: _headers,
