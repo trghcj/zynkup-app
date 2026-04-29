@@ -42,9 +42,9 @@ class ApiService {
   }
 
   // ── Headers ────────────────────────────────────────────────────────────────
-  static Map<String, String> get _headers {
+  static Future<Map<String, String>> get _headers async {
   if (_token == null) {
-    // NOTE: loadToken() is async so we rely on calls ensuring it is loaded
+    _token = await _storage.read(key: "token");
   }
 
   return {
@@ -70,7 +70,7 @@ class ApiService {
     try {
       final res = await http.post(
         Uri.parse("$baseUrl/users/signup"),
-        headers: _headers,
+        headers: await _headers,
         body: jsonEncode({"email": email, "password": password}),
       );
       if (res.statusCode == 200 || res.statusCode == 201) return true;
@@ -112,7 +112,7 @@ class ApiService {
       await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/users/me"),
-        headers: _headers,
+        headers: await _headers,
       );
       if (res.statusCode == 200) {
         _cachedUser = jsonDecode(res.body) as Map<String, dynamic>;
@@ -140,8 +140,8 @@ class ApiService {
     try {
       await loadToken();
       final res = await http.post(
-        Uri.parse("$baseUrl/users/create_profile"),
-        headers: _headers,
+        Uri.parse("$baseUrl/users/create-profile"),
+        headers: await _headers,
         body: jsonEncode({
           "name": name,
           if (displayName != null) "display_name": displayName,
@@ -170,6 +170,7 @@ class ApiService {
   static Future<String?> uploadImageBytes(
       Uint8List bytes, String filename) async {
     try {
+      await loadToken();
       final request = http.MultipartRequest(
         'POST',
         Uri.parse("$baseUrl/upload"),
@@ -206,7 +207,7 @@ class ApiService {
       await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/events/?skip=$skip&limit=$limit"),
-        headers: _headers,
+        headers: await _headers,
       );
       if (res.statusCode == 200) {
         final list = jsonDecode(res.body) as List<dynamic>;
@@ -234,7 +235,7 @@ class ApiService {
     try {
       final res = await http.post(
         Uri.parse("$baseUrl/events/"),
-        headers: _headers,
+        headers: await _headers,
         body: jsonEncode({
           "title": title,
           "description": description,
@@ -265,7 +266,7 @@ class ApiService {
       await loadToken();
       final res = await http.post(
         Uri.parse("$baseUrl/events/$eventId/register"),
-        headers: _headers,
+        headers: await _headers,
       );
       if (res.statusCode == 200) return true;
       throw _parseError(res);
@@ -282,7 +283,7 @@ class ApiService {
       await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/users/my-events"),
-        headers: _headers,
+        headers: await _headers,
       );
       if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
       return [];
@@ -297,7 +298,7 @@ class ApiService {
       await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/admin/events/pending"),
-        headers: _headers,
+        headers: await _headers,
       );
       if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
       return [];
@@ -312,7 +313,7 @@ class ApiService {
       await loadToken();
       final res = await http.put(
         Uri.parse("$baseUrl/admin/approve/$eventId"),
-        headers: _headers,
+        headers: await _headers,
       );
       return res.statusCode == 200;
     } catch (_) {
@@ -326,7 +327,7 @@ class ApiService {
       await loadToken();
       final res = await http.delete(
         Uri.parse("$baseUrl/admin/reject/$eventId"),
-        headers: _headers,
+        headers: await _headers,
       );
       return res.statusCode == 200;
     } catch (_) {
@@ -341,7 +342,7 @@ class ApiService {
       // Use trailing slash to avoid redirect that breaks CORS
       final res = await http.get(
         Uri.parse("$baseUrl/analytics/"),
-        headers: _headers,
+        headers: await _headers,
       );
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;

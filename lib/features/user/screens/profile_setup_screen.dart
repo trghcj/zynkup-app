@@ -141,11 +141,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       );
       if (!mounted) return;
       if (!ok) { _snack('Failed to save profile', ZynkColors.error);
-       Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const UserHomeScreen()),
-          (_) => false,
-  );
        return; 
        }
       _snack('Profile saved! 🎉', ZynkColors.success);
