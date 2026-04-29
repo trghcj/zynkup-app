@@ -38,6 +38,7 @@ DEV_ORIGINS = [
 ]
 PROD_ORIGINS = [
     "https://zynkup-app.onrender.com",
+    "https://zynkup-app.netlify.app",
     "https://endearing-alpaca-a16035.netlify.app",
 ]
 origins = DEV_ORIGINS + PROD_ORIGINS
