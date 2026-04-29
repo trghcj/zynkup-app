@@ -109,3 +109,17 @@ def set_user_role(
     user.role = role
     db.commit()
     return {"message": f"Role updated to '{role}' for user {user_id}"}
+
+# ── Make admin by email (used for initial setup) ─────────────────────────────
+
+@router.put("/make-admin/{email}")
+def make_admin(email: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.role = "admin"
+    db.commit()
+
+    return {"message": f"{email} is now admin"}
