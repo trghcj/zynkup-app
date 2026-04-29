@@ -42,10 +42,17 @@ class ApiService {
   }
 
   // ── Headers ────────────────────────────────────────────────────────────────
-  static Map<String, String> get _headers => {
-        "Content-Type": "application/json",
-        if (_token != null) "Authorization": "Bearer $_token",
-      };
+  static Map<String, String> get _headers {
+  if (_token == null) {
+    // NOTE: loadToken() is async so we rely on calls ensuring it is loaded
+  }
+
+  return {
+    "Content-Type": "application/json",
+    if (_token != null && _token!.isNotEmpty)
+      "Authorization": "Bearer $_token",
+  };
+}
 
   // ── Error parser ───────────────────────────────────────────────────────────
   static ApiException _parseError(http.Response res) {
@@ -102,6 +109,7 @@ class ApiService {
       {bool force = false}) async {
     if (!force && _cachedUser != null) return _cachedUser;
     try {
+      await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/users/me"),
         headers: _headers,
@@ -132,7 +140,7 @@ class ApiService {
     try {
       await loadToken();
       final res = await http.post(
-        Uri.parse("$baseUrl/users/create-profile"),
+        Uri.parse("$baseUrl/users/create_profile"),
         headers: _headers,
         body: jsonEncode({
           "name": name,
@@ -195,6 +203,7 @@ class ApiService {
       {bool force = false, int skip = 0, int limit = 20}) async {
     if (!force && _cachedEvents != null && skip == 0) return _cachedEvents!;
     try {
+      await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/events/?skip=$skip&limit=$limit"),
         headers: _headers,
@@ -221,6 +230,7 @@ class ApiService {
     String? registrationUrl,
     String? registrationUrlType,
   }) async {
+    await loadToken();
     try {
       final res = await http.post(
         Uri.parse("$baseUrl/events/"),
@@ -252,6 +262,7 @@ class ApiService {
   // ── Register for event ─────────────────────────────────────────────────────
   static Future<bool> registerEvent(int eventId) async {
     try {
+      await loadToken();
       final res = await http.post(
         Uri.parse("$baseUrl/events/$eventId/register"),
         headers: _headers,
@@ -268,6 +279,7 @@ class ApiService {
   // ── My events ──────────────────────────────────────────────────────────────
   static Future<List<dynamic>> getMyEvents() async {
     try {
+      await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/users/my-events"),
         headers: _headers,
@@ -282,6 +294,7 @@ class ApiService {
   // ── Admin: pending events ──────────────────────────────────────────────────
   static Future<List<dynamic>> getPendingEvents() async {
     try {
+      await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/admin/events/pending"),
         headers: _headers,
@@ -296,6 +309,7 @@ class ApiService {
   // ── Admin: approve event ───────────────────────────────────────────────────
   static Future<bool> approveEvent(int eventId) async {
     try {
+      await loadToken();
       final res = await http.put(
         Uri.parse("$baseUrl/admin/approve/$eventId"),
         headers: _headers,
@@ -309,6 +323,7 @@ class ApiService {
   // ── Admin: reject event ────────────────────────────────────────────────────
   static Future<bool> rejectEvent(int eventId) async {
     try {
+      await loadToken();
       final res = await http.delete(
         Uri.parse("$baseUrl/admin/reject/$eventId"),
         headers: _headers,
@@ -322,6 +337,7 @@ class ApiService {
   // ── Analytics ──────────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>?> getAnalytics() async {
     try {
+      await loadToken();
       // Use trailing slash to avoid redirect that breaks CORS
       final res = await http.get(
         Uri.parse("$baseUrl/analytics/"),

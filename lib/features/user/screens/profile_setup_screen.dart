@@ -37,11 +37,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   late Animation<double>   _fadeAnim;
 
   static const _branches = [
-    'CSE','CSE (AI & ML)','CSE (Data Science)',
+    'CSE','CSE (AI & ML)','CSE-AI','CSE (Data Science)',
     'IT','ECE','EEE','ME','CE','Other',
   ];
   static const _years    = ['1st Year','2nd Year','3rd Year','4th Year'];
-  static const _colleges = ['MAIT','DTU','NSIT','IGDTUW','GGSIPU','Other'];
+  static const _colleges = ['MAIT','DTU','NSIT','IGDTUW','GGSIPU','IIT DELHI','Other'];
 
   @override
   void initState() {
@@ -140,7 +140,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         avatarUrl:   _avatarBase64,
       );
       if (!mounted) return;
-      if (!ok) { _snack('Failed to save profile', ZynkColors.error); return; }
+      if (!ok) { _snack('Failed to save profile', ZynkColors.error);
+       Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const UserHomeScreen()),
+          (_) => false,
+  );
+       return; 
+       }
       _snack('Profile saved! 🎉', ZynkColors.success);
       final user = await ApiService.getCurrentUser(force: true);
       if (!mounted) return;
@@ -153,7 +160,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       }
     } on ApiException catch (e) {
       _snack(e.message, ZynkColors.error);
-    } catch (_) { _snack('Something went wrong', ZynkColors.error); }
+    } catch (_) { _snack('Something went wrong', ZynkColors.error);
+     Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (_) => const UserHomeScreen()),
+    (_) => false,
+  );
+  }
     finally     { if (mounted) setState(() => _loading = false); }
   }
 
@@ -320,12 +333,32 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                           ),
 
                           const SizedBox(height: 24),
-                          ZynkButton(
-                            label: _isFirstSetup ? 'Complete Profile' : 'Save Changes',
-                            icon: _isFirstSetup ? Icons.arrow_forward_rounded : Icons.save_rounded,
-                            isLoading: _loading,
-                            onTap: _save,
-                          ),
+
+ZynkButton(
+  label: _isFirstSetup ? 'Complete Profile' : 'Save Changes',
+  icon: _isFirstSetup ? Icons.arrow_forward_rounded : Icons.save_rounded,
+  isLoading: _loading,
+  onTap: _save,
+),
+
+const SizedBox(height: 10),
+
+TextButton(
+  onPressed: () {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const UserHomeScreen()),
+      (_) => false,
+    );
+  },
+  child: const Text(
+    "Skip for now",
+    style: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    ),
+  ),
+),
                         ],
                       ),
                     ),
@@ -337,7 +370,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
         ],
       ),
     );
-  }
+  } 
 
   Widget _sectionHeader(String label, IconData icon, bool dark) => Row(children: [
     Container(width: 32, height: 32,
