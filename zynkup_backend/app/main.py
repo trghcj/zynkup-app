@@ -1,13 +1,13 @@
 import os
 import uuid
+import base64
 import logging
-
-from fastapi import FastAPI, Request, UploadFile, File, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from dotenv import load_dotenv  # type: ignore
 from pathlib import Path
+
+from fastapi import FastAPI, Request, UploadFile, File, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from dotenv import load_dotenv  # type: ignore
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
@@ -30,35 +30,28 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-DEV_ORIGINS = [
+ALL_ORIGINS = [
     "http://localhost:5555",
     "http://127.0.0.1:5555",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-]
-PROD_ORIGINS = [
-    "https://zynkup-app.onrender.com",
-    "https://zynkup-app.netlify.app",
     "https://endearing-alpaca-a16035.netlify.app",
+    "https://zynkup-app.netlify.app",
+    "https://zynkup-app.onrender.com",
 ]
-origins = DEV_ORIGINS + PROD_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ALL_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 # ── Global error handler ──────────────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(
-        f"Unhandled exception on {request.method} {request.url}: {exc}",
-        exc_info=True,
-    )
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "Something went wrong. Please try again later."},
@@ -67,78 +60,42 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── DB ────────────────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
 
-# ── Upload directory ──────────────────────────────────────────────────────────
+# ── Upload directory (local dev fallback) ─────────────────────────────────────
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# ── Upload endpoint ───────────────────────────────────────────────────────────
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "application/octet-stream"}
+
 
 @app.post("/upload", tags=["Upload"])
 async def upload_file(
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Accept any image content type — browser sometimes sends octet-stream
-    content_type = file.content_type or ""
-    if content_type not in ALLOWED_TYPES and not content_type.startswith("image/"):
-        # Check by file extension as fallback
-        ext_lower = Path(file.filename or "").suffix.lower()
-        if ext_lower not in {".jpg", ".jpeg", ".png", ".webp"}:
-            return JSONResponse(
-                status_code=400,
-                content={"detail": "Only JPEG, PNG, WEBP images allowed"},
-            )
+    """
+    Upload image — returns a base64 data URL so it works without
+    external storage. Works on both local and Render deployment.
+    """
+    ext = Path(file.filename or "image.jpg").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        ext = ".jpg"
 
     contents = await file.read()
 
-    if len(contents) > 10 * 1024 * 1024:  # 10MB limit
-        return JSONResponse(
-            status_code=400,
-            content={"detail": "File too large. Max 10MB"},
-        )
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Max 10MB")
 
-    ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
-    if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
-        ext = ".jpg"
+    # ── Convert to base64 data URL ─────────────────────────────────────────
+   
+    mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                ".png": "image/png", ".webp": "image/webp"}
+    mime = mime_map.get(ext, "image/jpeg")
+    b64 = base64.b64encode(contents).decode("utf-8")
+    data_url = f"data:{mime};base64,{b64}"
 
-    filename = f"{uuid.uuid4().hex}{ext}"
-    dest = UPLOAD_DIR / filename
-
-    with open(dest, "wb") as f:
-        f.write(contents)
-
-    url = f"https://zynkup-app.onrender.com/uploads/{filename}"
-    logger.info(f"File uploaded: {filename} by user {current_user.id}")
-    return {"url": url, "filename": filename}
-
-
-# ── Serve uploaded images with CORS headers ───────────────────────────────────
-# Must be BEFORE app.mount so it intercepts /uploads/* with proper CORS
-@app.get("/uploads/{filename}", tags=["Upload"])
-async def serve_upload(filename: str, request: Request):
-    file_path = UPLOAD_DIR / filename
-    if not file_path.exists():
-        return JSONResponse(status_code=404, content={"detail": "File not found"})
-
-    # Determine media type
-    suffix = file_path.suffix.lower()
-    media_types = {
-        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".png": "image/png",  ".webp": "image/webp",
-    }
-    media_type = media_types.get(suffix, "image/jpeg")
-
-    response = FileResponse(file_path, media_type=media_type)
-
-    # ✅ Add CORS headers so Flutter Web can load the image
-    origin = request.headers.get("origin", "")
-    if origin in origins or ENV == "development":
-        response.headers["Access-Control-Allow-Origin"] = origin or "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-
-    response.headers["Cache-Control"] = "public, max-age=86400"
-    return response
+    logger.info(f"File uploaded as base64 by user {current_user.id}")
+    return {"url": data_url, "filename": f"{uuid.uuid4().hex}{ext}"}
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
