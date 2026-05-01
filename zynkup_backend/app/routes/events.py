@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app import models
 from app.database import get_db
 from app.auth import get_current_user
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -19,11 +20,11 @@ class EventCreate(BaseModel):
     title: str
     description: str
     venue: str
-    date: str                          # ISO string from Flutter
+    date: str                          
     category: str
     image_urls: Optional[List[str]] = []
     registration_url: Optional[str] = None
-    registration_url_type: Optional[str] = None   # "googleForm" | "customUrl"
+    registration_url_type: Optional[str] = None   
 
 
 class EventUpdate(BaseModel):
@@ -38,12 +39,8 @@ class EventUpdate(BaseModel):
 
 
 def _event_to_dict(event: models.Event) -> dict:
-    """Serialize Event model → dict Flutter expects."""
-    # image_urls stored as comma-separated string in DB
     raw_urls = event.image_urls or ""
     urls = [u.strip() for u in raw_urls.split(",") if u.strip()]
-
-    # registered users count list
     registered = [str(r.user_id) for r in event.registrations]
 
     return {
@@ -56,6 +53,7 @@ def _event_to_dict(event: models.Event) -> dict:
         "isApproved": event.is_approved,
         "organizerId": str(event.organizer_id) if event.organizer_id else "",
         "registeredUsers": registered,
+        "registrationCount": len(registered),
         "image_urls": urls,
         "registration_url": event.registration_url,
         "registration_url_type": event.registration_url_type,
@@ -238,3 +236,21 @@ def register_event(
 
     logger.info(f"User {current_user.id} registered for event {event_id}")
     return {"message": "Registered successfully"}
+
+@router.delete("/admin/delete-past")
+def delete_past_events(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+
+    now = datetime.utcnow()
+
+    deleted = db.query(models.Event).filter(
+        models.Event.date < now
+    ).delete()
+
+    db.commit()
+
+    return {"deleted": deleted}
