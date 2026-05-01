@@ -5,12 +5,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # ── Database URL ──────────────────────────────────────────────────────────────
-
+# For Supabase: set DATABASE_URL env var on Render to your Supabase connection string
+# Format: postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "sqlite:///./zynkup.db"  # fallback for local dev
 )
 
+# Fix for older SQLAlchemy with postgres:// prefix
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 

@@ -87,7 +87,7 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="File too large. Max 10MB")
 
     # ── Convert to base64 data URL ─────────────────────────────────────────
-   
+    # This approach works everywhere without needing a CDN or static files
     mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg",
                 ".png": "image/png", ".webp": "image/webp"}
     mime = mime_map.get(ext, "image/jpeg")
