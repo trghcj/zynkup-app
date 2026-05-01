@@ -32,6 +32,7 @@ dependencies:
 
   # 📊 Charts
   fl_chart: ^0.66.0
+  confetti: ^0.8.0
 
 dev_dependencies:
   flutter_test:
