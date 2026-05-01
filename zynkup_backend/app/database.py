@@ -1,39 +1,39 @@
 # app/database.py
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 # ── Database URL ──────────────────────────────────────────────────────────────
-# For Supabase: set DATABASE_URL env var on Render to your Supabase connection string
-# Format: postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./zynkup.db"  # fallback for local dev
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Fix for older SQLAlchemy with postgres:// prefix
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL is not set. Please configure it in environment variables.")
+
+# Fix for postgres:// issue
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # ── Engine ────────────────────────────────────────────────────────────────────
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False}
-    )
-else:
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,
-        pool_size=5,
-        max_overflow=10,
-    )
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+# ── Session ───────────────────────────────────────────────────────────────────
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+# ── Base ──────────────────────────────────────────────────────────────────────
+class Base(DeclarativeBase):
+    pass
 
 
+# ── Dependency ────────────────────────────────────────────────────────────────
 def get_db():
     db = SessionLocal()
     try:
