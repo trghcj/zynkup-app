@@ -1,8 +1,10 @@
 // lib/features/user/screens/user_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/widgets/profile_avatar.dart';
 import 'package:zynkup/features/auth/screens/login_choice_screen.dart';
 import 'package:zynkup/features/user/screens/profile_setup_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
@@ -19,6 +21,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   List<Event> _events = [];
   bool _loading = true;
   String? _userName;
+  String? _avatarUrl;   // ← profile picture URL/base64
   String _filter = "All";
   final _filters = ["All", "Upcoming", "Today", "Past"];
 
@@ -35,7 +38,10 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Future<void> _loadUser() async {
     final u = await ApiService.getCurrentUser();
     if (u != null && mounted) {
-      setState(() => _userName = u["name"] ?? u["email"]);
+      setState(() {
+        _userName  = u["name"] ?? u["email"];
+        _avatarUrl = u["avatar_url"] as String?;  // ← load avatar
+      });
     }
   }
 
@@ -86,7 +92,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final dark   = Theme.of(context).brightness == Brightness.dark;
     final events = _filtered;
 
     return Scaffold(
@@ -125,37 +131,29 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       ],
                     ),
                   ),
-                  // ── Profile button ──────────────────────────
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const ProfileSetupScreen()),
-                    ),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        gradient: ZynkGradients.brand,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: ZynkColors.primary.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(Icons.person_rounded,
-                          color: Colors.white, size: 20),
-                    ),
+
+                  // ── Profile avatar (shows uploaded picture) ───
+                  ProfileAvatar(
+                    avatarUrl: _avatarUrl,
+                    radius: 21,
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ProfileSetupScreen()),
+                      );
+                      // Refresh user data when returning from profile
+                      _loadUser();
+                    },
                   ),
+
                   const SizedBox(width: 10),
+
+                  // ── Logout ────────────────────────────────────
                   GestureDetector(
                     onTap: _logout,
                     child: Container(
-                      width: 42,
-                      height: 42,
+                      width: 42, height: 42,
                       decoration: BoxDecoration(
                         color: dark
                             ? ZynkColors.darkSurface2
@@ -188,7 +186,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 itemCount: _filters.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
-                  final f = _filters[i];
+                  final f      = _filters[i];
                   final active = _filter == f;
                   return GestureDetector(
                     onTap: () => setState(() => _filter = f),
@@ -228,9 +226,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                               : dark
                                   ? ZynkColors.darkMuted
                                   : ZynkColors.lightMuted,
-                          fontWeight: active
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+                          fontWeight:
+                              active ? FontWeight.w700 : FontWeight.w500,
                           fontSize: 13,
                         ),
                       ),
@@ -254,8 +251,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       child: events.isEmpty
                           ? _empty(dark)
                           : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(
-                                  20, 0, 20, 24),
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 0, 20, 24),
                               itemCount: events.length,
                               separatorBuilder: (_, __) =>
                                   const SizedBox(height: 12),
@@ -274,8 +271,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 80,
-          height: 80,
+          width: 80, height: 80,
           decoration: BoxDecoration(
             color: ZynkColors.primary.withOpacity(0.1),
             shape: BoxShape.circle,
@@ -287,8 +283,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
         Text('No events here',
             style: TextStyle(
                 color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-                fontWeight: FontWeight.w700,
-                fontSize: 17)),
+                fontWeight: FontWeight.w700, fontSize: 17)),
         const SizedBox(height: 4),
         Text('Check back soon!',
             style: TextStyle(
@@ -299,15 +294,18 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 }
 
+// ── Event Card ─────────────────────────────────────────────────────────────
+
 class _EventCard extends StatelessWidget {
   final Event event;
   const _EventCard({required this.event});
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final dark      = Theme.of(context).brightness == Brightness.dark;
     final isUpcoming = event.date.isAfter(DateTime.now());
-    final cat = event.category.name;
+    final cat       = event.category.name;
+    final hasImage  = event.imageUrls.isNotEmpty;
 
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -326,82 +324,92 @@ class _EventCard extends StatelessWidget {
               : [
                   BoxShadow(
                     color: ZynkColors.primary.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    blurRadius: 12, offset: const Offset(0, 4),
                   )
                 ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Category strip ──────────────────────────────
-            Container(
-              width: 5,
-              height: 90,
-              decoration: BoxDecoration(
-                gradient: ZynkGradients.forCategory(cat),
-                borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(16)),
-              ),
-            ),
-
-            const SizedBox(width: 14),
-
-            // ── Content ─────────────────────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CategoryBadge(cat),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: (isUpcoming
-                                    ? ZynkColors.success
-                                    : ZynkColors.lightMuted)
-                                .withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            isUpcoming ? 'Upcoming' : 'Past',
-                            style: TextStyle(
-                              color: isUpcoming
-                                  ? ZynkColors.success
-                                  : ZynkColors.lightMuted,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
+            // ── Event image banner (if available) ──────────
+            if (hasImage)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16)),
+                child: Image.network(
+                  event.imageUrls.first,
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 5,
+                    decoration: BoxDecoration(
+                      gradient: ZynkGradients.forCategory(cat),
                     ),
-                    const SizedBox(height: 7),
-                    Text(
-                      event.title,
+                  ),
+                ),
+              )
+            else
+              // Coloured strip when no image
+              Container(
+                height: 5,
+                decoration: BoxDecoration(
+                  gradient: ZynkGradients.forCategory(cat),
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16)),
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    CategoryBadge(cat),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: (isUpcoming
+                                ? ZynkColors.success
+                                : ZynkColors.lightMuted)
+                            .withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        isUpcoming ? 'Upcoming' : 'Past',
+                        style: TextStyle(
+                          color: isUpcoming
+                              ? ZynkColors.success
+                              : ZynkColors.lightMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  Text(event.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Row(children: [
-                      Icon(Icons.location_on_rounded,
-                          size: 12,
-                          color: dark
-                              ? ZynkColors.darkMuted
-                              : ZynkColors.lightMuted),
-                      const SizedBox(width: 3),
-                      Expanded(
-                        child: Text(
-                          event.venue,
+                        color: dark
+                            ? ZynkColors.darkText
+                            : ZynkColors.lightText,
+                        fontWeight: FontWeight.w700, fontSize: 15,
+                      )),
+                  const SizedBox(height: 5),
+                  Row(children: [
+                    Icon(Icons.location_on_rounded,
+                        size: 12,
+                        color: dark
+                            ? ZynkColors.darkMuted
+                            : ZynkColors.lightMuted),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(event.venue,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -409,38 +417,28 @@ class _EventCard extends StatelessWidget {
                                 ? ZynkColors.darkMuted
                                 : ZynkColors.lightMuted,
                             fontSize: 12,
-                          ),
-                        ),
+                          )),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.access_time_rounded,
+                        size: 12,
+                        color: dark
+                            ? ZynkColors.darkMuted
+                            : ZynkColors.lightMuted),
+                    const SizedBox(width: 3),
+                    Text(
+                      DateFormat('MMM dd').format(event.date),
+                      style: TextStyle(
+                        color: dark
+                            ? ZynkColors.darkMuted
+                            : ZynkColors.lightMuted,
+                        fontSize: 12,
                       ),
-                      const SizedBox(width: 8),
-                      Icon(Icons.access_time_rounded,
-                          size: 12,
-                          color: dark
-                              ? ZynkColors.darkMuted
-                              : ZynkColors.lightMuted),
-                      const SizedBox(width: 3),
-                      Text(
-                        DateFormat('MMM dd').format(event.date),
-                        style: TextStyle(
-                          color: dark
-                              ? ZynkColors.darkMuted
-                              : ZynkColors.lightMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ]),
-                  ],
-                ),
+                    ),
+                  ]),
+                ],
               ),
             ),
-
-            const SizedBox(width: 14),
-
-            Icon(Icons.chevron_right_rounded,
-                color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
-                size: 20),
-
-            const SizedBox(width: 12),
           ],
         ),
       ),
