@@ -43,14 +43,12 @@ class ApiService {
 
   // ── Headers ────────────────────────────────────────────────────────────────
   static Future<Map<String, String>> get _headers async {
-  if (_token == null) {
-    _token = await _storage.read(key: "token");
-  }
+  final token = await _storage.read(key: "token"); // ALWAYS read fresh
 
   return {
     "Content-Type": "application/json",
-    if (_token != null && _token!.isNotEmpty)
-      "Authorization": "Bearer $_token",
+    if (token != null && token.isNotEmpty)
+      "Authorization": "Bearer $token",
   };
 }
 
@@ -93,6 +91,7 @@ class ApiService {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         await setToken(data["access_token"] as String);
+        await loadToken(); 
         _cachedUser = null;
         return data;
       }
@@ -321,6 +320,7 @@ class ApiService {
     }
   }
 
+
   // ── Admin: reject event ────────────────────────────────────────────────────
   static Future<bool> rejectEvent(int eventId) async {
     try {
@@ -334,12 +334,25 @@ class ApiService {
       return false;
     }
   }
+  
+  // ── Admin: delete event ────────────────────────────────────────────────────
+static Future<bool> deleteEvent(int eventId) async {
+  try {
+    await loadToken();
+    final res = await http.delete(
+      Uri.parse("$baseUrl/events/$eventId"),
+      headers: await _headers,
+    );
+    return res.statusCode == 200;
+  } catch (_) {
+    return false;
+  }
+}
 
   // ── Analytics ──────────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>?> getAnalytics() async {
     try {
       await loadToken();
-      // Use trailing slash to avoid redirect that breaks CORS
       final res = await http.get(
         Uri.parse("$baseUrl/analytics/"),
         headers: await _headers,
@@ -351,5 +364,9 @@ class ApiService {
     } catch (_) {
       return null;
     }
+  }
+
+  static Future<Object?> getEvent(int parse) async {
+    return null;
   }
 }

@@ -84,7 +84,7 @@ class _AdminEventApprovalScreenState
         'Delete Event', 'Delete "$title"? This cannot be undone.');
     if (confirm != true) return;
 
-    final ok = await ApiService.rejectEvent(int.parse(eventId));
+    final ok = await ApiService.deleteEvent(int.parse(eventId));
     if (ok && mounted) {
       _showSnack('Event deleted', ZynkColors.error);
       await _fetchAll();
@@ -347,142 +347,162 @@ class _EventCard extends StatelessWidget {
 // ── All events tile ───────────────────────────────────────────────────────────
 
 class _AllEventTile extends StatelessWidget {
+  IconData _catIcon(EventCategory cat) {
+  switch (cat) {
+    case EventCategory.tech:
+      return Icons.computer_rounded;
+    case EventCategory.cultural:
+      return Icons.palette_rounded;
+    case EventCategory.sports:
+      return Icons.sports_rounded;
+    case EventCategory.workshop:
+      return Icons.build_rounded;
+    case EventCategory.seminar:
+      return Icons.school_rounded;
+    // ignore: unreachable_switch_default
+    default:
+      return Icons.event;
+  }
+}
   final Event event;
   final bool dark, isPast;
   final VoidCallback onDelete;
 
   const _AllEventTile({
-    required this.event, required this.dark,
-    required this.onDelete, this.isPast = false,
+    required this.event,
+    required this.dark,
+    required this.onDelete,
+    this.isPast = false,
   });
 
   @override
-Widget build(BuildContext context) {
-  return Opacity(
-    opacity: isPast ? 0.7 : 1.0,
-    child: Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isPast
-              ? (dark ? ZynkColors.darkBorder : ZynkColors.lightBorder)
-                  .withOpacity(0.5)
-              : (dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: isPast ? 0.7 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isPast
+                ? (dark ? ZynkColors.darkBorder : ZynkColors.lightBorder)
+                    .withOpacity(0.5)
+                : (dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Category icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: ZynkColors.forCategory(event.category.name)
+                    .withOpacity(0.12),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                _catIcon(event.category),
+                color: ZynkColors.forCategory(event.category.name),
+                size: 20,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: dark
+                          ? ZynkColors.darkText
+                          : ZynkColors.lightText,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    DateFormat('MMM dd, yyyy').format(event.date),
+                    
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: dark
+                          ? ZynkColors.darkMuted
+                          : ZynkColors.lightMuted,
+                    ),
+                  ),
+                  
+                  Text(
+  "${event.registeredUsers.length} Registered",
+  style: TextStyle(
+    fontSize: 12,
+    color: dark
+        ? ZynkColors.darkMuted
+        : ZynkColors.lightMuted,
+  ),
+),
+                ],
+              ),
+            ),
+
+            Row(
+  children: [
+    GestureDetector(
+      onTap: onDelete,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: ZynkColors.error.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: ZynkColors.error.withOpacity(0.3)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.delete_rounded, color: ZynkColors.error, size: 14),
+            SizedBox(width: 4),
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: ZynkColors.error,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
-      child: Row(
-        children: [
-          // Category icon
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: ZynkColors.forCategory(event.category.name)
-                  .withOpacity(0.12),
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Icon(
-              _catIcon(event.category),
-              color: ZynkColors.forCategory(event.category.name),
-              size: 20,
-            ),
-          ),
+    ),
 
-          const SizedBox(width: 12),
+    const SizedBox(width: 6),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: dark
-                        ? ZynkColors.darkText
-                        : ZynkColors.lightText,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  DateFormat('MMM dd, yyyy').format(event.date),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: dark
-                        ? ZynkColors.darkMuted
-                        : ZynkColors.lightMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          if (isPast)
-            GestureDetector(
-              onTap: onDelete,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: ZynkColors.error.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: ZynkColors.error.withOpacity(0.3),
-                  ),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.delete_rounded,
-                        color: ZynkColors.error, size: 14),
-                    SizedBox(width: 4),
-                    Text(
-                      'Delete',
-                      style: TextStyle(
-                        color: ZynkColors.error,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: ZynkColors.success.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'APPROVED',
-                style: TextStyle(
-                  color: ZynkColors.success,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-        ],
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: ZynkColors.success.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: const Text(
+        'APPROVED',
+        style: TextStyle(
+          color: ZynkColors.success,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+        ),
       ),
     ),
-  );
-}
-
-  IconData _catIcon(EventCategory cat) {
-    switch (cat) {
-      case EventCategory.tech:      return Icons.computer_rounded;
-      case EventCategory.cultural:  return Icons.palette_rounded;
-      case EventCategory.sports:    return Icons.sports_rounded;
-      case EventCategory.workshop:  return Icons.build_rounded;
-      case EventCategory.seminar:   return Icons.school_rounded;
-    }
+  ],
+),
+],
+),
+      ),
+    ); 
   }
 }
 
