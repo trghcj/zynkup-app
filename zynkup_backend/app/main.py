@@ -1,13 +1,12 @@
 import os
 import uuid
-import base64
 import logging
-from pathlib import Path
 
-from fastapi import FastAPI, Request, UploadFile, File, Depends, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from dotenv import load_dotenv  # type: ignore
+from fastapi.responses import JSONResponse, FileResponse
+from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
@@ -30,22 +29,29 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-ALL_ORIGINS = [
+# Must include ALL origins that will call this API
+ALLOWED_ORIGINS = [
+    # Production Netlify (add BOTH with and without trailing slash)
+    "https://zynkup-app.netlify.app",
+    "https://endearing-alpaca-a16035.netlify.app",
+    # Production Render (for Swagger UI)
+    "https://zynkup-app.onrender.com",
+    # Local development
     "http://localhost:5555",
     "http://127.0.0.1:5555",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://endearing-alpaca-a16035.netlify.app",
-    "https://zynkup-app.netlify.app",
-    "https://zynkup-app.onrender.com",
+    "http://localhost:8080",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALL_ORIGINS, 
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 # ── Global error handler ──────────────────────────────────────────────────────
@@ -60,42 +66,69 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── DB ────────────────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
 
-# ── Upload directory (local dev fallback) ─────────────────────────────────────
+# ── Upload directory ──────────────────────────────────────────────────────────
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "application/octet-stream"}
+ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
 
-
+# ── Upload endpoint ───────────────────────────────────────────────────────────
 @app.post("/upload", tags=["Upload"])
 async def upload_file(
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Upload image — returns a base64 data URL so it works without
-    external storage. Works on both local and Render deployment.
-    """
-    ext = Path(file.filename or "image.jpg").suffix.lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        ext = ".jpg"
+    content_type = file.content_type or ""
+    ext_lower = Path(file.filename or "").suffix.lower()
+
+    # Accept image types and PDF
+    allowed_exts = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
+    if ext_lower not in allowed_exts and content_type not in ALLOWED_TYPES:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "Only JPEG, PNG, WEBP images and PDF allowed"},
+        )
 
     contents = await file.read()
+    if len(contents) > 20 * 1024 * 1024:  # 20MB limit
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "File too large. Max 20MB"},
+        )
 
-    if len(contents) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large. Max 10MB")
-
-    # ── Convert to base64 data URL ─────────────────────────────────────────
-    # This approach works everywhere without needing a CDN or static files
-    mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-                ".png": "image/png", ".webp": "image/webp"}
-    mime = mime_map.get(ext, "image/jpeg")
-    b64 = base64.b64encode(contents).decode("utf-8")
+    # For production on Render — store as base64 in response
+    # (Render free tier doesn't have persistent disk)
+    import base64
+    b64 = base64.b64encode(contents).decode()
+    mime = content_type or "image/jpeg"
     data_url = f"data:{mime};base64,{b64}"
 
     logger.info(f"File uploaded as base64 by user {current_user.id}")
-    return {"url": data_url, "filename": f"{uuid.uuid4().hex}{ext}"}
+    return {"url": data_url, "filename": file.filename}
+
+
+# ── Serve uploaded files ──────────────────────────────────────────────────────
+@app.get("/uploads/{filename}", tags=["Upload"])
+async def serve_upload(filename: str, request: Request):
+    file_path = UPLOAD_DIR / filename
+    if not file_path.exists():
+        return JSONResponse(status_code=404, content={"detail": "File not found"})
+
+    suffix = file_path.suffix.lower()
+    media_types = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".png": "image/png", ".webp": "image/webp",
+        ".pdf": "application/pdf",
+    }
+    media_type = media_types.get(suffix, "image/jpeg")
+
+    response = FileResponse(file_path, media_type=media_type)
+    origin = request.headers.get("origin", "")
+    if origin in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
