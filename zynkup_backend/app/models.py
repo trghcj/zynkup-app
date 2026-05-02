@@ -39,9 +39,18 @@ class Event(Base):
     is_approved           = Column(Boolean, default=False, nullable=False)
     created_at            = Column(DateTime, server_default=func.now())
     organizer_id          = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Event poster images (uploaded during creation)
     image_urls            = Column(Text, nullable=True, default="")
+
+    # Registration QR
     registration_url      = Column(String, nullable=True)
     registration_url_type = Column(String, nullable=True)
+
+    # ── NEW: Post-event gallery (up to 50 items, JPEG/PNG/PDF) ───────────────
+    # Stored as JSON-like comma-separated base64 data URLs or file references
+    # Each entry: "filename|||base64data" separated by "|||---|||"
+    gallery_files         = Column(Text, nullable=True, default="")
 
     organizer     = relationship("User", back_populates="events")
     registrations = relationship("Registration", back_populates="event",
@@ -58,4 +67,3 @@ class Registration(Base):
 
     user  = relationship("User", back_populates="registrations")
     event = relationship("Event", back_populates="registrations")
-    
