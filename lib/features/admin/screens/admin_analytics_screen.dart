@@ -12,11 +12,12 @@ class AdminAnalyticsScreen extends StatefulWidget {
 }
 
 class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
-  bool _isLoading = true;
-  int totalEvents = 0;
-  int totalUsers  = 0;
-  int approved    = 0;
-  int pending     = 0;
+  bool _isLoading   = true;
+  int totalEvents   = 0;
+  int totalUsers    = 0;
+  int approved      = 0;
+  int pending       = 0;
+  int registrations = 0;
 
   @override
   void initState() {
@@ -27,15 +28,18 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
   Future<void> _fetchAnalytics() async {
     setState(() => _isLoading = true);
     try {
-      // Uses ApiService which automatically sends the Bearer token
-      final data = await (ApiService() as dynamic).get('analytics');
+      // FIX 1: was (ApiService() as dynamic).get('analytics') — completely broken.
+      // FIX 2: backend returns keys "approved" and "pending" (not "approved_events"
+      //         / "pending_events"), so map accordingly.
+      final data = await ApiService.getAnalytics();
       if (data != null && mounted) {
         setState(() {
-          totalEvents = data["total_events"]    ?? 0;
-          totalUsers  = data["total_users"]     ?? 0;
-          approved    = data["approved_events"] ?? 0;
-          pending     = data["pending_events"]  ?? 0;
-          _isLoading  = false;
+          totalEvents   = data["total_events"]   as int? ?? 0;
+          totalUsers    = data["total_users"]     as int? ?? 0;
+          approved      = data["approved"]        as int? ?? 0; // FIX 2
+          pending       = data["pending"]         as int? ?? 0; // FIX 2
+          registrations = data["registrations"]   as int? ?? 0;
+          _isLoading    = false;
         });
       } else {
         if (mounted) setState(() => _isLoading = false);
@@ -47,7 +51,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final dark    = Theme.of(context).brightness == Brightness.dark;
     final hasData = (approved + pending) > 0;
 
     if (_isLoading) {
@@ -77,6 +81,7 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
               // ── Pie chart ──────────────────────────────────
               Text('Event Overview',
                   style: TextStyle(
@@ -90,10 +95,14 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
               Container(
                 height: 240,
                 decoration: BoxDecoration(
-                  color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
+                  color: dark
+                      ? ZynkColors.darkSurface
+                      : ZynkColors.lightSurface,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
+                    color: dark
+                        ? ZynkColors.darkBorder
+                        : ZynkColors.lightBorder,
                   ),
                 ),
                 child: hasData
@@ -137,9 +146,17 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _Legend(color: ZynkColors.success, label: 'Approved'),
+                              _Legend(
+                                  color: ZynkColors.success,
+                                  label: 'Approved ($approved)'),
                               const SizedBox(height: 12),
-                              _Legend(color: ZynkColors.warning, label: 'Pending'),
+                              _Legend(
+                                  color: ZynkColors.warning,
+                                  label: 'Pending ($pending)'),
+                              const SizedBox(height: 12),
+                              _Legend(
+                                  color: ZynkColors.catTech,
+                                  label: 'Registrations ($registrations)'),
                             ],
                           ),
                         ]),
@@ -177,7 +194,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
               const SizedBox(height: 14),
 
               Row(children: [
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   label: 'Total Events',
                   value: totalEvents,
                   icon: Icons.event_rounded,
@@ -185,7 +203,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                   dark: dark,
                 )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   label: 'Total Users',
                   value: totalUsers,
                   icon: Icons.people_rounded,
@@ -197,7 +216,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
               const SizedBox(height: 12),
 
               Row(children: [
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   label: 'Approved',
                   value: approved,
                   icon: Icons.check_circle_rounded,
@@ -205,7 +225,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                   dark: dark,
                 )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   label: 'Pending',
                   value: pending,
                   icon: Icons.pending_actions_rounded,
@@ -214,13 +235,25 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                 )),
               ]),
 
+              const SizedBox(height: 12),
+
+              _StatCard(
+                label: 'Total Registrations',
+                value: registrations,
+                icon: Icons.how_to_reg_rounded,
+                color: ZynkColors.primary,
+                dark: dark,
+              ),
+
               const SizedBox(height: 24),
 
               // ── Approval rate ───────────────────────────────
               if (totalEvents > 0) ...[
                 Text('Approval Rate',
                     style: TextStyle(
-                      color: dark ? ZynkColors.darkText : ZynkColors.lightText,
+                      color: dark
+                          ? ZynkColors.darkText
+                          : ZynkColors.lightText,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     )),
@@ -228,7 +261,9 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
+                    color: dark
+                        ? ZynkColors.darkSurface
+                        : ZynkColors.lightSurface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                         color: dark
@@ -271,6 +306,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
                   ]),
                 ),
               ],
+
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -278,6 +315,8 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
     );
   }
 }
+
+// ── Legend ────────────────────────────────────────────────────────────────────
 
 class _Legend extends StatelessWidget {
   final Color color;
@@ -288,14 +327,19 @@ class _Legend extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(children: [
       Container(
-        width: 12, height: 12,
+        width: 12,
+        height: 12,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
       const SizedBox(width: 8),
-      Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      Text(label,
+          style: const TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w600)),
     ]);
   }
 }
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   final String label;
@@ -303,8 +347,12 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final bool dark;
-  const _StatCard({required this.label, required this.value,
-    required this.icon, required this.color, required this.dark});
+  const _StatCard(
+      {required this.label,
+      required this.value,
+      required this.icon,
+      required this.color,
+      required this.dark});
 
   @override
   Widget build(BuildContext context) {
@@ -314,13 +362,16 @@ class _StatCard extends StatelessWidget {
         color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
+            color:
+                dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
       ),
       child: Row(children: [
         Container(
-          width: 44, height: 44,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            // FIX: withOpacity -> withValues
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: color, size: 22),
@@ -329,12 +380,15 @@ class _StatCard extends StatelessWidget {
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(value.toString(),
               style: TextStyle(
-                color: color, fontSize: 24,
+                color: color,
+                fontSize: 24,
                 fontWeight: FontWeight.w900,
               )),
           Text(label,
               style: TextStyle(
-                color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+                color: dark
+                    ? ZynkColors.darkMuted
+                    : ZynkColors.lightMuted,
                 fontSize: 12,
               )),
         ]),

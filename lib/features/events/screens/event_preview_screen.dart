@@ -40,10 +40,8 @@ class EventPreviewScreen extends StatelessWidget {
                 child: const Text(
                   'PREVIEW',
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    color: Colors.white70,
+                    fontSize: 10, fontWeight: FontWeight.w800,
+                    letterSpacing: 2, color: Colors.white70,
                   ),
                 ),
               ),
@@ -59,54 +57,40 @@ class EventPreviewScreen extends StatelessWidget {
                   // ── Badge + Title ────────────────────────
                   CategoryBadge(event.category.name),
                   const SizedBox(height: 10),
-
-                  Text(
-                    event.title,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                      color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-                    ),
-                  ),
+                  Text(event.title,
+                      style: TextStyle(
+                        fontSize: 28, fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: dark ? ZynkColors.darkText : ZynkColors.lightText,
+                      )),
 
                   const SizedBox(height: 16),
 
                   // ── Description ──────────────────────────
-                  Text(
-                    event.description,
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.7,
-                      color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
-                    ),
-                  ),
+                  Text(event.description,
+                      style: TextStyle(
+                        fontSize: 15, height: 1.7,
+                        color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+                      )),
 
                   const SizedBox(height: 28),
 
                   // ── Info Tiles ───────────────────────────
                   _infoTile(
-                    icon: Icons.calendar_today_rounded,
-                    label: 'Date & Time',
+                    icon: Icons.calendar_today_rounded, label: 'Date & Time',
                     value: DateFormat('EEE, MMM dd • hh:mm a').format(event.date),
-                    color: catColor,
-                    dark: dark,
+                    color: catColor, dark: dark,
                   ),
                   const SizedBox(height: 10),
                   _infoTile(
-                    icon: Icons.location_on_rounded,
-                    label: 'Venue',
-                    value: event.venue,
-                    color: catColor,
-                    dark: dark,
+                    icon: Icons.location_on_rounded, label: 'Venue',
+                    value: event.venue, color: catColor, dark: dark,
                   ),
                   const SizedBox(height: 10),
                   _infoTile(
-                    icon: Icons.category_rounded,
-                    label: 'Event Type',
+                    icon: Icons.category_rounded, label: 'Event Type',
                     value: event.category.name.toUpperCase(),
-                    color: catColor,
-                    dark: dark,
+                    color: catColor, dark: dark,
                   ),
 
                   const SizedBox(height: 28),
@@ -115,30 +99,29 @@ class EventPreviewScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: ZynkColors.primary.withOpacity(0.08),
+                      // FIX: withOpacity -> withValues
+                      color: ZynkColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                          color: ZynkColors.primary.withOpacity(0.2)),
+                          color: ZynkColors.primary.withValues(alpha: 0.2)),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded,
-                            color: ZynkColors.primary, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'This is a preview. The event will be submitted for admin approval.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: dark
-                                  ? ZynkColors.darkText.withOpacity(0.7)
-                                  : ZynkColors.lightText.withOpacity(0.7),
-                              height: 1.5,
-                            ),
+                    child: Row(children: [
+                      const Icon(Icons.info_outline_rounded,
+                          color: ZynkColors.primary, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'This is a preview. The event will be submitted for admin approval.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            // FIX: withOpacity -> withValues
+                            color: (dark ? ZynkColors.darkText : ZynkColors.lightText)
+                                .withValues(alpha: 0.7),
+                            height: 1.5,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ]),
                   ),
 
                   const SizedBox(height: 20),
@@ -155,15 +138,13 @@ class EventPreviewScreen extends StatelessWidget {
     if (kIsWeb && webImages != null && webImages!.isNotEmpty) {
       return PageView.builder(
         itemCount: webImages!.length,
-        itemBuilder: (_, i) =>
-            Image.memory(webImages![i], fit: BoxFit.cover),
+        itemBuilder: (_, i) => Image.memory(webImages![i], fit: BoxFit.cover),
       );
     }
     if (!kIsWeb && pickedImages != null && pickedImages!.isNotEmpty) {
       return PageView.builder(
         itemCount: pickedImages!.length,
-        itemBuilder: (_, i) =>
-            Image.file(pickedImages![i], fit: BoxFit.cover),
+        itemBuilder: (_, i) => Image.file(pickedImages![i], fit: BoxFit.cover),
       );
     }
     return Container(
@@ -187,40 +168,32 @@ class EventPreviewScreen extends StatelessWidget {
         border: Border.all(
             color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 18),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            // FIX: withOpacity -> withValues
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
-                    )),
-                const SizedBox(height: 2),
-                Text(value,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-                    )),
-              ],
-            ),
-          ),
-        ],
-      ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w600,
+              color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+            )),
+            const SizedBox(height: 2),
+            Text(value, style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w600,
+              color: dark ? ZynkColors.darkText : ZynkColors.lightText,
+            )),
+          ],
+        )),
+      ]),
     );
   }
 }

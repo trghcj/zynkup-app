@@ -20,9 +20,9 @@ class AdminGalleryUploadScreen extends StatefulWidget {
 class _AdminGalleryUploadScreenState
     extends State<AdminGalleryUploadScreen> {
   List<Map<String, dynamic>> _existing = [];
-  final List<Map<String, dynamic>> _newFiles = [];
-  bool _loading   = true;
-  bool _uploading = false;
+  final List<Map<String, dynamic>> _newFiles  = [];
+  bool _loading    = true;
+  bool _uploading  = false;
   final ImagePicker _picker = ImagePicker();
 
   static const int _maxFiles = 50;
@@ -44,9 +44,8 @@ class _AdminGalleryUploadScreenState
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         setState(() {
-          _existing =
-              List<Map<String, dynamic>>.from(data['files'] ?? []);
-          _loading = false;
+          _existing = List<Map<String, dynamic>>.from(data['files'] ?? []);
+          _loading  = false;
         });
       }
     } catch (_) {
@@ -77,11 +76,9 @@ class _AdminGalleryUploadScreenState
       final ext  = img.name.split('.').last.toLowerCase();
       final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
       setState(() => _newFiles.add({
-            'name': img.name,
-            'mime': mime,
-            'data': base64Encode(bytes),
-            'bytes': bytes,
-          }));
+        'name': img.name, 'mime': mime,
+        'data': base64Encode(bytes), 'bytes': bytes,
+      }));
       added++;
     }
     if (added > 0) _snack('$added image(s) added', ZynkColors.success);
@@ -123,7 +120,9 @@ class _AdminGalleryUploadScreenState
         Uri.parse(
             '${ApiService.baseUrl}/events/${widget.event.id}/gallery'),
       );
-      request.headers.addAll(ApiService.authHeaders);
+      // FIX: must use authOnlyHeaders — authHeaders includes Content-Type: application/json
+      // which overwrites the multipart boundary and corrupts the upload.
+      request.headers.addAll(ApiService.authOnlyHeaders);
 
       for (final f in _newFiles) {
         request.files.add(http.MultipartFile.fromBytes(
@@ -183,8 +182,8 @@ class _AdminGalleryUploadScreenState
         content: Text(msg),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
 
   @override
@@ -196,71 +195,110 @@ class _AdminGalleryUploadScreenState
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Event Gallery'),
           Text(widget.event.title,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: dark
-                      ? ZynkColors.darkMuted
-                      : ZynkColors.lightMuted),
+              style: TextStyle(fontSize: 12,
+                  color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted),
               overflow: TextOverflow.ellipsis),
         ]),
         actions: [
-          // Add images button
-          IconButton(
-            icon: const Icon(Icons.add_photo_alternate_rounded),
-            tooltip: 'Add images',
-            onPressed: _loading ? null : _pickImages,
-          ),
+          if (_newFiles.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton.icon(
+                onPressed: _uploading ? null : _upload,
+                icon: _uploading
+                    ? const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.cloud_upload_rounded,
+                        color: Colors.white),
+                label: Text('Upload (${_newFiles.length})',
+                    style: const TextStyle(color: Colors.white,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ),
         ],
       ),
       body: _loading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(color: ZynkColors.primary))
-          : CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
+          : Column(
+              children: [
+                // ── Stats bar ──────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12),
+                  color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurf2,
+                  child: Row(children: [
+                    _StatPill('Uploaded', _existing.length,
+                        ZynkColors.success),
+                    const SizedBox(width: 10),
+                    _StatPill('Queued', _newFiles.length,
+                        ZynkColors.warning),
+                    const SizedBox(width: 10),
+                    _StatPill('Remaining', _remaining, ZynkColors.catTech),
+                    const Spacer(),
+                    Text('Max $_maxFiles files',
+                        style: TextStyle(fontSize: 11,
+                            color: dark
+                                ? ZynkColors.darkMuted
+                                : ZynkColors.lightMuted)),
+                  ]),
+                ),
+
+                Expanded(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
-                    child: Column(children: [
-
-                      // ── Stats row ──────────────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _StatPill('uploaded', _existing.length,
-                              ZynkColors.success),
-                          _StatPill('queued', _newFiles.length,
-                              ZynkColors.warning),
-                          _StatPill('remaining', _remaining,
-                              ZynkColors.primary),
-                        ],
-                      ),
 
-                      const SizedBox(height: 16),
-
-                      // ── Add button ────────────────────
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _remaining > 0 ? _pickImages : null,
-                          icon: const Icon(
-                              Icons.add_photo_alternate_rounded),
-                          label: Text(_remaining > 0
-                              ? 'Add Images ($_remaining slots left)'
-                              : 'Gallery full ($_maxFiles max)'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _remaining > 0
-                                ? ZynkColors.primary
-                                : ZynkColors.lightMuted,
-                            side: BorderSide(
+                      // ── Add files button ──────────────
+                      GestureDetector(
+                        onTap: _remaining > 0 ? _pickImages : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: 90,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: _remaining > 0
+                                ? ZynkColors.primary.withValues(alpha: 0.06)
+                                : (dark
+                                    ? ZynkColors.darkSurface2
+                                    : ZynkColors.lightSurf2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _remaining > 0
+                                  ? ZynkColors.primary.withValues(alpha: 0.4)
+                                  : (dark
+                                      ? ZynkColors.darkBorder
+                                      : ZynkColors.lightBorder),
+                            ),
+                          ),
+                          child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                            Icon(
+                              _remaining > 0
+                                  ? Icons.add_photo_alternate_rounded
+                                  : Icons.block_rounded,
+                              color: _remaining > 0
+                                  ? ZynkColors.primary
+                                  : ZynkColors.lightMuted,
+                              size: 28),
+                            const SizedBox(height: 6),
+                            Text(
+                              _remaining > 0
+                                  ? 'Add Photos (PNG, JPG)'
+                                  : 'Gallery Full ($_maxFiles/$_maxFiles)',
+                              style: TextStyle(
                                 color: _remaining > 0
                                     ? ZynkColors.primary
                                     : ZynkColors.lightMuted,
-                                width: 1.5),
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                          ),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13),
+                            ),
+                          ]),
                         ),
                       ),
 
@@ -292,39 +330,32 @@ class _AdminGalleryUploadScreenState
                                     _imgPlaceholder(ZynkColors.warning),
                               ),
                             ),
-                            Positioned(
-                              top: 4,
-                              left: 4,
+                            // Queued badge
+                            Positioned(top: 4, left: 4,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                     color: ZynkColors.warning,
-                                    borderRadius:
-                                        BorderRadius.circular(6)),
+                                    borderRadius: BorderRadius.circular(6)),
                                 child: const Text('NEW',
-                                    style: TextStyle(
-                                        color: Colors.white,
+                                    style: TextStyle(color: Colors.white,
                                         fontSize: 8,
                                         fontWeight: FontWeight.w800)),
                               ),
                             ),
-                            Positioned(
-                              top: 4,
-                              right: 4,
+                            // Remove
+                            Positioned(top: 4, right: 4,
                               child: GestureDetector(
-                                onTap: () => setState(
-                                    () => _newFiles.removeAt(i)),
+                                onTap: () =>
+                                    setState(() => _newFiles.removeAt(i)),
                                 child: Container(
-                                    width: 22,
-                                    height: 22,
-                                    decoration: const BoxDecoration(
-                                        color: Colors.black54,
-                                        shape: BoxShape.circle),
-                                    child: const Icon(
-                                        Icons.close_rounded,
-                                        size: 13,
-                                        color: Colors.white)),
+                                  width: 22, height: 22,
+                                  decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle),
+                                  child: const Icon(Icons.close_rounded,
+                                      size: 13, color: Colors.white)),
                               ),
                             ),
                           ]),
@@ -345,8 +376,7 @@ class _AdminGalleryUploadScreenState
                         const SizedBox(height: 24),
                         _sectionLabel(
                             '✅ Uploaded (${_existing.length})',
-                            ZynkColors.success,
-                            dark),
+                            ZynkColors.success, dark),
                         const SizedBox(height: 10),
                         GridView.builder(
                           shrinkWrap: true,
@@ -364,8 +394,7 @@ class _AdminGalleryUploadScreenState
                             Uint8List? bytes;
                             if (!isPdf) {
                               try {
-                                bytes =
-                                    base64Decode(f['data'] as String);
+                                bytes = base64Decode(f['data'] as String);
                               } catch (_) {}
                             }
 
@@ -374,50 +403,41 @@ class _AdminGalleryUploadScreenState
                                 borderRadius: BorderRadius.circular(10),
                                 child: isPdf
                                     ? _imgPlaceholder(ZynkColors.error,
-                                        icon: Icons
-                                            .picture_as_pdf_rounded)
+                                        icon: Icons.picture_as_pdf_rounded)
                                     : (bytes != null
                                         ? Image.memory(bytes,
                                             fit: BoxFit.cover,
                                             width: double.infinity,
                                             height: double.infinity)
-                                        : _imgPlaceholder(
-                                            ZynkColors.primary)),
+                                        : _imgPlaceholder(ZynkColors.primary)),
                               ),
                               Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
+                                bottom: 0, left: 0, right: 0,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 4, vertical: 3),
-                                  decoration: const BoxDecoration(
+                                  decoration: BoxDecoration(
                                     color: Colors.black54,
-                                    borderRadius: BorderRadius.vertical(
+                                    borderRadius: const BorderRadius.vertical(
                                         bottom: Radius.circular(10)),
                                   ),
-                                  child: Text(f['name'] ?? '',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 8),
-                                      overflow: TextOverflow.ellipsis),
+                                  child: Text(
+                                    f['name'] ?? '',
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 8),
+                                    overflow: TextOverflow.ellipsis),
                                 ),
                               ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
+                              Positioned(top: 4, right: 4,
                                 child: GestureDetector(
                                   onTap: () => _deleteExisting(i),
                                   child: Container(
-                                      width: 22,
-                                      height: 22,
-                                      decoration: const BoxDecoration(
-                                          color: Colors.black54,
-                                          shape: BoxShape.circle),
-                                      child: const Icon(
-                                          Icons.delete_rounded,
-                                          size: 12,
-                                          color: Colors.white)),
+                                    width: 22, height: 22,
+                                    decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle),
+                                    child: const Icon(Icons.delete_rounded,
+                                        size: 12, color: Colors.white)),
                                 ),
                               ),
                             ]);
@@ -434,28 +454,19 @@ class _AdminGalleryUploadScreenState
     );
   }
 
-  Widget _sectionLabel(String label, Color color, bool dark) =>
-      Row(children: [
-        Container(
-            width: 8,
-            height: 8,
-            decoration:
-                BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        Text(label,
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color:
-                    dark ? ZynkColors.darkText : ZynkColors.lightText)),
-      ]);
+  Widget _sectionLabel(String label, Color color, bool dark) => Row(children: [
+    Container(width: 8, height: 8,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+    const SizedBox(width: 8),
+    Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+        color: dark ? ZynkColors.darkText : ZynkColors.lightText)),
+  ]);
 
   Widget _imgPlaceholder(Color color,
-          {IconData icon = Icons.image_rounded}) =>
+      {IconData icon = Icons.image_rounded}) =>
       Container(
-          // FIX: withOpacity -> withValues
-          color: color.withValues(alpha: 0.1),
-          child: Center(child: Icon(icon, color: color, size: 28)));
+        color: color.withValues(alpha: 0.1),
+        child: Center(child: Icon(icon, color: color, size: 28)));
 }
 
 class _StatPill extends StatelessWidget {
@@ -466,24 +477,15 @@ class _StatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-            // FIX: withOpacity -> withValues
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20)),
-        child: RichText(
-            text: TextSpan(children: [
-          TextSpan(
-              text: '$count ',
-              style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13)),
-          TextSpan(
-              text: label,
-              // FIX: withOpacity -> withValues
-              style: TextStyle(
-                  color: color.withValues(alpha: 0.8), fontSize: 11)),
-        ])));
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(20)),
+    child: RichText(text: TextSpan(children: [
+      TextSpan(text: '$count ',
+          style: TextStyle(color: color, fontWeight: FontWeight.w800,
+              fontSize: 13)),
+      TextSpan(text: label,
+          style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 11)),
+    ])));
 }
