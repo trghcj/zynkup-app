@@ -11,9 +11,9 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     with SingleTickerProviderStateMixin {
-  bool _isLoading = true;
-  int totalEvents = 0;
-  int totalUsers = 0;
+  bool _isLoading  = true;
+  int totalEvents  = 0;
+  int totalUsers   = 0;
   int pendingEvents = 0;
 
   late AnimationController _animController;
@@ -43,14 +43,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       ]);
 
       final analytics = results[0] as Map<String, dynamic>?;
-      final pending = results[1] as List<dynamic>;
+      final pending   = results[1] as List<dynamic>;
 
       if (mounted) {
         setState(() {
-          totalEvents = analytics?["total_events"] ?? 0;
-          totalUsers = analytics?["total_users"] ?? 0;
+          totalEvents   = analytics?["total_events"] as int? ?? 0;
+          totalUsers    = analytics?["total_users"]  as int? ?? 0;
           pendingEvents = pending.length;
-          _isLoading = false;
+          _isLoading    = false;
         });
         _animController.forward(from: 0);
       }
@@ -70,102 +70,85 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           : RefreshIndicator(
               color: ZynkColors.primary,
               onRefresh: _fetchData,
-              child: CustomScrollView(
-                slivers: [
-                  // ── Hero App Bar ──────────────────────────────
-                  SliverAppBar(
-                    expandedHeight: 160,
-                    pinned: true,
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: Container(
-                        decoration: const BoxDecoration(
-                          gradient: ZynkGradients.brand,
-                        ),
-                        child: SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'ADMIN',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 2.5,
-                                    color: Colors.white.withOpacity(0.7),
-                                  ),
+              child: CustomScrollView(slivers: [
+
+                // ── Hero App Bar ──────────────────────────────
+                SliverAppBar(
+                  expandedHeight: 160,
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Container(
+                      decoration: const BoxDecoration(
+                          gradient: ZynkGradients.brand),
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                'ADMIN',
+                                style: TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w800,
+                                  letterSpacing: 2.5,
+                                  // FIX: withOpacity -> withValues
+                                  color: Colors.white.withValues(alpha: 0.7),
                                 ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'Dashboard',
+                              ),
+                              const SizedBox(height: 4),
+                              const Text('Dashboard',
                                   style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: -1,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                            ),
+                                    fontSize: 32, fontWeight: FontWeight.w800,
+                                    color: Colors.white, letterSpacing: -1,
+                                  )),
+                              const SizedBox(height: 16),
+                            ],
                           ),
                         ),
                       ),
-                      title: const Text(
-                        'Dashboard',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
                     ),
-                    backgroundColor: ZynkColors.primaryDark,
-                    actions: [
-                      IconButton(
-                        icon: const Icon(Icons.refresh_rounded,
-                            color: Colors.white),
-                        onPressed: _fetchData,
-                      ),
-                    ],
+                    title: const Text('Dashboard',
+                        style: TextStyle(color: Colors.white)),
+                    titlePadding:
+                        const EdgeInsets.only(left: 20, bottom: 16),
                   ),
+                  backgroundColor: ZynkColors.primaryDark,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded,
+                          color: Colors.white),
+                      onPressed: _fetchData,
+                    ),
+                  ],
+                ),
 
-                  SliverPadding(
-                    padding: const EdgeInsets.all(20),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        // ── Stats ─────────────────────────────
-                        _buildStatCard(
-                          index: 0,
-                          title: 'Total Events',
-                          count: totalEvents,
-                          icon: Icons.event_rounded,
-                          color: ZynkColors.primary,
-                          subtitle: 'All time',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildStatCard(
-                          index: 1,
-                          title: 'Registered Users',
-                          count: totalUsers,
-                          icon: Icons.people_rounded,
-                          color: ZynkColors.catTech,
-                          subtitle: 'Platform wide',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildStatCard(
-                          index: 2,
-                          title: 'Pending Approval',
-                          count: pendingEvents,
-                          icon: Icons.pending_actions_rounded,
-                          color: ZynkColors.warning,
-                          subtitle: 'Needs review',
-                          highlight: pendingEvents > 0,
-                        ),
-                      ]),
-                    ),
+                SliverPadding(
+                  padding: const EdgeInsets.all(20),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _buildStatCard(
+                        index: 0, title: 'Total Events', count: totalEvents,
+                        icon: Icons.event_rounded, color: ZynkColors.primary,
+                        subtitle: 'All time',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildStatCard(
+                        index: 1, title: 'Registered Users', count: totalUsers,
+                        icon: Icons.people_rounded, color: ZynkColors.catTech,
+                        subtitle: 'Platform wide',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildStatCard(
+                        index: 2, title: 'Pending Approval', count: pendingEvents,
+                        icon: Icons.pending_actions_rounded,
+                        color: ZynkColors.warning, subtitle: 'Needs review',
+                        highlight: pendingEvents > 0,
+                      ),
+                    ]),
                   ),
-                ],
-              ),
+                ),
+              ]),
             ),
     );
   }
@@ -184,7 +167,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     return AnimatedBuilder(
       animation: _animController,
       builder: (context, child) {
-        final delay = index * 0.15;
+        final delay    = index * 0.15;
         final progress = Curves.easeOut.transform(
           ((_animController.value - delay) / (1 - delay)).clamp(0.0, 1.0),
         );
@@ -202,68 +185,53 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
+            // FIX: withOpacity -> withValues
             color: highlight
-                ? ZynkColors.warning.withOpacity(0.4)
+                ? ZynkColors.warning.withValues(alpha: 0.4)
                 : (dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
             width: highlight ? 1.5 : 1,
           ),
           boxShadow: highlight
-              ? [
-                  BoxShadow(
-                    color: ZynkColors.warning.withOpacity(0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
-                  )
-                ]
+              ? [BoxShadow(
+                  // FIX: withOpacity -> withValues
+                  color: ZynkColors.warning.withValues(alpha: 0.12),
+                  blurRadius: 20, offset: const Offset(0, 4),
+                )]
               : null,
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: color, size: 26),
+        child: Row(children: [
+          Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              // FIX: withOpacity -> withValues
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: (dark ? ZynkColors.darkMuted : ZynkColors.lightMuted)
-                          .withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              count.toString(),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w600,
+                color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+              )),
+              const SizedBox(height: 2),
+              Text(subtitle, style: TextStyle(
+                fontSize: 11,
+                // FIX: withOpacity -> withValues
+                color: (dark ? ZynkColors.darkMuted : ZynkColors.lightMuted)
+                    .withValues(alpha: 0.6),
+              )),
+            ],
+          )),
+          Text(count.toString(),
               style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.w800,
-                color: color,
-                letterSpacing: -1.5,
-              ),
-            ),
-          ],
-        ),
+                fontSize: 36, fontWeight: FontWeight.w800,
+                color: color, letterSpacing: -1.5,
+              )),
+        ]),
       ),
     );
   }
