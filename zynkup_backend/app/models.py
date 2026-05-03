@@ -40,17 +40,17 @@ class Event(Base):
     created_at            = Column(DateTime, server_default=func.now())
     organizer_id          = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    # Event poster images (uploaded during creation)
-    image_urls            = Column(Text, nullable=True, default="")
+    # Event poster images — stored as comma-separated URLs (Text, not Array)
+    image_urls            = Column(Text, nullable=True, default=None)
 
     # Registration QR
     registration_url      = Column(String, nullable=True)
     registration_url_type = Column(String, nullable=True)
 
-    # ── NEW: Post-event gallery (up to 50 items, JPEG/PNG/PDF) ───────────────
-    # Stored as JSON-like comma-separated base64 data URLs or file references
-    # Each entry: "filename|||base64data" separated by "|||---|||"
-    gallery_files         = Column(Text, nullable=True, default="")
+    # Post-event gallery — stored as custom separator-delimited text
+    # Format: "filename|||mime|||base64data|||---|||filename|||mime|||base64data"
+    # FIX: default=None instead of "" — PostgreSQL was treating "" as a malformed array literal
+    gallery_files         = Column(Text, nullable=True, default=None)
 
     organizer     = relationship("User", back_populates="events")
     registrations = relationship("Registration", back_populates="event",

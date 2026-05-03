@@ -46,9 +46,15 @@ ALLOWED_MIME = {
 }
 
 
+def _is_valid_url(s: str) -> bool:
+    """Returns True only if the string is a real URL, not a base64 blob."""
+    s = s.strip()
+    return s.startswith("http://") or s.startswith("https://")
+
+
 def _parse_gallery(raw: str) -> List[dict]:
     """Parse stored gallery string into list of {name, data, mime}"""
-    if not raw:
+    if not raw or raw.strip() in ("", "{}"):
         return []
     items = []
     for entry in raw.split(_SEP):
@@ -73,7 +79,8 @@ def _serialize_gallery(items: List[dict]) -> str:
 
 def _event_to_dict(event: models.Event) -> dict:
     raw_urls = event.image_urls or ""
-    urls = [u.strip() for u in raw_urls.split(",") if u.strip()]
+    # Only keep real URLs — never return base64 blobs
+    urls = [u.strip() for u in raw_urls.split(",") if _is_valid_url(u.strip())]
     registered = [str(r.user_id) for r in event.registrations]
     gallery = _parse_gallery(event.gallery_files or "")
 
@@ -91,7 +98,6 @@ def _event_to_dict(event: models.Event) -> dict:
         "registration_url":      event.registration_url,
         "registration_url_type": event.registration_url_type,
         "approvedAt":            None,
-        # Gallery: list of {name, mime, data}
         "gallery":               gallery,
         "gallery_count":         len(gallery),
     }
@@ -111,7 +117,9 @@ def create_event(
     except ValueError:
         raise HTTPException(status_code=422, detail="Invalid date format")
 
-    image_urls_str = ",".join(event.image_urls) if event.image_urls else ""
+    # Only store real URLs — reject base64 blobs silently
+    valid_urls = [u for u in (event.image_urls or []) if _is_valid_url(u)]
+    image_urls_str = ",".join(valid_urls)
 
     new_event = models.Event(
         title=event.title,
@@ -124,7 +132,7 @@ def create_event(
         image_urls=image_urls_str,
         registration_url=event.registration_url,
         registration_url_type=event.registration_url_type,
-        gallery_files="",
+        gallery_files=None,   # FIX: use None instead of "" to avoid PostgreSQL array type conflict
     )
     db.add(new_event)
     db.commit()
@@ -181,7 +189,9 @@ def update_event(
         from datetime import datetime
         event.date = datetime.fromisoformat(payload.date)
     if payload.category is not None:     event.category = payload.category
-    if payload.image_urls is not None:   event.image_urls = ",".join(payload.image_urls)
+    if payload.image_urls is not None:
+        valid_urls = [u for u in payload.image_urls if _is_valid_url(u)]
+        event.image_urls = ",".join(valid_urls)
     if payload.registration_url is not None:
         event.registration_url = payload.registration_url
     if payload.registration_url_type is not None:
@@ -223,7 +233,6 @@ async def upload_gallery(
         mime = (f.content_type or "").lower()
         ext  = (f.filename or "").split(".")[-1].lower()
 
-        # Validate by mime or extension
         valid_exts  = {"jpg", "jpeg", "png", "pdf"}
         valid_mimes = ALLOWED_MIME
 
@@ -234,14 +243,13 @@ async def upload_gallery(
             )
 
         contents = await f.read()
-        if len(contents) > 15 * 1024 * 1024:  # 15MB per file
+        if len(contents) > 15 * 1024 * 1024:
             raise HTTPException(
                 status_code=400,
                 detail=f"'{f.filename}' exceeds 15MB limit."
             )
 
         b64 = base64.b64encode(contents).decode("utf-8")
-        # Determine correct mime
         if ext == "pdf" or mime == "application/pdf":
             final_mime = "application/pdf"
         elif ext == "png" or mime == "image/png":
@@ -287,7 +295,7 @@ def delete_gallery_file(
         raise HTTPException(status_code=404, detail="File not found")
 
     items.pop(file_index)
-    event.gallery_files = _serialize_gallery(items)
+    event.gallery_files = _serialize_gallery(items) if items else None
     db.commit()
     return {"message": "File deleted", "remaining": len(items)}
 
@@ -299,10 +307,11 @@ def get_gallery(event_id: int, db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    files = _parse_gallery(event.gallery_files or "")
     return {
         "event_id": event_id,
-        "files":    _parse_gallery(event.gallery_files or ""),
-        "total":    len(_parse_gallery(event.gallery_files or "")),
+        "files":    files,
+        "total":    len(files),
     }
 
 
