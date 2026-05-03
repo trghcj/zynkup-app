@@ -333,8 +333,10 @@ class ApiService {
           "venue": venue,
           "date": date,
           "category": category,
+          // FIX: send as List, not a comma-joined String.
+          // imageUrls.join(",") was causing 422 — backend expects List[str].
           if (imageUrls != null && imageUrls.isNotEmpty)
-            "image_urls": imageUrls.join(","),
+            "image_urls": imageUrls,
           if (registrationUrl != null) "registration_url": registrationUrl,
           if (registrationUrlType != null)
             "registration_url_type": registrationUrlType,
