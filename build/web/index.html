@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <meta name="description" content="Zynkup — MAIT College Events App">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Fix iOS warning -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#6a1b9a">
+
+  <title>Zynkup</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- 🔥 FORCE HTML RENDERER (fix CanvasKit crash) -->
+  <script>
+    window.flutterWebRenderer = "html";
+  </script>
+
+  <!-- 🔥 FIREBASE -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+    import { getAuth, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCg7ZsRbg0o5HJ7S5LVEwNQaYciEl-hmEY",
+      authDomain: "zynkup-app.firebaseapp.com",
+      projectId: "zynkup-app",
+      storageBucket: "zynkup-app.firebasestorage.app",
+      messagingSenderId: "659234851207",
+      appId: "1:659234851207:web:39cc56f3416de5bc43eb22"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    setPersistence(auth, browserSessionPersistence)
+      .then(() => console.log("Firebase Auth ready"))
+      .catch(err => console.error(err));
+  </script>
+
+  <!-- ✅ ONLY THIS (REMOVE manual loader) -->
+  <script src="flutter_bootstrap.js" async></script>
+</head>
+
+<body>
+</body>
+</html>
