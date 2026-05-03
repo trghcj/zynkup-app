@@ -30,7 +30,7 @@ app = FastAPI(
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 ALLOWED_ORIGINS = [
-    "https://zynkup-app.netlify.app",
+    "https://zynkup-app.vercel.app",
     "https://endearing-alpaca-a16035.netlify.app",
     "https://zynkup-app.onrender.com",
     "http://localhost:5555",
