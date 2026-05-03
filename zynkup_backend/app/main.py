@@ -29,14 +29,10 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-# Must include ALL origins that will call this API
 ALLOWED_ORIGINS = [
-    # Production Netlify (add BOTH with and without trailing slash)
     "https://zynkup-app.netlify.app",
     "https://endearing-alpaca-a16035.netlify.app",
-    # Production Render (for Swagger UI)
     "https://zynkup-app.onrender.com",
-    # Local development
     "http://localhost:5555",
     "http://127.0.0.1:5555",
     "http://localhost:3000",
