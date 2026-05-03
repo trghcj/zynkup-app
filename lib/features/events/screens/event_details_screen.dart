@@ -9,7 +9,7 @@ import '../models/event_model.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final Event event;
-  final bool isAdmin; // pass true from admin screens
+  final bool isAdmin;
 
   const EventDetailsScreen({
     super.key,
@@ -23,9 +23,9 @@ class EventDetailsScreen extends StatefulWidget {
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   late Event event;
-  bool _isLoading    = true;
-  bool _registering  = false;
-  bool _registered   = false;
+  bool _isLoading   = true;
+  bool _registering = false;
+  bool _registered  = false;
   int  _attendeeCount = 0;
 
   @override
@@ -35,11 +35,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     _fetchEvent();
   }
 
-  // ── Fetch fresh event data from server ────────────────────────────────────
+  // FIX: was ApiService.getEvent() — correct name is getEventById()
   Future<void> _fetchEvent() async {
     try {
-      final data = await ApiService.getEvent(int.parse(event.id));
-      if (data != null && data is Map<String, dynamic> && mounted) {
+      final data = await ApiService.getEventById(int.parse(event.id));
+      if (data != null && mounted) {
         setState(() {
           event = Event.fromJson(data);
           _attendeeCount = data["attendee_count"] as int? ?? 0;
@@ -53,7 +53,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
-  // ── Register ──────────────────────────────────────────────────────────────
   Future<void> _register() async {
     setState(() => _registering = true);
     try {
@@ -75,7 +74,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
-  // ── Admin: delete event ───────────────────────────────────────────────────
   Future<void> _deleteEvent() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -97,13 +95,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     if (confirm != true) return;
     try {
       await ApiService.rejectEvent(int.parse(event.id));
-      if (mounted) Navigator.pop(context, true); // signal refresh
+      if (mounted) Navigator.pop(context, true);
     } on ApiException catch (e) {
       _snack(e.message, ZynkColors.error);
     }
   }
 
-  // ── Admin: approve event ──────────────────────────────────────────────────
   Future<void> _approveEvent() async {
     try {
       await ApiService.approveEvent(int.parse(event.id));
@@ -114,7 +111,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
   }
 
-  // ── Open registration form URL ────────────────────────────────────────────
   Future<void> _openRegistrationForm() async {
     final url = event.registrationUrl;
     if (url == null || url.isEmpty) return;
@@ -141,23 +137,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final cat  = event.category.name;
     final isUpcoming = event.date.isAfter(DateTime.now());
 
-    // QR data: use registration URL if available, else event URL
     final qrData = (event.registrationUrl?.isNotEmpty == true)
         ? event.registrationUrl!
         : 'https://zynkup-app.netlify.app/events/${event.id}';
 
     return Scaffold(
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: ZynkColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: ZynkColors.primary))
           : CustomScrollView(
               slivers: [
                 // ── Hero banner ──────────────────────────────────
                 SliverAppBar(
                   expandedHeight: 240,
                   pinned: true,
-                  backgroundColor: dark ? ZynkColors.darkSurface : ZynkColors.lightBg,
+                  backgroundColor:
+                      dark ? ZynkColors.darkSurface : ZynkColors.lightBg,
                   iconTheme: const IconThemeData(color: Colors.white),
-                  // Admin gets delete button, users get nothing
                   actions: widget.isAdmin
                       ? [
                           IconButton(
@@ -169,25 +165,28 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       : [],
                   flexibleSpace: FlexibleSpaceBar(
                     background: Stack(fit: StackFit.expand, children: [
-                      // Image or gradient
                       event.imageUrls.isNotEmpty
                           ? Image.network(
                               event.imageUrls.first,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 decoration: BoxDecoration(
-                                    gradient: ZynkGradients.forCategory(cat)),
+                                    gradient:
+                                        ZynkGradients.forCategory(cat)),
                               ),
                             )
                           : Container(
                               decoration: BoxDecoration(
-                                  gradient: ZynkGradients.forCategory(cat)),
+                                  gradient:
+                                      ZynkGradients.forCategory(cat)),
                             ),
-                      // Dark overlay for readability
-                      Container(color: Colors.black.withOpacity(0.35)),
-                      // Title overlay
+                      // FIX: withOpacity -> withValues
+                      Container(
+                          color: Colors.black.withValues(alpha: 0.35)),
                       Positioned(
-                        left: 20, right: 20, bottom: 20,
+                        left: 20,
+                        right: 20,
+                        bottom: 20,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -221,19 +220,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: ZynkColors.warning.withOpacity(0.1),
+                              // FIX: withOpacity -> withValues
+                              color: ZynkColors.warning
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: ZynkColors.warning.withOpacity(0.3)),
+                                  color: ZynkColors.warning
+                                      .withValues(alpha: 0.3)),
                             ),
                             child: Row(children: [
                               const Icon(Icons.pending_actions_rounded,
                                   color: ZynkColors.warning),
                               const SizedBox(width: 10),
-                              const Expanded(child: Text('Pending Approval',
-                                  style: TextStyle(
-                                      color: ZynkColors.warning,
-                                      fontWeight: FontWeight.w700))),
+                              const Expanded(
+                                  child: Text('Pending Approval',
+                                      style: TextStyle(
+                                          color: ZynkColors.warning,
+                                          fontWeight: FontWeight.w700))),
                               TextButton(
                                 onPressed: _approveEvent,
                                 child: const Text('Approve',
@@ -252,12 +255,15 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(
-                              color: ZynkColors.primary.withOpacity(0.1),
+                              // FIX: withOpacity -> withValues
+                              color: ZynkColors.primary
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(children: [
                               const Icon(Icons.people_rounded,
-                                  size: 14, color: ZynkColors.primary),
+                                  size: 14,
+                                  color: ZynkColors.primary),
                               const SizedBox(width: 5),
                               Text('$_attendeeCount registered',
                                   style: const TextStyle(
@@ -274,14 +280,20 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         // ── Description ───────────────────────────
                         Text('About this Event',
                             style: TextStyle(
-                              color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-                              fontSize: 16, fontWeight: FontWeight.w800,
+                              color: dark
+                                  ? ZynkColors.darkText
+                                  : ZynkColors.lightText,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
                             )),
                         const SizedBox(height: 8),
                         Text(event.description,
                             style: TextStyle(
-                              color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
-                              fontSize: 15, height: 1.65,
+                              color: dark
+                                  ? ZynkColors.darkMuted
+                                  : ZynkColors.lightMuted,
+                              fontSize: 15,
+                              height: 1.65,
                             )),
 
                         const SizedBox(height: 20),
@@ -292,41 +304,50 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           label: 'Date & Time',
                           value: DateFormat('EEE, MMM dd yyyy • hh:mm a')
                               .format(event.date),
-                          color: ZynkColors.catTech, dark: dark,
+                          color: ZynkColors.catTech,
+                          dark: dark,
                         ),
                         const SizedBox(height: 10),
                         _InfoCard(
                           icon: Icons.location_on_rounded,
                           label: 'Venue',
                           value: event.venue,
-                          color: ZynkColors.primary, dark: dark,
+                          color: ZynkColors.primary,
+                          dark: dark,
                         ),
                         const SizedBox(height: 10),
                         _InfoCard(
                           icon: Icons.category_rounded,
                           label: 'Category',
                           value: cat.toUpperCase(),
-                          color: ZynkColors.forCategory(cat), dark: dark,
+                          color: ZynkColors.forCategory(cat),
+                          dark: dark,
                         ),
 
                         const SizedBox(height: 24),
 
                         // ── QR Code ────────────────────────────────
-                        // QR contains the registration form URL so scanning opens the form
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
+                            color: dark
+                                ? ZynkColors.darkSurface
+                                : ZynkColors.lightSurface,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                                color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
+                                color: dark
+                                    ? ZynkColors.darkBorder
+                                    : ZynkColors.lightBorder),
                           ),
                           child: Column(children: [
                             Text('Event QR Code',
                                 style: TextStyle(
-                                  color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-                                  fontWeight: FontWeight.w700, fontSize: 15,
+                                  color: dark
+                                      ? ZynkColors.darkText
+                                      : ZynkColors.lightText,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
                                 )),
                             const SizedBox(height: 6),
                             Text(
@@ -334,7 +355,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                   ? 'Scan to open registration form'
                                   : 'Scan to view event page',
                               style: TextStyle(
-                                  color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+                                  color: dark
+                                      ? ZynkColors.darkMuted
+                                      : ZynkColors.lightMuted,
                                   fontSize: 12),
                             ),
                             const SizedBox(height: 16),
@@ -351,8 +374,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
                         // ── Register / Open Form buttons ───────────
                         if (isUpcoming && !widget.isAdmin) ...[
-                          // Open form button (if form URL exists)
-                          if (event.registrationUrl?.isNotEmpty == true) ...[
+                          if (event.registrationUrl?.isNotEmpty ==
+                              true) ...[
                             ZynkButton(
                               label: 'Open Registration Form',
                               icon: Icons.open_in_new_rounded,
@@ -362,19 +385,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             const SizedBox(height: 12),
                           ],
 
-                          // Register button (marks attendance in app)
                           _registered
                               ? Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: ZynkColors.success.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(14),
+                                    // FIX: withOpacity -> withValues
+                                    color: ZynkColors.success
+                                        .withValues(alpha: 0.1),
+                                    borderRadius:
+                                        BorderRadius.circular(14),
                                     border: Border.all(
-                                        color: ZynkColors.success.withOpacity(0.3)),
+                                        color: ZynkColors.success
+                                            .withValues(alpha: 0.3)),
                                   ),
                                   child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
                                     children: [
                                       Icon(Icons.check_circle_rounded,
                                           color: ZynkColors.success),
@@ -401,7 +428,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: dark ? ZynkColors.darkSurface2 : ZynkColors.lightSurf2,
+                              color: dark
+                                  ? ZynkColors.darkSurface2
+                                  : ZynkColors.lightSurf2,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Row(
@@ -441,16 +470,24 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: c.withOpacity(0.12),
+        // FIX: withOpacity -> withValues
+        color: c.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: c.withOpacity(0.3)),
+        border: Border.all(color: c.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
-        Icon(isUpcoming ? Icons.schedule_rounded : Icons.history_rounded,
-            size: 13, color: c),
+        Icon(
+            isUpcoming
+                ? Icons.schedule_rounded
+                : Icons.history_rounded,
+            size: 13,
+            color: c),
         const SizedBox(width: 5),
         Text(isUpcoming ? 'Upcoming' : 'Past Event',
-            style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                color: c,
+                fontSize: 12,
+                fontWeight: FontWeight.w700)),
       ]),
     );
   }
@@ -461,8 +498,12 @@ class _InfoCard extends StatelessWidget {
   final String label, value;
   final Color color;
   final bool dark;
-  const _InfoCard({required this.icon, required this.label,
-    required this.value, required this.color, required this.dark});
+  const _InfoCard(
+      {required this.icon,
+      required this.label,
+      required this.value,
+      required this.color,
+      required this.dark});
 
   @override
   Widget build(BuildContext context) {
@@ -472,30 +513,43 @@ class _InfoCard extends StatelessWidget {
         color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
+            color:
+                dark ? ZynkColors.darkBorder : ZynkColors.lightBorder),
       ),
       child: Row(children: [
         Container(
-          width: 40, height: 40,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            // FIX: withOpacity -> withValues
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 20),
         ),
         const SizedBox(width: 14),
-        Expanded(child: Column(
+        Expanded(
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(
-              color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
-              fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.3,
-            )),
+            Text(label,
+                style: TextStyle(
+                  color: dark
+                      ? ZynkColors.darkMuted
+                      : ZynkColors.lightMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                )),
             const SizedBox(height: 2),
-            Text(value, style: TextStyle(
-              color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-              fontSize: 14, fontWeight: FontWeight.w600,
-            )),
+            Text(value,
+                style: TextStyle(
+                  color: dark
+                      ? ZynkColors.darkText
+                      : ZynkColors.lightText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                )),
           ],
         )),
       ]),

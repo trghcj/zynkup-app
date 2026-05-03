@@ -42,15 +42,25 @@ class ApiService {
   }
 
   // ── Headers ────────────────────────────────────────────────────────────────
+  // Async version — always reads fresh token from storage
   static Future<Map<String, String>> get _headers async {
-  final token = await _storage.read(key: "token"); // ALWAYS read fresh
+    final token = await _storage.read(key: "token");
+    return {
+      "Content-Type": "application/json",
+      if (token != null && token.isNotEmpty) "Authorization": "Bearer $token",
+    };
+  }
 
-  return {
+  // Sync version for multipart requests — uses cached _token
+  static Map<String, String> get authHeaders => {
     "Content-Type": "application/json",
-    if (token != null && token.isNotEmpty)
-      "Authorization": "Bearer $token",
+    if (_token != null && _token!.isNotEmpty) "Authorization": "Bearer $_token",
   };
-}
+
+  // Auth-only headers (no Content-Type) for multipart requests
+  static Map<String, String> get authOnlyHeaders => {
+    if (_token != null && _token!.isNotEmpty) "Authorization": "Bearer $_token",
+  };
 
   // ── Error parser ───────────────────────────────────────────────────────────
   static ApiException _parseError(http.Response res) {
@@ -81,7 +91,8 @@ class ApiService {
   }
 
   // ── Login ──────────────────────────────────────────────────────────────────
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+      String email, String password) async {
     try {
       final res = await http.post(
         Uri.parse("$baseUrl/users/login"),
@@ -91,7 +102,7 @@ class ApiService {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         await setToken(data["access_token"] as String);
-        await loadToken(); 
+        await loadToken();
         _cachedUser = null;
         return data;
       }
@@ -174,23 +185,104 @@ class ApiService {
         'POST',
         Uri.parse("$baseUrl/upload"),
       );
-
       if (_token != null) {
         request.headers['Authorization'] = 'Bearer $_token';
       }
-
       request.files.add(http.MultipartFile.fromBytes(
         'file',
         bytes,
         filename: filename,
       ));
-
       final streamed = await request.send();
       final res = await http.Response.fromStream(streamed);
-
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         return data['url'] as String?;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Upload gallery files for event (admin only) ────────────────────────────
+  static Future<bool> uploadEventGallery({
+    required int eventId,
+    required List<Uint8List> files,
+    required List<String> filenames,
+  }) async {
+    try {
+      await loadToken();
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse("$baseUrl/events/$eventId/gallery"),
+      );
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
+      }
+      for (int i = 0; i < files.length; i++) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'files',
+          files[i],
+          filename: filenames[i],
+        ));
+      }
+      final streamed = await request.send();
+      final res = await http.Response.fromStream(streamed);
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Fetch gallery files for an event (returns full file map list) ──────────
+  // Used by EventGalleryScreen to get [{name, mime, data}, ...] from the server.
+  static Future<List<Map<String, dynamic>>> fetchGalleryFiles(
+      int eventId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/events/$eventId/gallery"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return List<Map<String, dynamic>>.from(data['files'] ?? []);
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ── Get event gallery (returns list of base64 strings, legacy) ────────────
+  static Future<List<String>> getEventGallery(int eventId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/events/$eventId/gallery"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return List<String>.from(data["gallery"] ?? []);
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ── Get single event by ID ────────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> getEventById(int eventId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/events/$eventId"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
       }
       return null;
     } catch (_) {
@@ -241,7 +333,8 @@ class ApiService {
           "venue": venue,
           "date": date,
           "category": category,
-          "image_urls": imageUrls ?? [],
+          if (imageUrls != null && imageUrls.isNotEmpty)
+            "image_urls": imageUrls.join(","),
           if (registrationUrl != null) "registration_url": registrationUrl,
           if (registrationUrlType != null)
             "registration_url_type": registrationUrlType,
@@ -291,6 +384,21 @@ class ApiService {
     }
   }
 
+  // ── All users (admin) ──────────────────────────────────────────────────────
+  static Future<List<dynamic>> getAllUsers() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/users/all"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   // ── Admin: pending events ──────────────────────────────────────────────────
   static Future<List<dynamic>> getPendingEvents() async {
     try {
@@ -320,8 +428,7 @@ class ApiService {
     }
   }
 
-
-  // ── Admin: reject event ────────────────────────────────────────────────────
+  // ── Admin: reject / delete event ──────────────────────────────────────────
   static Future<bool> rejectEvent(int eventId) async {
     try {
       await loadToken();
@@ -334,20 +441,62 @@ class ApiService {
       return false;
     }
   }
-  
-  // ── Admin: delete event ────────────────────────────────────────────────────
-static Future<bool> deleteEvent(int eventId) async {
-  try {
-    await loadToken();
-    final res = await http.delete(
-      Uri.parse("$baseUrl/events/$eventId"),
-      headers: await _headers,
-    );
-    return res.statusCode == 200;
-  } catch (_) {
-    return false;
+
+  // ── Admin: delete event (by event id directly) ─────────────────────────────
+  static Future<bool> deleteEvent(int eventId) async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("$baseUrl/events/$eventId"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
-}
+
+  // ── Admin: delete past events ──────────────────────────────────────────────
+  static Future<bool> deletePastEvents() async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("$baseUrl/admin/delete-past-events"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Admin: set user role ───────────────────────────────────────────────────
+  static Future<bool> setUserRole(int userId, String role) async {
+    try {
+      await loadToken();
+      final res = await http.put(
+        Uri.parse("$baseUrl/admin/set-role/$userId?role=$role"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Admin: make admin by email ─────────────────────────────────────────────
+  static Future<bool> makeAdminByEmail(String email) async {
+    try {
+      await loadToken();
+      final res = await http.put(
+        Uri.parse("$baseUrl/admin/make-admin/$email"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 
   // ── Analytics ──────────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>?> getAnalytics() async {
@@ -364,9 +513,5 @@ static Future<bool> deleteEvent(int eventId) async {
     } catch (_) {
       return null;
     }
-  }
-
-  static Future<Object?> getEvent(int parse) async {
-    return null;
   }
 }
