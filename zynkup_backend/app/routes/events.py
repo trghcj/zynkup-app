@@ -1,8 +1,5 @@
-# app/routes/events.py
 import base64
 import logging
-import uuid
-from datetime import datetime, date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -11,184 +8,102 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.database import get_db
-from app.auth import get_current_user, get_optional_user
+from app.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["Events"])
 
-_SEP      = "|||---|||"
+# ── Schemas ───────────────────────────────────────────────────────────────────
+
+class EventCreate(BaseModel):
+    title: str
+    description: str
+    venue: str
+    date: str
+    category: str
+    image_urls: Optional[List[str]] = []
+    registration_url: Optional[str] = None
+    registration_url_type: Optional[str] = None
+
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    venue: Optional[str] = None
+    date: Optional[str] = None
+    category: Optional[str] = None
+    image_urls: Optional[List[str]] = None
+    registration_url: Optional[str] = None
+    registration_url_type: Optional[str] = None
+
+
+# ── Gallery file separator ────────────────────────────────────────────────────
+_SEP = "|||---|||"
 _NAME_SEP = "|||"
-MAX_GALLERY = 50
-MAX_EVENTS_PER_DAY = 5
+MAX_GALLERY_FILES = 50
+ALLOWED_MIME = {
+    "image/jpeg", "image/jpg", "image/png", "application/pdf"
+}
 
 
-# ── Serializer ────────────────────────────────────────────────────────────────
+def _is_valid_url(s: str) -> bool:
+    """Returns True only if the string is a real URL, not a base64 blob."""
+    s = s.strip()
+    return s.startswith("http://") or s.startswith("https://")
+
 
 def _parse_gallery(raw: str) -> List[dict]:
-    if not raw: return []
+    """Parse stored gallery string into list of {name, data, mime}"""
+    if not raw or raw.strip() in ("", "{}"):
+        return []
     items = []
     for entry in raw.split(_SEP):
-        if not entry.strip(): continue
+        if not entry.strip():
+            continue
         parts = entry.split(_NAME_SEP, 2)
         if len(parts) == 3:
-            items.append({"name": parts[0], "mime": parts[1], "data": parts[2]})
+            items.append({
+                "name": parts[0],
+                "mime": parts[1],
+                "data": parts[2],
+            })
     return items
 
 
 def _serialize_gallery(items: List[dict]) -> str:
     return _SEP.join(
-        f"{i['name']}{_NAME_SEP}{i['mime']}{_NAME_SEP}{i['data']}" for i in items)
+        f"{i['name']}{_NAME_SEP}{i['mime']}{_NAME_SEP}{i['data']}"
+        for i in items
+    )
 
 
-def _event_to_dict(event: models.Event, viewer_id: Optional[int] = None) -> dict:
-    urls = [u.strip() for u in (event.image_urls or "").split(",") if u.strip()]
-    registered_ids = [r.user_id for r in event.registrations]
+def _event_to_dict(event: models.Event) -> dict:
+    raw_urls = event.image_urls or ""
+    # Only keep real URLs — never return base64 blobs
+    urls = [u.strip() for u in raw_urls.split(",") if _is_valid_url(u.strip())]
+    registered = [str(r.user_id) for r in event.registrations]
     gallery = _parse_gallery(event.gallery_files or "")
 
-    # Check if viewer is registered
-    viewer_registered = viewer_id in registered_ids if viewer_id else False
-    viewer_qr = None
-    if viewer_id and viewer_registered:
-        reg = next((r for r in event.registrations if r.user_id == viewer_id), None)
-        if reg:
-            viewer_qr = reg.qr_code
-
-    is_past = event.date < datetime.now() if event.date else False
-
     return {
-        "id":               event.id,
-        "title":            event.title,
-        "description":      event.description,
-        "venue":            event.venue,
-        "date":             event.date.isoformat() if event.date else None,
-        "category":         event.category,
-        "isApproved":       event.is_approved,
-        "creatorId":        event.creator_id,
-        "creator_name":     event.creator.name if event.creator else None,
-        "registeredCount":  len(registered_ids),
-        "image_urls":       urls,
-        "registration_url": event.registration_url,
+        "id":                    event.id,
+        "title":                 event.title,
+        "description":           event.description,
+        "venue":                 event.venue,
+        "date":                  event.date.isoformat() if event.date else None,
+        "category":              event.category,
+        "isApproved":            event.is_approved,
+        "organizerId":           str(event.organizer_id) if event.organizer_id else "",
+        "registeredUsers":       registered,
+        "image_urls":            urls,
+        "registration_url":      event.registration_url,
         "registration_url_type": event.registration_url_type,
-        "gallery":          gallery,
-        "gallery_count":    len(gallery),
-        "is_past":          is_past,
-        "is_reported":      event.is_reported,
-        # Viewer-specific
-        "viewer_registered": viewer_registered,
-        "viewer_qr":        viewer_qr,
+        "approvedAt":            None,
+        "gallery":               gallery,
+        "gallery_count":         len(gallery),
     }
 
 
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
-class EventCreate(BaseModel):
-    title:                 str
-    description:           str
-    venue:                 str
-    date:                  str
-    category:              str
-    image_urls:            Optional[List[str]] = []
-    registration_url:      Optional[str] = None
-    registration_url_type: Optional[str] = None
-
-
-class EventUpdate(BaseModel):
-    title:                 Optional[str] = None
-    description:           Optional[str] = None
-    venue:                 Optional[str] = None
-    date:                  Optional[str] = None
-    category:              Optional[str] = None
-    image_urls:            Optional[List[str]] = None
-    registration_url:      Optional[str] = None
-    registration_url_type: Optional[str] = None
-
-
-# ── List events (guests can view) ─────────────────────────────────────────────
-
-@router.get("/")
-def get_events(
-    skip:     int = 0,
-    limit:    int = 20,
-    category: Optional[str] = None,
-    search:   Optional[str] = None,
-    filter:   Optional[str] = None,  # upcoming | past | today | trending
-    db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
-):
-    query = db.query(models.Event).filter(
-        models.Event.is_approved == True,
-        models.Event.is_reported == False,
-    )
-
-    if category:
-        query = query.filter(models.Event.category == category)
-
-    if search:
-        query = query.filter(
-            models.Event.title.ilike(f"%{search}%") |
-            models.Event.description.ilike(f"%{search}%") |
-            models.Event.venue.ilike(f"%{search}%")
-        )
-
-    now = datetime.now()
-    today_start = datetime(now.year, now.month, now.day)
-    today_end   = datetime(now.year, now.month, now.day, 23, 59, 59)
-
-    if filter == "upcoming":
-        query = query.filter(models.Event.date > now)
-    elif filter == "past":
-        query = query.filter(models.Event.date < now)
-    elif filter == "today":
-        query = query.filter(models.Event.date.between(today_start, today_end))
-    elif filter == "trending":
-        # Most registrations in last 7 days
-        from sqlalchemy import func
-        query = query.outerjoin(models.Registration).group_by(
-            models.Event.id).order_by(func.count(models.Registration.id).desc())
-
-    query = query.order_by(models.Event.date.desc())
-    events = query.offset(skip).limit(limit).all()
-
-    viewer_id = current_user.id if current_user else None
-    return [_event_to_dict(e, viewer_id) for e in events]
-
-
-# ── Featured events (for home screen hero) ────────────────────────────────────
-
-@router.get("/featured")
-def get_featured(db: Session = Depends(get_db)):
-    """Returns upcoming events with images — used for home screen banners."""
-    from sqlalchemy import func
-    events = (
-        db.query(models.Event)
-        .filter(
-            models.Event.is_approved == True,
-            models.Event.is_reported == False,
-            models.Event.date > datetime.now(),
-        )
-        .order_by(models.Event.date.asc())
-        .limit(5)
-        .all()
-    )
-    return [_event_to_dict(e) for e in events]
-
-
-# ── Get single event ──────────────────────────────────────────────────────────
-
-@router.get("/{event_id}")
-def get_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
-):
-    event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    viewer_id = current_user.id if current_user else None
-    return _event_to_dict(event, viewer_id)
-
-
-# ── Create event (auto-approved) ──────────────────────────────────────────────
+# ── Create event ──────────────────────────────────────────────────────────────
 
 @router.post("/", status_code=201)
 def create_event(
@@ -196,67 +111,87 @@ def create_event(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Spam control: max 5 events per day per user
-    today_start = datetime.combine(date.today(), datetime.min.time())
-    today_count = db.query(models.Event).filter(
-        models.Event.creator_id == current_user.id,
-        models.Event.created_at >= today_start,
-    ).count()
-
-    if today_count >= MAX_EVENTS_PER_DAY:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Maximum {MAX_EVENTS_PER_DAY} events per day reached. Try again tomorrow."
-        )
-
+    from datetime import datetime
     try:
         parsed_date = datetime.fromisoformat(event.date)
     except ValueError:
         raise HTTPException(status_code=422, detail="Invalid date format")
 
+    # Only store real URLs — reject base64 blobs silently
+    valid_urls = [u for u in (event.image_urls or []) if _is_valid_url(u)]
+    image_urls_str = ",".join(valid_urls)
+
     new_event = models.Event(
-        title                 = event.title,
-        description           = event.description,
-        venue                 = event.venue,
-        date                  = parsed_date,
-        category              = event.category,
-        is_approved           = True,   # ✅ Auto-approved
-        creator_id            = current_user.id,
-        image_urls            = ",".join(event.image_urls) if event.image_urls else "",
-        registration_url      = event.registration_url,
-        registration_url_type = event.registration_url_type,
-        gallery_files         = "",
+        title=event.title,
+        description=event.description,
+        venue=event.venue,
+        date=parsed_date,
+        category=event.category,
+        is_approved=False,
+        organizer_id=current_user.id,
+        image_urls=image_urls_str,
+        registration_url=event.registration_url,
+        registration_url_type=event.registration_url_type,
+        gallery_files=None,   # FIX: use None instead of "" to avoid PostgreSQL array type conflict
     )
     db.add(new_event)
     db.commit()
     db.refresh(new_event)
     logger.info(f"Event created: id={new_event.id} by user={current_user.id}")
-    return _event_to_dict(new_event, current_user.id)
+    return _event_to_dict(new_event)
 
 
-# ── Update event (creator only) ───────────────────────────────────────────────
+# ── List events ───────────────────────────────────────────────────────────────
+
+@router.get("/")
+def get_events(
+    skip: int = 0,
+    limit: int = 20,
+    approved: Optional[bool] = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Event)
+    if approved is not None:
+        query = query.filter(models.Event.is_approved == approved)
+    else:
+        query = query.filter(models.Event.is_approved == True)
+    events = query.offset(skip).limit(limit).all()
+    return [_event_to_dict(e) for e in events]
+
+
+# ── Get single event ──────────────────────────────────────────────────────────
+
+@router.get("/{event_id}")
+def get_event(event_id: int, db: Session = Depends(get_db)):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return _event_to_dict(event)
+
+
+# ── Update event ──────────────────────────────────────────────────────────────
 
 @router.put("/{event_id}")
 def update_event(
     event_id: int,
-    payload:  EventUpdate,
+    payload: EventUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not your event")
 
-    if payload.title       is not None: event.title       = payload.title
-    if payload.description is not None: event.description = payload.description
-    if payload.venue       is not None: event.venue       = payload.venue
-    if payload.category    is not None: event.category    = payload.category
-    if payload.date        is not None:
+    if payload.title is not None:        event.title = payload.title
+    if payload.description is not None:  event.description = payload.description
+    if payload.venue is not None:        event.venue = payload.venue
+    if payload.date is not None:
+        from datetime import datetime
         event.date = datetime.fromisoformat(payload.date)
-    if payload.image_urls  is not None:
-        event.image_urls = ",".join(payload.image_urls)
+    if payload.category is not None:     event.category = payload.category
+    if payload.image_urls is not None:
+        valid_urls = [u for u in payload.image_urls if _is_valid_url(u)]
+        event.image_urls = ",".join(valid_urls)
     if payload.registration_url is not None:
         event.registration_url = payload.registration_url
     if payload.registration_url_type is not None:
@@ -264,10 +199,142 @@ def update_event(
 
     db.commit()
     db.refresh(event)
-    return _event_to_dict(event, current_user.id)
+    return _event_to_dict(event)
 
 
-# ── Delete event (creator or admin) ──────────────────────────────────────────
+# ── Upload gallery files (admin only, after event ends) ───────────────────────
+
+@router.post("/{event_id}/gallery")
+async def upload_gallery(
+    event_id: int,
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Admin uploads post-event gallery (JPEG, PNG, PDF). Max 50 files."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    existing = _parse_gallery(event.gallery_files or "")
+
+    if len(existing) + len(files) > MAX_GALLERY_FILES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Max {MAX_GALLERY_FILES} gallery files allowed. "
+                   f"Currently have {len(existing)}, trying to add {len(files)}."
+        )
+
+    new_items = []
+    for f in files:
+        mime = (f.content_type or "").lower()
+        ext  = (f.filename or "").split(".")[-1].lower()
+
+        valid_exts  = {"jpg", "jpeg", "png", "pdf"}
+        valid_mimes = ALLOWED_MIME
+
+        if mime not in valid_mimes and ext not in valid_exts:
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{f.filename}' is not allowed. Use JPEG, PNG, or PDF."
+            )
+
+        contents = await f.read()
+        if len(contents) > 15 * 1024 * 1024:
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{f.filename}' exceeds 15MB limit."
+            )
+
+        b64 = base64.b64encode(contents).decode("utf-8")
+        if ext == "pdf" or mime == "application/pdf":
+            final_mime = "application/pdf"
+        elif ext == "png" or mime == "image/png":
+            final_mime = "image/png"
+        else:
+            final_mime = "image/jpeg"
+
+        new_items.append({
+            "name": f.filename or f"file_{len(existing)+len(new_items)+1}",
+            "mime": final_mime,
+            "data": b64,
+        })
+
+    all_items = existing + new_items
+    event.gallery_files = _serialize_gallery(all_items)
+    db.commit()
+
+    logger.info(f"Gallery: {len(new_items)} files added to event {event_id} by admin {current_user.id}")
+    return {
+        "message": f"{len(new_items)} file(s) added to gallery",
+        "total":   len(all_items),
+    }
+
+
+# ── Delete gallery file ───────────────────────────────────────────────────────
+
+@router.delete("/{event_id}/gallery/{file_index}")
+def delete_gallery_file(
+    event_id: int,
+    file_index: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    items = _parse_gallery(event.gallery_files or "")
+    if file_index < 0 or file_index >= len(items):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    items.pop(file_index)
+    event.gallery_files = _serialize_gallery(items) if items else None
+    db.commit()
+    return {"message": "File deleted", "remaining": len(items)}
+
+
+# ── Get gallery ───────────────────────────────────────────────────────────────
+
+@router.get("/{event_id}/gallery")
+def get_gallery(event_id: int, db: Session = Depends(get_db)):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    files = _parse_gallery(event.gallery_files or "")
+    return {
+        "event_id": event_id,
+        "files":    files,
+        "total":    len(files),
+    }
+
+
+# ── Approve event ─────────────────────────────────────────────────────────────
+
+@router.put("/{event_id}/approve")
+def approve_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    event.is_approved = True
+    db.commit()
+    db.refresh(event)
+    return _event_to_dict(event)
+
+
+# ── Delete event ──────────────────────────────────────────────────────────────
 
 @router.delete("/{event_id}")
 def delete_event(
@@ -278,8 +345,6 @@ def delete_event(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not your event")
     db.delete(event)
     db.commit()
     return {"message": "Event deleted"}
@@ -296,157 +361,16 @@ def register_event(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.date < datetime.now():
-        raise HTTPException(status_code=400, detail="This event has already ended")
+    if not event.is_approved:
+        raise HTTPException(status_code=400, detail="Event not approved yet")
 
     existing = db.query(models.Registration).filter(
-        models.Registration.user_id  == current_user.id,
+        models.Registration.user_id == current_user.id,
         models.Registration.event_id == event_id,
     ).first()
     if existing:
-        # Return existing QR instead of error
-        return {
-            "message":  "Already registered",
-            "qr_code":  existing.qr_code,
-            "attended": existing.attended,
-        }
+        raise HTTPException(status_code=400, detail="Already registered")
 
-    qr = str(uuid.uuid4())
-    reg = models.Registration(
-        user_id  = current_user.id,
-        event_id = event_id,
-        qr_code  = qr,
-    )
-    db.add(reg)
+    db.add(models.Registration(user_id=current_user.id, event_id=event_id))
     db.commit()
-    logger.info(f"User {current_user.id} registered for event {event_id}, QR={qr}")
-    return {"message": "Registered! 🎉", "qr_code": qr, "attended": False}
-
-
-# ── Mark attendance via QR scan ───────────────────────────────────────────────
-
-@router.post("/attend/{qr_code}")
-def mark_attendance(
-    qr_code: str,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    """Event creator scans attendee QR to mark attendance."""
-    reg = db.query(models.Registration).filter(
-        models.Registration.qr_code == qr_code
-    ).first()
-    if not reg:
-        raise HTTPException(status_code=404, detail="Invalid QR code")
-
-    # Only event creator or admin can mark attendance
-    if reg.event.creator_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only the event creator can mark attendance")
-
-    if reg.attended:
-        return {
-            "message":  "Already marked as attended",
-            "attended": True,
-            "user_name": reg.user.name or reg.user.email,
-        }
-
-    reg.attended    = True
-    reg.attended_at = datetime.now()
-    db.commit()
-
-    return {
-        "message":   "Attendance marked ✅",
-        "attended":  True,
-        "user_name": reg.user.name or reg.user.email,
-        "event":     reg.event.title,
-    }
-
-
-# ── Report event ──────────────────────────────────────────────────────────────
-
-@router.post("/{event_id}/report")
-def report_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Cannot report your own event")
-
-    event.report_count += 1
-    # Auto-hide if reported 5+ times
-    if event.report_count >= 5:
-        event.is_reported = True
-    db.commit()
-    return {"message": "Event reported. Thank you for keeping Zynkup safe 🛡️"}
-
-
-# ── Gallery upload (event creator, after event ends) ──────────────────────────
-
-@router.post("/{event_id}/gallery")
-async def upload_gallery(
-    event_id: int,
-    files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only the event creator can upload gallery")
-
-    existing = _parse_gallery(event.gallery_files or "")
-    if len(existing) + len(files) > MAX_GALLERY:
-        raise HTTPException(status_code=400,
-            detail=f"Max {MAX_GALLERY} files. Currently {len(existing)}.")
-
-    new_items = []
-    for f in files:
-        ext  = (f.filename or "").split(".")[-1].lower()
-        mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
-                "png": "image/png",  "pdf": "application/pdf"}.get(ext, "image/jpeg")
-        contents = await f.read()
-        if len(contents) > 15 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail=f"'{f.filename}' > 15MB")
-        new_items.append({
-            "name": f.filename or f"file_{len(existing)+len(new_items)+1}",
-            "mime": mime,
-            "data": base64.b64encode(contents).decode("utf-8"),
-        })
-
-    all_items = existing + new_items
-    event.gallery_files = _serialize_gallery(all_items)
-    db.commit()
-    return {"message": f"{len(new_items)} files added", "total": len(all_items)}
-
-
-@router.get("/{event_id}/gallery")
-def get_gallery(event_id: int, db: Session = Depends(get_db)):
-    event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    files = _parse_gallery(event.gallery_files or "")
-    return {"event_id": event_id, "files": files, "total": len(files)}
-
-
-@router.delete("/{event_id}/gallery/{index}")
-def delete_gallery_file(
-    event_id: int, index: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    event = db.query(models.Event).filter(models.Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not your event")
-    items = _parse_gallery(event.gallery_files or "")
-    if index < 0 or index >= len(items):
-        raise HTTPException(status_code=404, detail="File not found")
-    items.pop(index)
-    event.gallery_files = _serialize_gallery(items)
-    db.commit()
-    return {"message": "Deleted", "remaining": len(items)}
+    return {"message": "Registered successfully"}
