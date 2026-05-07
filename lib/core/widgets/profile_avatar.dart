@@ -1,10 +1,9 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 
 class ProfileAvatar extends StatelessWidget {
-  final String? avatarUrl;   // can be base64 data URL or https URL
+  final String? avatarUrl; // can be base64 data URL or https URL
   final double radius;
   final VoidCallback? onTap;
 
@@ -27,7 +26,7 @@ class ProfileAvatar extends StatelessWidget {
           gradient: ZynkGradients.brand,
           boxShadow: [
             BoxShadow(
-              color: ZynkColors.primary.withOpacity(0.3),
+              color: ZynkColors.primary.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
