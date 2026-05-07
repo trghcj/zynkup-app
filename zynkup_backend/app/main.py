@@ -12,7 +12,7 @@ from dotenv import load_dotenv  # type: ignore
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 from app.database import Base, engine
-from app.routes import users, events, analytics
+from app.routes import users, events, analytics, admin
 from app.auth import get_current_user
 from app import models
 
@@ -30,11 +30,20 @@ ORIGINS = [
     "https://zynkup-app.vercel.app",
     "https://endearing-alpaca-a16035.netlify.app",
     "https://zynkup-app.onrender.com",
+    
+    # Localhosts
     "http://localhost:5555",
     "http://127.0.0.1:5555",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:8080"
+    "http://localhost:8080",
+    
+    # Flutter Web dynamic ports
+    "http://localhost:62886",
+    "http://127.0.0.1:62886",
+
+    # Development allow all
+    "*"
 ]
 
 app.add_middleware(
@@ -87,7 +96,8 @@ async def upload_file(
 app.include_router(users.router)
 app.include_router(events.router)
 app.include_router(analytics.router)
+app.include_router(admin.router)
 
 @app.get("/", tags=["Health"])
 def home():
-    return {"message": "Zynkup API v2.0 is live! 🚀"}
+    return {"message": "Zynkup API is live! "}
