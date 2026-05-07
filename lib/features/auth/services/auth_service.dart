@@ -14,10 +14,7 @@ class AuthService {
       final res = await http.post(
         Uri.parse("$baseUrl/users/signup"),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-        }),
+        body: jsonEncode({"email": email, "password": password}),
       );
 
       return res.statusCode == 200 || res.statusCode == 201;
@@ -32,10 +29,7 @@ class AuthService {
       final res = await http.post(
         Uri.parse("$baseUrl/users/login"),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-        }),
+        body: jsonEncode({"email": email, "password": password}),
       );
 
       if (res.statusCode == 200) {
@@ -61,9 +55,7 @@ class AuthService {
     try {
       final res = await http.get(
         Uri.parse("$baseUrl/users/me"),
-        headers: {
-          "Authorization": "Bearer $_token",
-        },
+        headers: {"Authorization": "Bearer $_token"},
       );
 
       if (res.statusCode == 200) {
@@ -89,9 +81,7 @@ class AuthService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $_token",
         },
-        body: jsonEncode({
-          "token": fcmToken,
-        }),
+        body: jsonEncode({"token": fcmToken}),
       );
     } catch (_) {}
   }

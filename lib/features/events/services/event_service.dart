@@ -11,9 +11,7 @@ class EventService {
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
-      return (data as List)
-          .map((e) => Event.fromJson(e))
-          .toList();
+      return (data as List).map((e) => Event.fromJson(e)).toList();
     } else {
       throw Exception("Failed to load events");
     }
@@ -27,9 +25,7 @@ class EventService {
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
-      return (data as List)
-          .map((e) => Event.fromJson(e))
-          .toList();
+      return (data as List).map((e) => Event.fromJson(e)).toList();
     } else {
       throw Exception("Failed to load category events");
     }
@@ -66,9 +62,7 @@ class EventService {
 
   /// 🔥 DELETE EVENT
   Future<void> deleteEvent(String eventId) async {
-    final res = await http.delete(
-      Uri.parse("$baseUrl/events/$eventId"),
-    );
+    final res = await http.delete(Uri.parse("$baseUrl/events/$eventId"));
 
     if (res.statusCode != 200) {
       throw Exception("Failed to delete event");
@@ -77,9 +71,7 @@ class EventService {
 
   /// 🔥 REGISTER USER
   Future<void> registerUser(String eventId) async {
-    final res = await http.post(
-      Uri.parse("$baseUrl/events/$eventId/register"),
-    );
+    final res = await http.post(Uri.parse("$baseUrl/events/$eventId/register"));
 
     if (res.statusCode != 200) {
       throw Exception("Failed to register");
