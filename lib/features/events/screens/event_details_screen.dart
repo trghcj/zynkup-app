@@ -27,6 +27,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   late Event _event;
   bool _loading = true;
   bool _registering = false;
+  // FIX: persist QR across _load() calls — never overwrite with null
   String? _qrCode;
   bool _isCreator = false;
 
@@ -44,7 +45,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     setState(() {
       if (data != null) {
         _event = Event.fromJson(data);
-        _qrCode = data['qr_code']?.toString();
+        // FIX: only update _qrCode if the API actually returned one,
+        // never set it to null (which was causing the QR to vanish)
+        final freshQr = data['qr_code']?.toString();
+        if (freshQr != null && freshQr.isNotEmpty) {
+          _qrCode = freshQr;
+        }
       }
       _isCreator = user != null && user['id'].toString() == _event.organizerId;
       _loading = false;
@@ -63,10 +69,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     try {
       final result = await ApiService.registerEvent(int.parse(_event.id));
       if (!mounted) return;
-      setState(() {
-        _qrCode = result['qr_code']?.toString();
-      });
+      // FIX: set QR immediately from register response BEFORE _load() can clear it
+      final newQr = result['qr_code']?.toString();
+      if (newQr != null && newQr.isNotEmpty) {
+        setState(() => _qrCode = newQr);
+      }
       _snack('Registered. Your QR pass is ready.');
+      // _load() will now only UPDATE _qrCode if backend returns it, not clear it
       await _load();
     } on ApiException catch (error) {
       _snack(error.message, error: true);
@@ -205,6 +214,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ),
                           ],
                         ),
+                        // FIX: QR is now persistent — shown whenever _qrCode is non-null
                         if (_qrCode != null) ...[
                           const SizedBox(height: 24),
                           _QrPass(qrCode: _qrCode!),

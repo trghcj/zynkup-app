@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -40,15 +41,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickImage() async {
+    // FIX: on web, ImageSource.gallery works but we must use XFile.readAsBytes()
+    // which is already correct — no source change needed. But limit to 1 image.
     final file = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
     );
     if (file == null) return;
+    // FIX: readAsBytes() works on both web and mobile
     final bytes = await file.readAsBytes();
     setState(() {
       _pickedBytes = bytes;
-      _pickedName = file.name;
+      // FIX: on web, file.name may include a fake path — extract just the filename
+      _pickedName = file.name.split('/').last.split('\\').last;
     });
   }
 
@@ -89,8 +94,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         _time.hour,
         _time.minute,
       );
+
       final images = <String>[];
-      if (_imageUrl.text.trim().isNotEmpty) images.add(_imageUrl.text.trim());
+
+      // Add pasted URL if present
+      if (_imageUrl.text.trim().isNotEmpty) {
+        images.add(_imageUrl.text.trim());
+      }
+
+      // FIX: upload banner bytes only after we know we have them
+      // On web, uploadImageBytes must send multipart correctly
       if (_pickedBytes != null && _pickedName != null) {
         final uploaded = await ApiService.uploadImageBytes(
           _pickedBytes!,
@@ -98,6 +111,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         );
         if (uploaded != null) images.add(uploaded);
       }
+
       await ApiService.createEvent(
         title: _title.text.trim(),
         description: _description.text.trim(),
@@ -106,6 +120,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         category: _category,
         imageUrls: images,
       );
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Event saved and auto-approved.')),
@@ -113,8 +128,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       Navigator.pop(context, true);
     } on ApiException catch (error) {
       _show(error.message);
-    } catch (_) {
-      _show('Could not create event.');
+    } catch (e) {
+      debugPrint('CREATE EVENT ERROR: $e');
+      _show('Could not create event. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -168,6 +184,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   _MediaStep(
                     imageUrl: _imageUrl,
                     pickedBytes: _pickedBytes,
+                    pickedName: _pickedName,
                     onPick: _pickImage,
                   ),
                   _PreviewStep(
@@ -176,6 +193,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     date: _date,
                     time: _time,
                     category: _category,
+                    pickedBytes: _pickedBytes,
+                    imageUrl: _imageUrl,
                   ),
                 ],
               ),
@@ -251,17 +270,16 @@ class _BasicStep extends StatelessWidget {
         TextFormField(
           controller: title,
           decoration: const InputDecoration(labelText: 'Title'),
-          validator: (value) =>
-              value == null || value.trim().isEmpty ? 'Title required' : null,
+          validator: (v) =>
+              v == null || v.trim().isEmpty ? 'Title required' : null,
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: description,
           maxLines: 5,
           decoration: const InputDecoration(labelText: 'Description'),
-          validator: (value) => value == null || value.trim().isEmpty
-              ? 'Description required'
-              : null,
+          validator: (v) =>
+              v == null || v.trim().isEmpty ? 'Description required' : null,
         ),
       ],
     ),
@@ -290,16 +308,15 @@ class _DetailsStep extends StatelessWidget {
         TextFormField(
           controller: venue,
           decoration: const InputDecoration(labelText: 'Venue'),
-          validator: (value) =>
-              value == null || value.trim().isEmpty ? 'Venue required' : null,
+          validator: (v) =>
+              v == null || v.trim().isEmpty ? 'Venue required' : null,
         ),
         const SizedBox(height: 14),
         ListTile(
           onTap: onDate,
           tileColor: ZynkColors.darkSurface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('Date'),
           subtitle: Text(DateFormat('EEE, MMM d, yyyy').format(date)),
         ),
@@ -307,9 +324,8 @@ class _DetailsStep extends StatelessWidget {
         ListTile(
           onTap: onTime,
           tileColor: ZynkColors.darkSurface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('Time'),
           subtitle: Text(time.format(context)),
         ),
@@ -349,31 +365,83 @@ class _MediaStep extends StatelessWidget {
   const _MediaStep({
     required this.imageUrl,
     required this.pickedBytes,
+    required this.pickedName,
     required this.onPick,
   });
   final TextEditingController imageUrl;
   final Uint8List? pickedBytes;
+  final String? pickedName;
   final VoidCallback onPick;
 
   @override
   Widget build(BuildContext context) => _StepShell(
     title: 'Media',
     child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(
-          controller: imageUrl,
-          decoration: const InputDecoration(
-            labelText: 'Banner image URL (optional)',
+        
+TextFormField(
+  controller: imageUrl,
+  decoration: const InputDecoration(
+    labelText: 'Banner image URL (optional)',
+    hintText: 'https://i.imgur.com/... or Cloudinary URL',
+    helperText: '⚠ Google Drive / share.google links are not supported',
+    helperMaxLines: 2,
+  ),
+  validator: (val) {
+    if (val == null || val.trim().isEmpty) return null;
+    if (val.contains('drive.google.com') || val.contains('share.google')) {
+      return 'Google Drive links are blocked by CORS. Use a direct image URL (Imgur, Cloudinary, etc.)';
+    }
+    if (!val.startsWith('http://') && !val.startsWith('https://')) {
+      return 'Must be a valid https:// URL';
+    }
+    return null;
+  },
+),
+        const SizedBox(height: 8),
+        const Center(
+          child: Text(
+            '— or upload a file —',
+            style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
+        // FIX: show a preview thumbnail if bytes are picked on web
+        if (pickedBytes != null) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.memory(
+              pickedBytes!,
+              height: 160,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            pickedName ?? 'Selected',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: ZynkColors.darkMuted,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         OutlinedButton.icon(
           onPressed: onPick,
           icon: const Icon(Icons.upload_rounded),
-          label: Text(
-            pickedBytes == null ? 'Upload banner' : 'Banner selected',
-          ),
+          label: Text(pickedBytes == null ? 'Upload banner' : 'Change banner'),
         ),
+        if (kIsWeb)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text(
+              'On web, tap "Upload banner" to pick a file from your device.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
+            ),
+          ),
       ],
     ),
   );
@@ -386,12 +454,16 @@ class _PreviewStep extends StatelessWidget {
     required this.date,
     required this.time,
     required this.category,
+    required this.pickedBytes,
+    required this.imageUrl,
   });
   final TextEditingController title;
   final TextEditingController venue;
   final DateTime date;
   final TimeOfDay time;
   final String category;
+  final Uint8List? pickedBytes;
+  final TextEditingController imageUrl;
 
   @override
   Widget build(BuildContext context) => _StepShell(
@@ -406,6 +478,31 @@ class _PreviewStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // FIX: show banner preview in the Preview step
+          if (pickedBytes != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.memory(
+                pickedBytes!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ] else if (imageUrl.text.trim().isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl.text.trim(),
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           CategoryBadge(category),
           const SizedBox(height: 12),
           Text(

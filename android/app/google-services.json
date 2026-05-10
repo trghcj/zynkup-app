@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "659234851207-tn1bsia4vtdtavh2gi4q9k9ch4t9u1gs.apps.googleusercontent.com",
+          "client_id": "659234851207-0do8gsdvrn7pivdd65qdgrcb8301jn2u.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.zynkup",
-            "certificate_hash": "79f1800fe8b156068a167bafb17d42907d33937b"
+            "certificate_hash": "01109a31a994bf58bca8bcf12d014f0c78ccc251"
           }
         },
         {

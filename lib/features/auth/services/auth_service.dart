@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   static const String baseUrl = "http://127.0.0.1:8000";
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   /// 🔐 TOKEN (temporary - later secure storage)
   String? _token;
@@ -89,8 +94,55 @@ class AuthService {
   /// ================= LOGOUT =================
   Future<void> signOut() async {
     _token = null;
+    await _auth.signOut();
+    await _googleSignIn.signOut();
   }
 
   /// ================= CHECK LOGIN =================
   bool get isLoggedIn => _token != null;
+
+  /// ================= GOOGLE SIGN IN =================
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // --- Backend Integration ---
+      final idToken = googleAuth.idToken;
+      if (idToken != null) {
+        final res = await http.post(
+          Uri.parse("$baseUrl/users/google"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({"id_token": idToken}),
+        );
+
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          final data = jsonDecode(res.body);
+          _token = data["access_token"];
+
+          /// 🔥 SAVE FCM TOKEN TO BACKEND
+          await _saveFcmToken();
+        } else {
+          // If backend authentication fails, sign out from Firebase and Google
+          await _auth.signOut();
+          await _googleSignIn.signOut();
+          return null;
+        }
+      }
+
+      return userCredential;
+    } catch (e) {
+      return null;
+    }
+  }
 }
