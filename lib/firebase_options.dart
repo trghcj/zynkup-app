@@ -53,6 +53,7 @@ class DefaultFirebaseOptions {
     projectId: 'zynkup-app',
     authDomain: 'zynkup-app.firebaseapp.com',
     storageBucket: 'zynkup-app.firebasestorage.app',
+    measurementId: 'G-FF77H6PQ74',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -69,7 +70,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '659234851207',
     projectId: 'zynkup-app',
     storageBucket: 'zynkup-app.firebasestorage.app',
-    androidClientId: '659234851207-tn1bsia4vtdtavh2gi4q9k9ch4t9u1gs.apps.googleusercontent.com',
+    androidClientId: '659234851207-0do8gsdvrn7pivdd65qdgrcb8301jn2u.apps.googleusercontent.com',
     iosClientId: '659234851207-fl9gfob5pr92m2gkjn0rthpboftgvtun.apps.googleusercontent.com',
     iosBundleId: 'com.example.zynkup',
   );
