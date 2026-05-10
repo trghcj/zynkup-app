@@ -26,39 +26,27 @@ logger = logging.getLogger("zynkup")
 app = FastAPI(title="Zynkup API", version="2.0.0")
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-ORIGINS = [
-    "https://zynkup-app.vercel.app",
-    "https://endearing-alpaca-a16035.netlify.app",
-    "https://zynkup-app.onrender.com",
-    
-    # Localhosts
-    "http://localhost:5555",
-    "http://127.0.0.1:5555",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8080",
-    
-    # Flutter Web dynamic ports
-    "http://localhost:62886",
-    "http://127.0.0.1:62886",
-
-    # Development allow all
-    "*"
-]
-
+# Using a more robust configuration to ensure headers are always present
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=".*",
+    allow_origins=["*"], # For development, we allow all. In production, we'll use regex.
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled: {exc}", exc_info=True)
-    return JSONResponse(status_code=500,
-        content={"detail": "Something went wrong."})
+    logger.error(f"CRITICAL ERROR: {exc}", exc_info=True)
+    # Manually add CORS headers to the error response to prevent "CORS Blocked" mask
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"}
+    )
+    response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin") or "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)

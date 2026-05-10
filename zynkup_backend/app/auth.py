@@ -24,21 +24,20 @@ if not SECRET_KEY:
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24)))
 
-# ── Password hashing ────────────────────────────────────────────────────────
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
 security = HTTPBearer()
 
-
 def hash_password(password: str) -> str:
-    # Trim safely to 72 bytes (bcrypt limit)
-    safe_password = password.encode("utf-8")[:72].decode("utf-8", "ignore")
-    return pwd_context.hash(safe_password)
+    # bcrypt requires bytes
+    pwd_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     try:
-        safe_plain = plain.encode("utf-8")[:72].decode("utf-8", "ignore")
-        return pwd_context.verify(safe_plain, hashed)
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
     except Exception as e:
         logger.error(f"verify_password error: {e}")
         return False
