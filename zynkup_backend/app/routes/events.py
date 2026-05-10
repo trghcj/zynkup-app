@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app import models
 from app.database import get_db
 from app.auth import get_current_user
+from app.gamification import add_xp
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -94,36 +95,50 @@ def create_event(
     current_user: models.User = Depends(get_current_user),
 ):
     try:
-        parsed_date = datetime.fromisoformat(payload.date)
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid date format")
+        # Robust date parsing
+        date_str = payload.date
+        if date_str.endswith("Z"):
+            date_str = date_str.replace("Z", "+00:00")
+        parsed_date = datetime.fromisoformat(date_str)
+    except Exception as e:
+        logger.error(f"DATE PARSE ERROR: {e} | Input: {payload.date}")
+        raise HTTPException(status_code=422, detail=f"Invalid date format: {str(e)}")
 
-    since = datetime.utcnow() - timedelta(days=1)
-    created_today = db.query(models.Event).filter(
-        models.Event.creator_id == current_user.id,
-        models.Event.created_at >= since,
-    ).count()
-    if created_today >= MAX_EVENTS_PER_DAY:
-        raise HTTPException(status_code=429, detail="You can create up to 5 events per day")
+    try:
+        since = datetime.utcnow() - timedelta(days=1)
+        created_today = db.query(models.Event).filter(
+            models.Event.creator_id == current_user.id,
+            models.Event.created_at >= since,
+        ).count()
+        if created_today >= MAX_EVENTS_PER_DAY:
+            raise HTTPException(status_code=429, detail="You can create up to 5 events per day")
 
-    image_urls = ",".join(url for url in (payload.image_urls or []) if _is_valid_image_source(url))
-    event = models.Event(
-        title=payload.title.strip(),
-        description=payload.description.strip(),
-        venue=payload.venue.strip(),
-        date=parsed_date,
-        category=payload.category.strip().lower(),
-        is_approved=True,
-        creator_id=current_user.id,
-        image_urls=image_urls,
-        registration_url=payload.registration_url,
-        registration_url_type=payload.registration_url_type,
-        gallery_files=None,
-    )
-    db.add(event)
-    db.commit()
-    db.refresh(event)
-    return _event_to_dict(event, current_user.id)
+        image_urls = ",".join(url for url in (payload.image_urls or []) if _is_valid_image_source(url))
+        event = models.Event(
+            title=payload.title.strip(),
+            description=payload.description.strip(),
+            venue=payload.venue.strip(),
+            date=parsed_date,
+            category=payload.category.strip().lower(),
+            is_approved=True,
+            creator_id=current_user.id,
+            image_urls=image_urls,
+            registration_url=payload.registration_url,
+            registration_url_type=payload.registration_url_type,
+            gallery_files=None,
+        )
+        db.add(event)
+        db.commit()
+        db.refresh(event)
+
+        # Award XP for creating an event
+        add_xp(db, current_user, "create_event")
+
+        return _event_to_dict(event, current_user.id)
+    except Exception as e:
+        logger.error(f"CRITICAL SQL/DB ERROR during event creation: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 @router.get("/")
@@ -204,6 +219,10 @@ def register_event(
     db.add(registration)
     db.commit()
     db.refresh(registration)
+
+    # Award XP for registering
+    add_xp(db, current_user, "register_event")
+
     return {"message": "Registered successfully", "qr_code": registration.qr_code}
 
 
@@ -222,6 +241,10 @@ def mark_attendance(
         registration.attended = True
         registration.attended_at = datetime.utcnow()
         db.commit()
+        
+        # Award XP to the ATTEENDEE (registration.user)
+        add_xp(db, registration.user, "attend_event")
+
     return {
         "message": "Attendance marked",
         "attended": registration.attended,

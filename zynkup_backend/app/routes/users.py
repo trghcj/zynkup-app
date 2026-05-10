@@ -14,6 +14,7 @@ from app.auth import (
     hash_password, verify_password,
     create_access_token, get_current_user,
 )
+from app.gamification import add_xp, get_user_stats
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -45,6 +46,9 @@ class ProfileUpdate(BaseModel):
     college:      Optional[str] = None
     bio:          Optional[str] = None
     avatar_url:   Optional[str] = None
+    avatar_seed:  Optional[str] = None
+    avatar_type:  Optional[str] = None
+    theme:        Optional[str] = None
 
 
 def _user_response(user: models.User, token: str) -> dict:
@@ -65,6 +69,12 @@ def _user_response(user: models.User, token: str) -> dict:
             "phone":        user.phone,
             "bio":          user.bio,
             "is_profile_complete": bool(user.name),
+            "xp": user.xp,
+            "level": user.level,
+            "streak": user.streak,
+            "avatar_seed": user.avatar_seed or user.email,
+            "avatar_type": user.avatar_type,
+            "theme": user.theme,
         }
     }
 
@@ -103,6 +113,10 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token({"sub": str(user.id)})
+    
+    # Award daily login XP
+    add_xp(db, user, "daily_login")
+    
     logger.info(f"Login: id={user.id}")
     return _user_response(user, token)
 
@@ -166,6 +180,10 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
             logger.info(f"New Google user: id={user.id}")
 
         token = create_access_token({"sub": str(user.id)})
+        
+        # Award daily login XP
+        add_xp(db, user, "daily_login")
+        
         return _user_response(user, token)
 
     except HTTPException:
@@ -192,8 +210,21 @@ def get_me(current_user: models.User = Depends(get_current_user)):
         "display_name": current_user.display_name,
         "phone":        current_user.phone,
         "bio":          current_user.bio,
+        "xp":           current_user.xp,
+        "level":        current_user.level,
+        "streak":       current_user.streak,
+        "avatar_seed":  current_user.avatar_seed or current_user.email,
+        "avatar_type":  current_user.avatar_type,
+        "theme":        current_user.theme,
         "is_profile_complete": bool(current_user.name),
     }
+
+@router.get("/me/gamification")
+def get_gamification_details(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    return get_user_stats(db, current_user)
 
 
 # ── Update profile ────────────────────────────────────────────────────────────
@@ -213,6 +244,14 @@ def update_profile(
     if data.college      is not None: current_user.college      = data.college
     if data.bio          is not None: current_user.bio          = data.bio
     if data.avatar_url   is not None: current_user.avatar_url   = data.avatar_url
+    if data.avatar_seed  is not None: current_user.avatar_seed  = data.avatar_seed
+    if data.avatar_type  is not None: current_user.avatar_type  = data.avatar_type
+    if data.theme        is not None: current_user.theme        = data.theme
+    
+    # Bonus XP for completing profile (first time)
+    if data.name and not current_user.name:
+        add_xp(db, current_user, "complete_profile")
+
     db.commit()
     db.refresh(current_user)
     return {"message": "Profile updated", "name": current_user.name}

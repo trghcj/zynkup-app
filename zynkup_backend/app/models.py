@@ -26,8 +26,19 @@ class User(Base):
     college      = Column(String, nullable=True, default="MAIT")
     bio          = Column(String, nullable=True)
 
+    # ── Gamification ──────────────────────────────────────────────────────────
+    xp           = Column(Integer, default=0, nullable=False)
+    level        = Column(Integer, default=1, nullable=False)
+    streak       = Column(Integer, default=0, nullable=False)
+    last_active  = Column(DateTime, nullable=True)
+    achievements = Column(Text, nullable=True, default="[]") # JSON list of IDs
+    avatar_seed  = Column(String, nullable=True)
+    avatar_type  = Column(String, nullable=True, default="rings") # rings, neon, etc.
+    theme        = Column(String, nullable=True, default="midnight_orange")
+
     events        = relationship("Event", back_populates="creator")
     registrations = relationship("Registration", back_populates="user")
+    activities    = relationship("ActivityLog", back_populates="user")
 
 
 class Event(Base):
@@ -79,3 +90,15 @@ class Registration(Base):
 
     user  = relationship("User", back_populates="registrations")
     event = relationship("Event", back_populates="registrations")
+
+
+class ActivityLog(Base):
+    __tablename__ = "activities"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    action     = Column(String, nullable=False) # create_event, register, attend, login
+    xp_gained  = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User", back_populates="activities")
