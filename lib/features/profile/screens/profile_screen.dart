@@ -1,9 +1,9 @@
 // lib/features/profile/screens/profile_screen.dart
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
-import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
+import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
+import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,472 +12,493 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _user;
-  Map<String, dynamic>? _stats;
+  Map<String, int> _heatmapData = {};
   bool _loading = true;
-  bool _editing = false;
-  bool _saving = false;
+
+  late TabController _tabController;
 
   final _nameC = TextEditingController();
-  final _branchC = TextEditingController();
-  final _yearC = TextEditingController();
   final _bioC = TextEditingController();
-  final _enrollC = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _load();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _nameC.dispose();
-    _branchC.dispose();
-    _yearC.dispose();
     _bioC.dispose();
-    _enrollC.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final results = await Future.wait([
-      ApiService.getCurrentUser(force: true),
-      ApiService.getPersonalAnalytics(),
-    ]);
-    final user = results[0];
-    final stats = results[1];
-    if (mounted) {
-      setState(() {
-        _user = user;
-        _stats = stats;
-        _loading = false;
-        if (user != null) {
-          _nameC.text = user['name'] ?? '';
-          _branchC.text = user['branch'] ?? '';
-          _yearC.text = user['year'] ?? '';
-          _bioC.text = user['bio'] ?? '';
-          _enrollC.text = user['enrollment'] ?? '';
-        }
-      });
-    }
-  }
-
-  Future<void> _pickAvatar() async {
-    final picker = ImagePicker();
-    final xfile = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-    );
-    if (xfile == null) return;
-    final bytes = await xfile.readAsBytes();
-    final filename = xfile.name;
-    final url = await ApiService.uploadImageBytes(bytes, filename);
-    if (url != null) {
-      await ApiService.updateProfile(avatarUrl: url);
-      _load();
-    }
-  }
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
     try {
-      await ApiService.updateProfile(
-        name: _nameC.text.trim(),
-        branch: _branchC.text.trim(),
-        year: _yearC.text.trim(),
-        bio: _bioC.text.trim(),
-        enrollment: _enrollC.text.trim(),
-      );
+      final results = await Future.wait([
+        ApiService.getCurrentUser(force: true),
+        ApiService.getHeatmapData(),
+      ]);
+      final user = results[0];
+      final heatmap = results[1] as Map<String, int>;
+      
       if (mounted) {
         setState(() {
-          _editing = false;
-          _saving = false;
+          _user = user;
+          _heatmapData = heatmap;
+          _loading = false;
+          if (user != null) {
+            _nameC.text = user['name'] ?? '';
+            _bioC.text = user['bio'] ?? '';
+          }
         });
-        _load();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated ✓'),
-            backgroundColor: ZynkColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
       }
     } catch (_) {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _logout() async {
-    await ApiService.logout();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
-      (_) => false,
-    );
+  Future<void> _randomizeAvatar() async {
+    final newSeed = DateTime.now().millisecondsSinceEpoch.toString();
+    await ApiService.updateProfile(avatarSeed: newSeed);
+    _load();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: ZynkColors.primary),
-      );
+      return const Center(child: CircularProgressIndicator(color: ZynkColors.primary));
     }
 
     final user = _user ?? {};
-    final name = user['name'] as String? ?? 'Student';
-    final email = user['email'] as String? ?? '';
-    final avatarUrl = user['avatar_url'] as String?;
-    final branch = user['branch'] as String? ?? '';
-    final year = user['year'] as String? ?? '';
-    final college = user['college'] as String? ?? 'MAIT';
-    final eventsCreated = _stats?['events_created'] ?? 0;
-    final totalRegistered = _stats?['total_registered'] ?? 0;
-    final attended = _stats?['attended'] ?? 0;
+    final xp = user['xp'] ?? 0;
+    final level = user['level'] ?? 1;
+    final streak = user['streak'] ?? 0;
+    final theme = user['theme'] ?? 'midnight_orange';
+    final seed = user['avatar_seed'] ?? user['email'] ?? 'default';
+    final avatarType = user['avatar_type'] ?? 'rings';
+    
+    // Level progress calculation
+    final currentLevelXP = (level - 1) * (level - 1) * 25;
+    final nextLevelXP = level * level * 25;
+    final progress = (xp - currentLevelXP) / (nextLevelXP - currentLevelXP);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-      child: Column(
-        children: [
-          // ── Avatar + name ────────────────────────────────────
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              GestureDetector(
-                onTap: _pickAvatar,
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: ZynkGradients.brand,
-                    border: Border.all(
-                      color: ZynkColors.primary.withValues(alpha: 0.5),
-                      width: 2,
+    return Scaffold(
+      backgroundColor: ZynkColors.darkBg,
+      body: CustomScrollView(
+        slivers: [
+          // ── Hero Profile Header ──────────────────────────────────────────
+          SliverAppBar(
+            expandedHeight: 340,
+            pinned: true,
+            backgroundColor: ZynkColors.darkBg,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                children: [
+                  // Gradient Background
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: ZynkGradients.forTheme(theme),
                     ),
                   ),
-                  child: avatarUrl != null
-                      ? ClipOval(child: _buildAvatar(avatarUrl))
-                      : Center(
-                          child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 36,
-                              fontWeight: FontWeight.w900,
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          ZynkColors.darkBg.withValues(alpha: 0.1),
+                          ZynkColors.darkBg,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                  
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.only(top: 80),
+                    child: Column(
+                      children: [
+                        // Avatar with Level Ring
+                        Center(
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // XP Ring
+                              SizedBox(
+                                width: 120,
+                                height: 120,
+                                child: CircularProgressIndicator(
+                                  value: progress.clamp(0.0, 1.0),
+                                  strokeWidth: 8,
+                                  backgroundColor: Colors.white10,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    ZynkColors.primary,
+                                  ),
+                                ),
+                              ),
+                              // Avatar
+                              GestureDetector(
+                                onTap: _randomizeAvatar,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                  child: ClipOval(
+                                    child: DiceBearAvatar(
+                                      seed: seed,
+                                      type: avatarType,
+                                      size: 100,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Level Badge
+                              Positioned(
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: ZynkColors.primary,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: const [
+                                      BoxShadow(color: Colors.black45, blurRadius: 4),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    'Lvl $level',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        Text(
+                          user['name'] ?? 'Student',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        
+                        Text(
+                          '@${user['email']?.split('@')[0] ?? 'user'}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Streak + XP Info
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _InfoPill(
+                              icon: Icons.local_fire_department_rounded,
+                              label: '$streak day streak',
+                              color: Colors.orange,
                             ),
-                          ),
+                            const SizedBox(width: 10),
+                            _InfoPill(
+                              icon: Icons.bolt_rounded,
+                              label: '$xp XP',
+                              color: ZynkColors.accent,
+                            ),
+                          ],
                         ),
-                ),
-              ),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  gradient: ZynkGradients.brand,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0F0A07), width: 2),
-                ),
-                child: const Icon(
-                  Icons.camera_alt_rounded,
-                  color: Colors.white,
-                  size: 14,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            email,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 13,
-            ),
-          ),
-
-          if (branch.isNotEmpty || year.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              [
-                if (branch.isNotEmpty) branch,
-                if (year.isNotEmpty) 'Year $year',
-                college,
-              ].join(' · '),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.35),
-                fontSize: 12,
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 20),
-
-          // ── Stats row ────────────────────────────────────────
-          Row(
-            children: [
-              _StatBox(value: '$eventsCreated', label: 'Created'),
-              const SizedBox(width: 10),
-              _StatBox(value: '$totalRegistered', label: 'Registered'),
-              const SizedBox(width: 10),
-              _StatBox(value: '$attended', label: 'Attended'),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // ── Edit form ────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      'Profile Info',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
+                      ],
                     ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => setState(() => _editing = !_editing),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _editing
-                              ? ZynkColors.primary.withValues(alpha: 0.15)
-                              : Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _editing
-                                ? ZynkColors.primary.withValues(alpha: 0.4)
-                                : Colors.white.withValues(alpha: 0.1),
-                          ),
-                        ),
-                        child: Text(
-                          _editing ? 'Cancel' : 'Edit',
-                          style: TextStyle(
-                            color: _editing
-                                ? ZynkColors.primary
-                                : Colors.white.withValues(alpha: 0.6),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _ProfileField(
-                  label: 'Full name',
-                  controller: _nameC,
-                  enabled: _editing,
-                  icon: Icons.person_outline_rounded,
-                ),
-                const SizedBox(height: 12),
-                _ProfileField(
-                  label: 'Branch / Dept',
-                  controller: _branchC,
-                  enabled: _editing,
-                  icon: Icons.school_outlined,
-                ),
-                const SizedBox(height: 12),
-                _ProfileField(
-                  label: 'Year',
-                  controller: _yearC,
-                  enabled: _editing,
-                  icon: Icons.calendar_today_outlined,
-                ),
-                const SizedBox(height: 12),
-                _ProfileField(
-                  label: 'Enrollment no.',
-                  controller: _enrollC,
-                  enabled: _editing,
-                  icon: Icons.badge_outlined,
-                ),
-                const SizedBox(height: 12),
-                _ProfileField(
-                  label: 'Bio',
-                  controller: _bioC,
-                  enabled: _editing,
-                  icon: Icons.info_outline_rounded,
-                  maxLines: 3,
-                ),
-                if (_editing) ...[
-                  const SizedBox(height: 18),
-                  ZynkButton(
-                    label: 'Save Changes',
-                    icon: Icons.check_rounded,
-                    onTap: _save,
-                    isLoading: _saving,
                   ),
                 ],
+              ),
+            ),
+          ),
+
+          // ── Progression Bar (Sticky) ─────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Level $level',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '$xp/$nextLevelXP XP',
+                        style: const TextStyle(color: Colors.white60, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 10,
+                      backgroundColor: Colors.white10,
+                      valueColor: AlwaysStoppedAnimation<Color>(ZynkColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Next unlock: Neon Avatar at Lvl 5',
+                    style: TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Stats Grid ───────────────────────────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            sliver: SliverGrid.count(
+              crossAxisCount: 3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.1,
+              children: [
+                _StatCard(label: 'Events', value: '${user['events_created'] ?? 0}', icon: Icons.event_rounded),
+                _StatCard(label: 'Attended', value: '${user['attended'] ?? 0}', icon: Icons.check_circle_rounded),
+                _StatCard(label: 'Rank', value: '#${(1000 - level * 10).clamp(1, 1000)}', icon: Icons.emoji_events_rounded),
               ],
             ),
           ),
 
-          const SizedBox(height: 16),
+          // ── Tabs ──────────────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: ZynkColors.primary,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white30,
+              onTap: (index) => setState(() {}),
+              tabs: const [
+                Tab(text: 'Overview'),
+                Tab(text: 'Events'),
+                Tab(text: 'Badges'),
+              ],
+            ),
+          ),
 
-          // ── Logout ────────────────────────────────────────────
-          ZynkButton(
-            label: 'Sign Out',
-            icon: Icons.logout_rounded,
-            outlined: true,
-            onTap: _logout,
+          // ── Tab Content ───────────────────────────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.only(bottom: 100),
+            sliver: SliverToBoxAdapter(
+              child: [
+                _OverviewTab(user: user, heatmapData: _heatmapData),
+                _EventsTab(user: user),
+                _BadgesTab(user: user),
+              ][_tabController.index],
+            ),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildAvatar(String url) {
-    if (url.startsWith('data:')) {
-      try {
-        final base64 = url.split(',').last;
-        final bytes =
-            Uri.parse(url).data?.contentAsBytes() ??
-            // fallback:
-            Uri.dataFromString(
-              base64,
-              mimeType: 'image/jpeg',
-            ).data!.contentAsBytes();
-        return Image.memory(bytes, width: 90, height: 90, fit: BoxFit.cover);
-      } catch (_) {}
-    }
-    return Image.network(
-      url,
-      width: 90,
-      height: 90,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) =>
-          const Icon(Icons.person_rounded, color: Colors.white, size: 40),
-    );
-  }
 }
 
-class _StatBox extends StatelessWidget {
-  final String value, label;
-  const _StatBox({required this.value, required this.label});
+class _InfoPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _InfoPill({required this.icon, required this.label, required this.color});
 
   @override
-  Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Column(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ShaderMask(
-            shaderCallback: (b) => ZynkGradients.brand.createShader(b),
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 11,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
 }
 
-class _ProfileField extends StatelessWidget {
+class _StatCard extends StatelessWidget {
   final String label;
-  final TextEditingController controller;
-  final bool enabled;
+  final String value;
   final IconData icon;
-  final int maxLines;
 
-  const _ProfileField({
-    required this.label,
-    required this.controller,
-    required this.enabled,
-    required this.icon,
-    this.maxLines = 1,
-  });
+  const _StatCard({required this.label, required this.value, required this.icon});
 
   @override
-  Widget build(BuildContext context) => TextFormField(
-    controller: controller,
-    enabled: enabled,
-    maxLines: maxLines,
-    style: TextStyle(
-      color: enabled ? Colors.white : Colors.white.withValues(alpha: 0.55),
-      fontSize: 14,
-    ),
-    decoration: InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-      prefixIcon: Icon(
-        icon,
-        color: enabled
-            ? ZynkColors.primary
-            : Colors.white.withValues(alpha: 0.25),
-        size: 18,
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: ZynkColors.darkSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ZynkColors.darkBorder),
       ),
-      filled: true,
-      fillColor: enabled
-          ? Colors.white.withValues(alpha: 0.07)
-          : Colors.white.withValues(alpha: 0.03),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: ZynkColors.primary, size: 20),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            label,
+            style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 10),
+          ),
+        ],
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: ZynkColors.primary.withValues(alpha: 0.4),
-        ),
+    );
+  }
+}
+
+class _OverviewTab extends StatelessWidget {
+  final Map<String, dynamic> user;
+  final Map<String, int> heatmapData;
+  const _OverviewTab({required this.user, required this.heatmapData});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bio',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            user['bio']?.isNotEmpty == true ? user['bio'] : 'No bio set yet.',
+            style: const TextStyle(color: ZynkColors.darkMuted),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Achievements',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 80,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: const [
+                _BadgeIcon(icon: Icons.star_rounded, label: 'First Event', color: Colors.amber),
+                _BadgeIcon(icon: Icons.bolt_rounded, label: '5 Streak', color: Colors.orange),
+                _BadgeIcon(icon: Icons.group_rounded, label: 'Organizer', color: Colors.blue),
+                _BadgeIcon(icon: Icons.verified_rounded, label: 'Verified', color: Colors.green),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Activity Heatmap',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 160,
+            child: ActivityHeatmap(data: heatmapData),
+          ),
+        ],
       ),
-      disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+    );
+  }
+}
+
+class _BadgeIcon extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _BadgeIcon({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.3)),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 10)),
+        ],
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
+    );
+  }
+}
+
+class _EventsTab extends StatelessWidget {
+  final Map<String, dynamic> user;
+  const _EventsTab({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Text('No events found', style: TextStyle(color: ZynkColors.darkMuted)),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _BadgesTab extends StatelessWidget {
+  final Map<String, dynamic> user;
+  const _BadgesTab({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Text('Coming Soon', style: TextStyle(color: ZynkColors.darkMuted)),
+      ),
+    );
+  }
 }

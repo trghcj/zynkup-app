@@ -164,6 +164,9 @@ class ApiService {
     String? college,
     String? bio,
     String? avatarUrl,
+    String? avatarSeed,
+    String? avatarType,
+    String? theme,
   }) async {
     try {
       await loadToken();
@@ -180,6 +183,9 @@ class ApiService {
           if (college != null) "college": college,
           if (bio != null) "bio": bio,
           if (avatarUrl != null) "avatar_url": avatarUrl,
+          if (avatarSeed != null) "avatar_seed": avatarSeed,
+          if (avatarType != null) "avatar_type": avatarType,
+          if (theme != null) "theme": theme,
         }),
       );
       if (res.statusCode == 200) {
@@ -478,4 +484,35 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>?> getAnalytics() => getPersonalAnalytics();
+
+  static Future<Map<String, int>> getHeatmapData() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/analytics/heatmap"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return data.map((key, value) => MapEntry(key, value as int));
+      }
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getGamificationDetails() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/users/me/gamification"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+      throw _parseError(res);
+    } catch (_) {
+      return {};
+    }
+  }
 }

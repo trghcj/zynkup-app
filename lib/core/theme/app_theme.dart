@@ -63,6 +63,12 @@ class ZynkColors {
         return primary;
     }
   }
+
+  // ── Profile Themes ──────────────────────────────────────────────
+  static const neonCyber = Color(0xFF00F2FF);
+  static const emeraldForest = Color(0xFF00FF88);
+  static const spacePurple = Color(0xFFBF00FF);
+  static const hackerGreen = Color(0xFF39FF14);
 }
 
 class ZynkGradients {
@@ -106,6 +112,22 @@ class ZynkGradients {
         return const LinearGradient(
           colors: [Color(0xFF3D1A5F), Color(0xFF9C6FBF)],
         );
+      default:
+        return brand;
+    }
+  }
+
+  static LinearGradient forTheme(String theme) {
+    switch (theme.toLowerCase()) {
+      case 'neon_cyber':
+        return const LinearGradient(colors: [Color(0xFF0061FF), Color(0xFF60EFFF)]);
+      case 'emerald_forest':
+        return const LinearGradient(colors: [Color(0xFF134E5E), Color(0xFF71B280)]);
+      case 'space_purple':
+        return const LinearGradient(colors: [Color(0xFF654ea3), Color(0xFFeaafc8)]);
+      case 'hacker_green':
+        return const LinearGradient(colors: [Color(0xFF0F2027), Color(0xFF2C5364), Color(0xFF00F260)]);
+      case 'midnight_orange':
       default:
         return brand;
     }
