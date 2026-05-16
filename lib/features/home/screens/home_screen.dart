@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_bottom_nav.dart';
+import 'package:zynkup/core/api/api_service.dart';
+import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
 import 'package:zynkup/features/home/tabs/explore_tab.dart';
 import 'package:zynkup/features/home/tabs/home_tab.dart';
 import 'package:zynkup/features/home/tabs/my_events_tab.dart';
-import 'package:zynkup/features/home/tabs/profile_tab.dart';
+import 'package:zynkup/features/profile/screens/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ExploreTab(),
     SizedBox.shrink(),
     MyEventsTab(),
-    ProfileTab(),
+    ProfileScreen(),
   ];
 
   Future<void> _create() async {
@@ -45,6 +47,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ZynkColors.darkBg,
+      appBar: AppBar(
+        title: const Text('Zynkup'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, size: 20),
+            tooltip: 'Sign out',
+            onPressed: () async {
+              await ApiService.logout();
+              if (!mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
+                (_) => false,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: IndexedStack(index: _index, children: _tabs),
       bottomNavigationBar: ZynkBottomNav(
         currentIndex: _index,

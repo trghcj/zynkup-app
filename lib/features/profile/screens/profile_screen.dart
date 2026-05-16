@@ -4,6 +4,7 @@ import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
+import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -80,13 +81,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final level = user['level'] ?? 1;
     final streak = user['streak'] ?? 0;
     final theme = user['theme'] ?? 'midnight_orange';
-    final seed = user['avatar_seed'] ?? user['email'] ?? 'default';
+    final email = user['email'] ?? 'user@zynkup.com';
+    final seed = user['avatar_seed'] ?? email;
     final avatarType = user['avatar_type'] ?? 'rings';
     
     // Level progress calculation
-    final currentLevelXP = (level - 1) * (level - 1) * 25;
-    final nextLevelXP = level * level * 25;
-    final progress = (xp - currentLevelXP) / (nextLevelXP - currentLevelXP);
+    int nextLevelXP = level * level * 25;
+    int currentLevelXP = (level - 1) * (level - 1) * 25;
+    
+    // Fallback for edge cases
+    if (nextLevelXP <= currentLevelXP) nextLevelXP = currentLevelXP + 25;
+    
+    double progress = (xp - currentLevelXP) / (nextLevelXP - currentLevelXP);
+    if (progress.isNaN || progress.isInfinite) progress = 0.0;
 
     return Scaffold(
       backgroundColor: ZynkColors.darkBg,
@@ -233,43 +240,59 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               ),
             ),
           ),
-
           // ── Progression Bar (Sticky) ─────────────────────────────────────
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Level $level',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '$xp/$nextLevelXP XP',
-                        style: const TextStyle(color: Colors.white60, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: progress.clamp(0.0, 1.0),
-                      minHeight: 10,
-                      backgroundColor: Colors.white10,
-                      valueColor: AlwaysStoppedAnimation<Color>(ZynkColors.primary),
+            child: InkWell(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AvatarGalleryScreen(currentLevel: level),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Level $level',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '$xp/$nextLevelXP XP',
+                          style: const TextStyle(color: Colors.white60, fontSize: 12),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Next unlock: Neon Avatar at Lvl 5',
-                    style: TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: progress.clamp(0.0, 1.0),
+                        minHeight: 10,
+                        backgroundColor: Colors.white10,
+                        valueColor: AlwaysStoppedAnimation<Color>(ZynkColors.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Next unlock: Neon Avatar at Lvl 5',
+                          style: TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
+                        ),
+                        Text(
+                          'View Gallery →',
+                          style: TextStyle(color: ZynkColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -147,6 +148,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       backgroundColor: ZynkColors.darkBg,
       appBar: AppBar(
         title: const Text('Create Event'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, size: 20),
+            onPressed: () async {
+              await ApiService.logout();
+              if (!mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
+                (_) => false,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: _back,
