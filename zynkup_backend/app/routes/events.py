@@ -1,9 +1,12 @@
-import base64
+import json
 import logging
+import os
+import uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -13,13 +16,21 @@ from app.auth import get_current_user
 from app.gamification import add_xp
 
 router = APIRouter(prefix="/events", tags=["Events"])
-_log = logging.getLogger("zynkup.events")
+logger = logging.getLogger(__name__)
 
 _SEP = "|||---|||"
 _NAME_SEP = "|||"
+UPLOAD_DIR = "uploads"
 MAX_GALLERY_FILES = 50
 MAX_EVENTS_PER_DAY = 5
-ALLOWED_MIME = {"image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"}
+ALLOWED_MIME = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp"}
+EXT_MIME = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
 
 
 class EventCreate(BaseModel):
@@ -50,6 +61,16 @@ def _is_valid_image_source(value: str) -> bool:
 def _parse_gallery(raw: str) -> List[dict]:
     if not raw:
         return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return [
+                item
+                for item in parsed
+                if isinstance(item, dict) and (item.get("url") or item.get("data"))
+            ]
+    except json.JSONDecodeError:
+        pass
     items = []
     for entry in raw.split(_SEP):
         if not entry.strip():
@@ -61,7 +82,14 @@ def _parse_gallery(raw: str) -> List[dict]:
 
 
 def _serialize_gallery(items: List[dict]) -> str:
-    return _SEP.join(f"{item['name']}{_NAME_SEP}{item['mime']}{_NAME_SEP}{item['data']}" for item in items)
+    return json.dumps(items)
+
+
+def _public_upload_url(request: Request, filename: str) -> str:
+    base_url = os.getenv("PUBLIC_BACKEND_URL", "").rstrip("/")
+    if base_url:
+        return f"{base_url}/uploads/{filename}"
+    return str(request.url_for("uploads", path=filename))
 
 
 def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> dict:
@@ -103,7 +131,7 @@ def create_event(
             date_str = date_str.replace("Z", "+00:00")
         parsed_date = datetime.fromisoformat(date_str)
     except Exception as e:
-        _log.error(f"DATE PARSE ERROR: {e} | Input: {payload.date}")
+        logger.error(f"DATE PARSE ERROR: {e} | Input: {payload.date}")
         raise HTTPException(status_code=422, detail=f"Invalid date format: {str(e)}")
 
     try:
@@ -137,19 +165,22 @@ def create_event(
         try:
             add_xp(db, current_user, "create_event")
         except Exception as xp_err:
-            _log.warning(f"XP AWARD FAILED: {xp_err}")
+            logger.warning(f"XP AWARD FAILED: {xp_err}")
 
         return _event_to_dict(event, current_user.id)
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         error_msg = str(e)
         if "no such column" in error_msg.lower() or "column" in error_msg.lower():
-            _log.critical(f"DATABASE OUT OF SYNC: {error_msg}")
+            logger.critical(f"DATABASE OUT OF SYNC: {error_msg}")
             raise HTTPException(
                 status_code=500, 
                 detail="Database schema mismatch. Please run the SQL migration on Render."
             )
-        _log.error(f"CRITICAL ERROR during event creation: {e}", exc_info=True)
+        logger.error(f"CRITICAL ERROR during event creation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Server error: {error_msg}")
 
 
@@ -266,6 +297,7 @@ def mark_attendance(
 
 @router.post("/{event_id}/gallery")
 async def upload_gallery(
+    request: Request,
     event_id: int,
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
@@ -280,27 +312,39 @@ async def upload_gallery(
     if len(existing) + len(files) > MAX_GALLERY_FILES:
         raise HTTPException(status_code=400, detail=f"Max {MAX_GALLERY_FILES} gallery files allowed")
     additions = []
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     for file in files:
-        mime = (file.content_type or "").lower()
-        if mime not in ALLOWED_MIME:
+        ext = Path(file.filename or "gallery.jpg").suffix.lower()
+        mime = (file.content_type or EXT_MIME.get(ext, "")).lower()
+        if ext not in ALLOWED_EXT:
             raise HTTPException(status_code=400, detail="Unsupported file type")
+        if mime not in ALLOWED_MIME:
+            mime = EXT_MIME[ext]
         contents = await file.read()
         if len(contents) > 15 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File too large. Max 15MB")
+        filename = f"{uuid.uuid4().hex}{ext}"
+        file_path = Path(UPLOAD_DIR) / filename
+        file_path.write_bytes(contents)
         additions.append({
             "name": file.filename or "gallery-file",
+            "filename": filename,
             "mime": mime,
-            "data": base64.b64encode(contents).decode("utf-8"),
+            "url": _public_upload_url(request, filename),
         })
     try:
         event.gallery_files = _serialize_gallery(existing + additions)
         db.commit()
     except Exception as db_err:
         db.rollback()
-        _log.error(f"GALLERY DB SAVE ERROR: {db_err}")
+        logger.error(f"GALLERY DB SAVE ERROR: {db_err}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to save gallery: {str(db_err)}")
         
-    return {"message": f"{len(additions)} file(s) uploaded", "total": len(existing) + len(additions)}
+    return {
+        "message": f"{len(additions)} file(s) uploaded",
+        "files": additions,
+        "total": len(existing) + len(additions),
+    }
 
 
 @router.get("/{event_id}/gallery")
