@@ -57,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
               await ApiService.logout();
               if (!mounted) return;
               Navigator.pushAndRemoveUntil(
+                // ignore: use_build_context_synchronously
                 context,
                 MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
                 (_) => false,
