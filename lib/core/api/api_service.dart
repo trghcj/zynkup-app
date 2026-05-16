@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiException implements Exception {
@@ -430,11 +431,18 @@ class ApiService {
       );
       if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
       for (int i = 0; i < files.length; i++) {
+        final filename = filenames[i].toLowerCase();
+        String mime = 'image/jpeg';
+        if (filename.endsWith('.png')) mime = 'image/png';
+        if (filename.endsWith('.webp')) mime = 'image/webp';
+        if (filename.endsWith('.pdf')) mime = 'application/pdf';
+
         req.files.add(
           http.MultipartFile.fromBytes(
             'files',
             files[i],
             filename: filenames[i],
+            contentType: MediaType.parse(mime),
           ),
         );
       }

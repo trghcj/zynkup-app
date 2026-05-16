@@ -1,4 +1,5 @@
 import base64
+import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -12,6 +13,7 @@ from app.auth import get_current_user
 from app.gamification import add_xp
 
 router = APIRouter(prefix="/events", tags=["Events"])
+_log = logging.getLogger("zynkup.events")
 
 _SEP = "|||---|||"
 _NAME_SEP = "|||"
@@ -101,7 +103,7 @@ def create_event(
             date_str = date_str.replace("Z", "+00:00")
         parsed_date = datetime.fromisoformat(date_str)
     except Exception as e:
-        logger.error(f"DATE PARSE ERROR: {e} | Input: {payload.date}")
+        _log.error(f"DATE PARSE ERROR: {e} | Input: {payload.date}")
         raise HTTPException(status_code=422, detail=f"Invalid date format: {str(e)}")
 
     try:
@@ -132,13 +134,23 @@ def create_event(
         db.refresh(event)
 
         # Award XP for creating an event
-        add_xp(db, current_user, "create_event")
+        try:
+            add_xp(db, current_user, "create_event")
+        except Exception as xp_err:
+            _log.warning(f"XP AWARD FAILED: {xp_err}")
 
         return _event_to_dict(event, current_user.id)
     except Exception as e:
-        logger.error(f"CRITICAL SQL/DB ERROR during event creation: {e}", exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        error_msg = str(e)
+        if "no such column" in error_msg.lower() or "column" in error_msg.lower():
+            _log.critical(f"DATABASE OUT OF SYNC: {error_msg}")
+            raise HTTPException(
+                status_code=500, 
+                detail="Database schema mismatch. Please run the SQL migration on Render."
+            )
+        _log.error(f"CRITICAL ERROR during event creation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Server error: {error_msg}")
 
 
 @router.get("/")
@@ -280,8 +292,14 @@ async def upload_gallery(
             "mime": mime,
             "data": base64.b64encode(contents).decode("utf-8"),
         })
-    event.gallery_files = _serialize_gallery(existing + additions)
-    db.commit()
+    try:
+        event.gallery_files = _serialize_gallery(existing + additions)
+        db.commit()
+    except Exception as db_err:
+        db.rollback()
+        _log.error(f"GALLERY DB SAVE ERROR: {db_err}")
+        raise HTTPException(status_code=500, detail=f"Failed to save gallery: {str(db_err)}")
+        
     return {"message": f"{len(additions)} file(s) uploaded", "total": len(existing) + len(additions)}
 
 
