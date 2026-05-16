@@ -13,7 +13,10 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  static const String baseUrl = "https://zynkup-app.onrender.com";
+  static const String baseUrl = String.fromEnvironment(
+    "API_BASE_URL",
+    defaultValue: "https://zynkup-app.onrender.com",
+  );
   static const _storage = FlutterSecureStorage();
   static String? _token;
   static Map<String, dynamic>? _cachedUser;
@@ -241,9 +244,11 @@ class ApiService {
       if (res.statusCode == 200) {
         return (jsonDecode(res.body))['url'] as String?;
       }
-      return null;
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
     } catch (_) {
-      return null;
+      throw const ApiException("Image upload failed.");
     }
   }
 
@@ -418,7 +423,7 @@ class ApiService {
 
   // ── Gallery ────────────────────────────────────────────────────────────────
 
-  static Future<bool> uploadEventGallery({
+  static Future<List<Map<String, dynamic>>> uploadEventGallery({
     required int eventId,
     required List<Uint8List> files,
     required List<String> filenames,
@@ -447,9 +452,15 @@ class ApiService {
         );
       }
       final res = await http.Response.fromStream(await req.send());
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        return List<Map<String, dynamic>>.from(body['files'] ?? []);
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
     } catch (_) {
-      return false;
+      throw const ApiException("Gallery upload failed.");
     }
   }
 
@@ -517,7 +528,9 @@ class ApiService {
         Uri.parse("$baseUrl/users/me/gamification"),
         headers: await _headers,
       );
-      if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
       throw _parseError(res);
     } catch (_) {
       return {};

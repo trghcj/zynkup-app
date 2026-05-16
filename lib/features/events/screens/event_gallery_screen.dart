@@ -34,7 +34,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { });
+    setState(() {});
     try {
       final files = await ApiService.fetchGalleryFiles(
         int.parse(widget.event.id),
@@ -60,7 +60,10 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
     try {
       images = await _picker.pickMultiImage(imageQuality: 85);
     } catch (e) {
-      _snack('Could not open image picker. Try a different browser.', error: true);
+      _snack(
+        'Could not open image picker. Try a different browser.',
+        error: true,
+      );
       return;
     }
 
@@ -79,22 +82,25 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
         names.add(image.name.split('/').last.split('\\').last);
       }
 
-      final ok = await ApiService.uploadEventGallery(
+      final uploaded = await ApiService.uploadEventGallery(
         eventId: int.parse(widget.event.id),
         files: bytes,
         filenames: names,
       );
 
       if (!mounted) return;
-      if (ok) {
+      if (uploaded.isNotEmpty) {
         _snack('Photos uploaded!');
         await _load();
       } else {
-        _snack('Upload failed. Check your connection.', error: true);
+        _snack('No photos were uploaded.', error: true);
       }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _snack(e.message, error: true);
     } catch (e) {
       if (!mounted) return;
-      _snack('Upload error: ${e.toString()}', error: true);
+      _snack('Upload failed. Check your connection.', error: true);
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -146,51 +152,48 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _files.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.photo_library_outlined,
-                        color: ZynkColors.darkMuted,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.canUpload
-                            ? 'Upload the first event memory.'
-                            : 'Photos will appear after the event.',
-                        style:
-                            const TextStyle(color: ZynkColors.darkMuted),
-                      ),
-                      if (widget.canUpload) ...[
-                        const SizedBox(height: 16),
-                        // FIX: also provide a centre upload button so users
-                        // don't miss the icon in the app bar
-                        ElevatedButton.icon(
-                          onPressed: _uploading ? null : _upload,
-                          icon: const Icon(Icons.add_photo_alternate_rounded),
-                          label: const Text('Add photos'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: ZynkColors.primary,
-                          ),
-                        ),
-                      ],
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.photo_library_outlined,
+                    color: ZynkColors.darkMuted,
+                    size: 48,
                   ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(14),
-                  itemCount: _files.length,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.canUpload
+                        ? 'Upload the first event memory.'
+                        : 'Photos will appear after the event.',
+                    style: const TextStyle(color: ZynkColors.darkMuted),
                   ),
-                  itemBuilder: (_, index) =>
-                      _GalleryTile(file: _files[index]),
-                ),
+                  if (widget.canUpload) ...[
+                    const SizedBox(height: 16),
+                    // FIX: also provide a centre upload button so users
+                    // don't miss the icon in the app bar
+                    ElevatedButton.icon(
+                      onPressed: _uploading ? null : _upload,
+                      icon: const Icon(Icons.add_photo_alternate_rounded),
+                      label: const Text('Add photos'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ZynkColors.primary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            )
+          : GridView.builder(
+              padding: const EdgeInsets.all(14),
+              itemCount: _files.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemBuilder: (_, index) => _GalleryTile(file: _files[index]),
+            ),
     );
   }
 }
@@ -206,7 +209,10 @@ class _GalleryTile extends StatelessWidget {
     if (mime == 'application/pdf') {
       return Container(
         color: ZynkColors.darkSurface,
-        child: const Icon(Icons.picture_as_pdf_rounded, color: ZynkColors.error),
+        child: const Icon(
+          Icons.picture_as_pdf_rounded,
+          color: ZynkColors.error,
+        ),
       );
     }
 
@@ -220,8 +226,10 @@ class _GalleryTile extends StatelessWidget {
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Container(
             color: ZynkColors.darkSurface,
-            child: const Icon(Icons.broken_image_rounded,
-                color: ZynkColors.darkMuted),
+            child: const Icon(
+              Icons.broken_image_rounded,
+              color: ZynkColors.darkMuted,
+            ),
           ),
         ),
       );
@@ -241,7 +249,10 @@ class _GalleryTile extends StatelessWidget {
 
     return Container(
       color: ZynkColors.darkSurface,
-      child: const Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+      child: const Icon(
+        Icons.broken_image_rounded,
+        color: ZynkColors.darkMuted,
+      ),
     );
   }
 }

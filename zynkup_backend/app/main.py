@@ -1,12 +1,12 @@
 import os
 import uuid
-import base64
 import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv  # type: ignore
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
@@ -21,15 +21,29 @@ logging.basicConfig(
     level=logging.DEBUG if ENV == "development" else logging.WARNING,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
-logger = logging.getLogger("zynkup")
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Zynkup API", version="2.0.0")
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+cors_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "https://zynkup.vercel.app,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if origin.strip()
+]
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 # Using a more robust configuration to ensure headers are always present
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For development, we allow all. In production, we'll use regex.
+    allow_origins=cors_origins,
+    allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX", r"https://.*\.vercel\.app"),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,11 +65,19 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ── DB ────────────────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
 
-# ── Upload (base64 — works everywhere) ───────────────────────────────────────
+# ── Uploads ──────────────────────────────────────────────────────────────────
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
+
+
+def _public_upload_url(request: Request, filename: str) -> str:
+    base_url = os.getenv("PUBLIC_BACKEND_URL", "").rstrip("/")
+    if base_url:
+        return f"{base_url}/uploads/{filename}"
+    return str(request.url_for("uploads", path=filename))
 
 @app.post("/upload", tags=["Upload"])
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -67,17 +89,13 @@ async def upload_file(
     if len(contents) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Max 15MB")
 
-    mime_map = {
-        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".png": "image/png", ".webp": "image/webp",
-        ".pdf": "application/pdf",
-    }
-    mime = mime_map.get(ext, "image/jpeg")
-    b64  = base64.b64encode(contents).decode("utf-8")
-    data_url = f"data:{mime};base64,{b64}"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = Path(UPLOAD_DIR) / filename
+    file_path.write_bytes(contents)
+    public_url = _public_upload_url(request, filename)
 
-    logger.info(f"Uploaded {ext} by user {current_user.id}")
-    return {"url": data_url, "filename": f"{uuid.uuid4().hex}{ext}"}
+    logger.info(f"Uploaded {filename} by user {current_user.id}")
+    return {"url": public_url, "filename": filename}
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────

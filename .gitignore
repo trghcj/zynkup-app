@@ -113,3 +113,5 @@ google-cloud-sdk/
 
 # OS files
 Thumbs.db
+.vercel
+.env*.local
