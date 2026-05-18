@@ -196,7 +196,11 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
 # ── Get current user ──────────────────────────────────────────────────────────
 
 @router.get("/me")
-def get_me(current_user: models.User = Depends(get_current_user)):
+def get_me(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    stats = get_user_stats(db, current_user)
     return {
         "id":           current_user.id,
         "email":        current_user.email,
@@ -217,6 +221,7 @@ def get_me(current_user: models.User = Depends(get_current_user)):
         "avatar_type":  current_user.avatar_type,
         "theme":        current_user.theme,
         "is_profile_complete": bool(current_user.name),
+        **stats,
     }
 
 @router.get("/me/gamification")

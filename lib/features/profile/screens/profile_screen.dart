@@ -300,16 +300,32 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           // ── Stats Grid ───────────────────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            sliver: SliverGrid.count(
-              crossAxisCount: 3,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.1,
-              children: [
-                _StatCard(label: 'Events', value: '${user['events_created'] ?? 0}', icon: Icons.event_rounded),
-                _StatCard(label: 'Attended', value: '${user['attended'] ?? 0}', icon: Icons.check_circle_rounded),
-                _StatCard(label: 'Rank', value: '#${(1000 - level * 10).clamp(1, 1000)}', icon: Icons.emoji_events_rounded),
-              ],
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 220,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.35,
+              ),
+              delegate: SliverChildListDelegate.fixed(
+                [
+                  _StatCard(
+                    label: 'Events',
+                    value: '${user['events_created'] ?? 0}',
+                    icon: Icons.event_rounded,
+                  ),
+                  _StatCard(
+                    label: 'Attended',
+                    value: '${user['attended'] ?? 0}',
+                    icon: Icons.check_circle_rounded,
+                  ),
+                  _StatCard(
+                    label: 'Rank',
+                    value: '#${user['rank'] ?? 1}',
+                    icon: Icons.emoji_events_rounded,
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -418,6 +434,10 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unlockedBadges = _profileBadges(user)
+        .where((badge) => badge.unlocked)
+        .take(5)
+        .toList();
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -440,15 +460,23 @@ class _OverviewTab extends StatelessWidget {
           const SizedBox(height: 12),
           SizedBox(
             height: 80,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: const [
-                _BadgeIcon(icon: Icons.star_rounded, label: 'First Event', color: Colors.amber),
-                _BadgeIcon(icon: Icons.bolt_rounded, label: '5 Streak', color: Colors.orange),
-                _BadgeIcon(icon: Icons.group_rounded, label: 'Organizer', color: Colors.blue),
-                _BadgeIcon(icon: Icons.verified_rounded, label: 'Verified', color: Colors.green),
-              ],
-            ),
+            child: unlockedBadges.isEmpty
+                ? const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Earn your first badge by joining or creating an event.',
+                      style: TextStyle(color: ZynkColors.darkMuted),
+                    ),
+                  )
+                : ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: unlockedBadges.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 16),
+                    itemBuilder: (_, index) {
+                      final badge = unlockedBadges[index];
+                      return _BadgeIcon(badge: badge);
+                    },
+                  ),
           ),
           const SizedBox(height: 24),
           const Text(
@@ -467,29 +495,76 @@ class _OverviewTab extends StatelessWidget {
 }
 
 class _BadgeIcon extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
+  final _ProfileBadge badge;
 
-  const _BadgeIcon({required this.icon, required this.label, required this.color});
+  const _BadgeIcon({required this.badge});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
+    final color = badge.unlocked ? badge.color : ZynkColors.darkMuted;
+    return SizedBox(
+      width: 76,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: 0.3)),
-            ),
-            child: Icon(icon, color: color, size: 24),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: badge.unlocked ? 0.16 : 0.08),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: color.withValues(alpha: badge.unlocked ? 0.55 : 0.2),
+                    width: 1.5,
+                  ),
+                  boxShadow: badge.unlocked
+                      ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.18),
+                            blurRadius: 14,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: badge.unlocked
+                      ? color.withValues(alpha: 0.18)
+                      : Colors.black.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(badge.icon, color: color, size: 22),
+              ),
+              if (!badge.unlocked)
+                const Positioned(
+                  right: 10,
+                  bottom: 8,
+                  child: Icon(
+                    Icons.lock_rounded,
+                    color: ZynkColors.darkMuted,
+                    size: 13,
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 10)),
+          const SizedBox(height: 6),
+          Text(
+            badge.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: badge.unlocked ? ZynkColors.darkText : ZynkColors.darkMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -517,11 +592,204 @@ class _BadgesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Text('Coming Soon', style: TextStyle(color: ZynkColors.darkMuted)),
+    final badges = _profileBadges(user);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 30),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: badges.length,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 180,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          childAspectRatio: 0.86,
+        ),
+        itemBuilder: (_, index) => _BadgeTile(badge: badges[index]),
       ),
     );
   }
+}
+
+class _BadgeTile extends StatelessWidget {
+  const _BadgeTile({required this.badge});
+
+  final _ProfileBadge badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = badge.unlocked ? badge.color : ZynkColors.darkMuted;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: ZynkColors.darkSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: badge.unlocked
+              ? color.withValues(alpha: 0.45)
+              : ZynkColors.darkBorder,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _BadgeIcon(badge: badge),
+          const SizedBox(height: 12),
+          Text(
+            badge.description,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: badge.unlocked
+                  ? ZynkColors.darkMuted
+                  : ZynkColors.darkMuted.withValues(alpha: 0.72),
+              fontSize: 11,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileBadge {
+  const _ProfileBadge({
+    required this.name,
+    required this.description,
+    required this.icon,
+    required this.color,
+    required this.unlocked,
+  });
+
+  final String name;
+  final String description;
+  final IconData icon;
+  final Color color;
+  final bool unlocked;
+}
+
+List<_ProfileBadge> _profileBadges(Map<String, dynamic> user) {
+  final raw = user['badges'];
+  if (raw is List) {
+    return raw
+        .whereType<Map>()
+        .map(
+          (item) => _ProfileBadge(
+            name: (item['name'] ?? '').toString(),
+            description: (item['description'] ?? '').toString(),
+            icon: _badgeIcon((item['icon'] ?? '').toString()),
+            color: _badgeColor((item['color'] ?? '').toString()),
+            unlocked: item['unlocked'] == true,
+          ),
+        )
+        .where((badge) => badge.name.isNotEmpty)
+        .toList();
+  }
+  return const [
+    _ProfileBadge(
+      name: 'First Event',
+      description: 'Register for your first event.',
+      icon: Icons.event_available_rounded,
+      color: Color(0xFFF97316),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'Explorer',
+      description: 'Register for 3 events.',
+      icon: Icons.explore_rounded,
+      color: Color(0xFF38BDF8),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'First Creator',
+      description: 'Create your first event.',
+      icon: Icons.add_circle_rounded,
+      color: Color(0xFFA78BFA),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'Rising Star',
+      description: 'Reach level 3.',
+      icon: Icons.star_rounded,
+      color: Color(0xFFFACC15),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'Community Hero',
+      description: 'Attend 5 events.',
+      icon: Icons.volunteer_activism_rounded,
+      color: Color(0xFF22C55E),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: '7-Day Streak',
+      description: 'Keep a 7-day activity streak.',
+      icon: Icons.local_fire_department_rounded,
+      color: Color(0xFFEF4444),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'Verified Organizer',
+      description: 'Become an organizer or admin.',
+      icon: Icons.verified_rounded,
+      color: Color(0xFF14B8A6),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'Founding Member',
+      description: 'Be among the first 100 Zynkup members.',
+      icon: Icons.workspace_premium_rounded,
+      color: Color(0xFFFB7185),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'Crowd Magnet',
+      description: 'Bring 10 total attendees to your events.',
+      icon: Icons.groups_rounded,
+      color: Color(0xFF60A5FA),
+      unlocked: false,
+    ),
+    _ProfileBadge(
+      name: 'Elite Member',
+      description: 'Reach level 10.',
+      icon: Icons.military_tech_rounded,
+      color: Color(0xFFF59E0B),
+      unlocked: false,
+    ),
+  ];
+}
+
+IconData _badgeIcon(String icon) {
+  switch (icon) {
+    case 'event_available':
+      return Icons.event_available_rounded;
+    case 'explore':
+      return Icons.explore_rounded;
+    case 'add_circle':
+      return Icons.add_circle_rounded;
+    case 'star':
+      return Icons.star_rounded;
+    case 'volunteer_activism':
+      return Icons.volunteer_activism_rounded;
+    case 'local_fire_department':
+      return Icons.local_fire_department_rounded;
+    case 'verified':
+      return Icons.verified_rounded;
+    case 'workspace_premium':
+      return Icons.workspace_premium_rounded;
+    case 'groups':
+      return Icons.groups_rounded;
+    case 'military_tech':
+      return Icons.military_tech_rounded;
+  }
+  return Icons.workspace_premium_rounded;
+}
+
+Color _badgeColor(String hex) {
+  final normalized = hex.replaceFirst('#', '');
+  final value = int.tryParse(normalized, radix: 16);
+  if (value == null) return ZynkColors.primary;
+  return Color(0xFF000000 | value);
 }
