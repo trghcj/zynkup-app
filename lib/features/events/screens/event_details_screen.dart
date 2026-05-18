@@ -35,6 +35,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   void initState() {
     super.initState();
     _event = widget.event;
+    _qrCode = widget.event.qrCode;
     _load();
   }
 
@@ -45,16 +46,26 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     setState(() {
       if (data != null) {
         _event = Event.fromJson(data);
-        // FIX: only update _qrCode if the API actually returned one,
-        // never set it to null (which was causing the QR to vanish)
         final freshQr = data['qr_code']?.toString();
         if (freshQr != null && freshQr.isNotEmpty) {
           _qrCode = freshQr;
         }
       }
       _isCreator = user != null && user['id'].toString() == _event.organizerId;
+      if (_isCreator) {
+        _qrCode = null;
+      }
       _loading = false;
     });
+  }
+
+  void _openScanner() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QrScannerScreen(event: _event),
+      ),
+    );
   }
 
   Future<void> _register() async {
@@ -123,12 +134,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     if (_isCreator)
                       IconButton(
                         icon: const Icon(Icons.qr_code_scanner_rounded),
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => QrScannerScreen(event: _event),
-                          ),
-                        ),
+                        onPressed: _openScanner,
                       ),
                   ],
                   flexibleSpace: FlexibleSpaceBar(
@@ -191,31 +197,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 22),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ZynkButton(
-                                label: widget.isGuest
-                                    ? 'Login to participate'
-                                    : 'Register',
-                                icon: Icons.how_to_reg_rounded,
-                                isLoading: _registering,
-                                onTap: _register,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ZynkButton(
-                                label: 'Share',
-                                icon: Icons.ios_share_rounded,
-                                outlined: true,
-                                onTap: _share,
-                              ),
-                            ),
-                          ],
+                        _ActionRow(
+                          isCreator: _isCreator,
+                          isGuest: widget.isGuest,
+                          isRegistered: _event.isRegistered || _qrCode != null,
+                          registering: _registering,
+                          onRegister: _register,
+                          onShare: _share,
+                          onScan: _openScanner,
                         ),
                         // FIX: QR is now persistent — shown whenever _qrCode is non-null
-                        if (_qrCode != null) ...[
+                        if (!_isCreator && _qrCode != null) ...[
                           const SizedBox(height: 24),
                           _QrPass(qrCode: _qrCode!),
                         ],
@@ -313,6 +305,80 @@ class _Info extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.isCreator,
+    required this.isGuest,
+    required this.isRegistered,
+    required this.registering,
+    required this.onRegister,
+    required this.onShare,
+    required this.onScan,
+  });
+
+  final bool isCreator;
+  final bool isGuest;
+  final bool isRegistered;
+  final bool registering;
+  final VoidCallback onRegister;
+  final VoidCallback onShare;
+  final VoidCallback onScan;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isCreator) {
+      return Row(
+        children: [
+          Expanded(
+            child: ZynkButton(
+              label: 'Scan Attendance',
+              icon: Icons.qr_code_scanner_rounded,
+              onTap: onScan,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ZynkButton(
+              label: 'Share',
+              icon: Icons.ios_share_rounded,
+              outlined: true,
+              onTap: onShare,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: ZynkButton(
+            label: isGuest
+                ? 'Login to participate'
+                : isRegistered
+                    ? 'QR Pass Ready'
+                    : 'Register',
+            icon: isRegistered
+                ? Icons.qr_code_rounded
+                : Icons.how_to_reg_rounded,
+            isLoading: registering,
+            onTap: onRegister,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ZynkButton(
+            label: 'Share',
+            icon: Icons.ios_share_rounded,
+            outlined: true,
+            onTap: onShare,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -103,9 +103,9 @@ class _StatsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ('Created', data['events_created'] ?? 0),
-      ('Joined', data['total_registered'] ?? 0),
-      ('Attendance', data['attended'] ?? 0),
+      ('Events', data['events_created'] ?? 0),
+      ('Attended', data['attended'] ?? 0),
+      ('Rank', '#${data['rank'] ?? 1}'),
       ('Students reached', data['total_attendees'] ?? 0),
     ];
     return GridView.builder(
