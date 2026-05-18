@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
@@ -26,6 +27,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(6
 
 import bcrypt
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 def hash_password(password: str) -> str:
     # bcrypt requires bytes
@@ -72,3 +74,21 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     return user
+
+
+def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+    db: Session = Depends(get_db),
+) -> Optional[models.User]:
+    if credentials is None:
+        return None
+
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        return db.query(models.User).filter(models.User.id == int(user_id)).first()
+    except (JWTError, ValueError) as e:
+        logger.warning(f"Optional JWT decode failed: {e}")
+        return None

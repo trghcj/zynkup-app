@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, get_optional_current_user
 from app.gamification import add_xp
 
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -204,11 +204,15 @@ def get_events(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
 
 
 @router.get("/{event_id}")
-def get_event(event_id: int, db: Session = Depends(get_db)):
+def get_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_optional_current_user),
+):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    return _event_to_dict(event)
+    return _event_to_dict(event, current_user.id if current_user else None)
 
 
 @router.put("/{event_id}")
