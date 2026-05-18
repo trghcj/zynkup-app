@@ -41,7 +41,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
       );
       if (!mounted) return;
       setState(() {
-        _files = files;
+        _files = files.where(_hasRenderableMedia).toList();
         _loading = false;
       });
     } catch (e) {
@@ -52,6 +52,15 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
         _files = [];
       });
     }
+  }
+
+  bool _hasRenderableMedia(Map<String, dynamic> file) {
+    final url = file['url']?.toString();
+    final data = file['data']?.toString();
+    final mime = file['mime']?.toString();
+    return (url != null && url.isNotEmpty) ||
+        (data != null && data.isNotEmpty) ||
+        mime == 'application/pdf';
   }
 
   Future<void> _upload() async {
@@ -143,41 +152,52 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: ZynkColors.gold),
                     )
                   : const Icon(Icons.add_photo_alternate_rounded),
             ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
           : _files.isEmpty
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.photo_library_outlined,
-                    color: ZynkColors.darkMuted,
-                    size: 48,
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: ZynkColors.gold.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.photo_library_outlined,
+                      color: ZynkColors.gold.withValues(alpha: 0.5),
+                      size: 32,
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
                     widget.canUpload
                         ? 'Upload the first event memory.'
                         : 'Photos will appear after the event.',
-                    style: const TextStyle(color: ZynkColors.darkMuted),
+                    style: const TextStyle(
+                      color: ZynkColors.darkMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   if (widget.canUpload) ...[
-                    const SizedBox(height: 16),
-                    // FIX: also provide a centre upload button so users
-                    // don't miss the icon in the app bar
-                    ElevatedButton.icon(
-                      onPressed: _uploading ? null : _upload,
-                      icon: const Icon(Icons.add_photo_alternate_rounded),
-                      label: const Text('Add photos'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ZynkColors.primary,
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: 200,
+                      child: ZynkButton(
+                        label: 'Add photos',
+                        icon: Icons.add_photo_alternate_rounded,
+                        onTap: _uploading ? null : _upload,
+                        isLoading: _uploading,
+                        height: 46,
                       ),
                     ),
                   ],
@@ -208,7 +228,11 @@ class _GalleryTile extends StatelessWidget {
 
     if (mime == 'application/pdf') {
       return Container(
-        color: ZynkColors.darkSurface,
+        decoration: BoxDecoration(
+          gradient: ZynkGradients.cardSurface,
+          borderRadius: BorderRadius.circular(ZynkRadius.md),
+          border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.4)),
+        ),
         child: const Icon(
           Icons.picture_as_pdf_rounded,
           color: ZynkColors.error,
@@ -220,15 +244,18 @@ class _GalleryTile extends StatelessWidget {
     final url = file['url']?.toString();
     if (url != null && url.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ZynkRadius.md),
         child: Image.network(
           url,
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Container(
-            color: ZynkColors.darkSurface,
-            child: const Icon(
+            decoration: BoxDecoration(
+              gradient: ZynkGradients.cardSurface,
+              borderRadius: BorderRadius.circular(ZynkRadius.md),
+            ),
+            child: Icon(
               Icons.broken_image_rounded,
-              color: ZynkColors.darkMuted,
+              color: ZynkColors.darkMuted.withValues(alpha: 0.5),
             ),
           ),
         ),
@@ -241,17 +268,20 @@ class _GalleryTile extends StatelessWidget {
       try {
         final bytes = base64Decode(data);
         return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ZynkRadius.md),
           child: Image.memory(bytes, fit: BoxFit.cover),
         );
       } catch (_) {}
     }
 
     return Container(
-      color: ZynkColors.darkSurface,
-      child: const Icon(
+      decoration: BoxDecoration(
+        gradient: ZynkGradients.cardSurface,
+        borderRadius: BorderRadius.circular(ZynkRadius.md),
+      ),
+      child: Icon(
         Icons.broken_image_rounded,
-        color: ZynkColors.darkMuted,
+        color: ZynkColors.darkMuted.withValues(alpha: 0.5),
       ),
     );
   }

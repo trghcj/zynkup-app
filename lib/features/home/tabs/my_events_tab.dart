@@ -48,6 +48,7 @@ class _MyEventsTabState extends State<MyEventsTab> {
     final events = _segment == 0 ? _created : _registered;
     return SafeArea(
       child: RefreshIndicator(
+        color: ZynkColors.gold,
         onRefresh: _load,
         child: CustomScrollView(
           slivers: [
@@ -63,9 +64,10 @@ class _MyEventsTabState extends State<MyEventsTab> {
                         color: ZynkColors.darkText,
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     SegmentedButton<int>(
                       segments: const [
                         ButtonSegment(value: 0, label: Text('Created')),
@@ -81,17 +83,43 @@ class _MyEventsTabState extends State<MyEventsTab> {
             ),
             if (_loading)
               const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(color: ZynkColors.gold),
+                ),
               )
             else if (events.isEmpty)
               SliverFillRemaining(
                 child: Center(
-                  child: Text(
-                    _segment == 0
-                        ? 'Be the first to host something.'
-                        : 'Join an event and your QR pass appears here.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: ZynkColors.darkMuted),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: ZynkColors.gold.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _segment == 0
+                              ? Icons.create_rounded
+                              : Icons.bookmark_border_rounded,
+                          color: ZynkColors.gold.withValues(alpha: 0.5),
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _segment == 0
+                            ? 'Be the first to host something.'
+                            : 'Join an event and your QR pass appears here.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: ZynkColors.darkMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               )
@@ -103,13 +131,16 @@ class _MyEventsTabState extends State<MyEventsTab> {
                   separatorBuilder: (_, __) => const SizedBox(height: 14),
                   itemBuilder: (context, index) => EventCardWidget(
                     event: events[index],
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            EventDetailsScreen(event: events[index]),
-                      ),
-                    ),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              EventDetailsScreen(event: events[index]),
+                        ),
+                      );
+                      await _load();
+                    },
                   ),
                 ),
               ),

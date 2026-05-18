@@ -52,6 +52,7 @@ class _ExploreTabState extends State<ExploreTab> {
     final events = _filtered;
     return SafeArea(
       child: RefreshIndicator(
+        color: ZynkColors.gold,
         onRefresh: _load,
         child: CustomScrollView(
           slivers: [
@@ -67,9 +68,18 @@ class _ExploreTabState extends State<ExploreTab> {
                         color: ZynkColors.darkText,
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Find events that match your vibe',
+                      style: TextStyle(
+                        color: ZynkColors.darkMuted.withValues(alpha: 0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       height: 40,
                       child: ListView.separated(
@@ -78,14 +88,49 @@ class _ExploreTabState extends State<ExploreTab> {
                         separatorBuilder: (_, __) => const SizedBox(width: 8),
                         itemBuilder: (_, index) {
                           final item = _categories[index];
-                          return ChoiceChip(
-                            selected: item == _category,
-                            label: Text(
-                              item == 'all'
-                                  ? 'All'
-                                  : item[0].toUpperCase() + item.substring(1),
+                          final selected = item == _category;
+                          return GestureDetector(
+                            onTap: () => setState(() => _category = item),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? ZynkColors.deepOlive
+                                    : ZynkColors.darkSurface2,
+                                borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                                border: Border.all(
+                                  color: selected
+                                      ? ZynkColors.gold.withValues(alpha: 0.5)
+                                      : ZynkColors.darkBorder,
+                                ),
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                          color: ZynkColors.gold.withValues(alpha: 0.12),
+                                          blurRadius: 12,
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Text(
+                                item == 'all'
+                                    ? 'All'
+                                    : item[0].toUpperCase() + item.substring(1),
+                                style: TextStyle(
+                                  color: selected
+                                      ? ZynkColors.gold
+                                      : ZynkColors.darkMuted,
+                                  fontWeight: selected
+                                      ? FontWeight.w800
+                                      : FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
-                            onSelected: (_) => setState(() => _category = item),
                           );
                         },
                       ),
@@ -96,14 +141,41 @@ class _ExploreTabState extends State<ExploreTab> {
             ),
             if (_loading)
               const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(color: ZynkColors.gold),
+                ),
               )
             else if (events.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 child: Center(
-                  child: Text(
-                    'Be the first to host something.',
-                    style: TextStyle(color: ZynkColors.darkMuted),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: ZynkColors.gold.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.search_off_rounded,
+                          color: ZynkColors.gold.withValues(alpha: 0.5),
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _category == 'all'
+                            ? 'Be the first to host something.'
+                            // ignore: unnecessary_brace_in_string_interps
+                            : 'No ${_category} events yet.',
+                        style: const TextStyle(
+                          color: ZynkColors.darkMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               )

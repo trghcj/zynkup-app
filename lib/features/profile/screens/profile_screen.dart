@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/widgets/event_card_widget.dart';
+import 'package:zynkup/features/events/models/event_model.dart';
+import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
@@ -16,6 +19,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _user;
   Map<String, int> _heatmapData = {};
+  List<Event> _createdEvents = [];
+  List<Event> _joinedEvents = [];
   bool _loading = true;
 
   late TabController _tabController;
@@ -40,28 +45,40 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    try {
-      final results = await Future.wait([
-        ApiService.getCurrentUser(force: true),
-        ApiService.getHeatmapData(),
-      ]);
-      final user = results[0];
-      final heatmap = results[1] as Map<String, int>;
-      
-      if (mounted) {
-        setState(() {
-          _user = user;
-          _heatmapData = heatmap;
-          _loading = false;
-          if (user != null) {
-            _nameC.text = user['name'] ?? '';
-            _bioC.text = user['bio'] ?? '';
-          }
-        });
+    // Each call is independent — one failure shouldn't kill the others
+    final results = await Future.wait([
+      ApiService.getCurrentUser(force: true).catchError((_) => null),
+      ApiService.getHeatmapData().catchError((_) => <String, int>{}),
+      ApiService.getMyEvents().catchError((_) => <dynamic>[]),
+      ApiService.getMyRegistrations().catchError((_) => <dynamic>[]),
+    ]);
+    if (!mounted) return;
+    final user = results[0] as Map<String, dynamic>?;
+    final heatmap = (results[1] is Map<String, int>)
+        ? results[1] as Map<String, int>
+        : <String, int>{};
+    final createdRaw = (results[2] is List) ? results[2] as List<dynamic> : <dynamic>[];
+    final joinedRaw = (results[3] is List) ? results[3] as List<dynamic> : <dynamic>[];
+
+    setState(() {
+      _user = user;
+      _heatmapData = heatmap;
+      _createdEvents = createdRaw
+          .whereType<Map<String, dynamic>>()
+          .map(Event.fromJson)
+          .toList();
+      _joinedEvents = joinedRaw
+          .whereType<Map<String, dynamic>>()
+          .map((item) => item['event'])
+          .whereType<Map<String, dynamic>>()
+          .map(Event.fromJson)
+          .toList();
+      _loading = false;
+      if (user != null) {
+        _nameC.text = user['name'] ?? '';
+        _bioC.text = user['bio'] ?? '';
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
+    });
   }
 
   Future<void> _randomizeAvatar() async {
@@ -73,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: ZynkColors.primary));
+      return const Center(child: CircularProgressIndicator(color: ZynkColors.gold));
     }
 
     final user = _user ?? {};
@@ -142,10 +159,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 height: 120,
                                 child: CircularProgressIndicator(
                                   value: progress.clamp(0.0, 1.0),
-                                  strokeWidth: 8,
+                                  strokeWidth: 6,
                                   backgroundColor: Colors.white10,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    ZynkColors.primary,
+                                  valueColor: const AlwaysStoppedAnimation<Color>(
+                                    ZynkColors.gold,
                                   ),
                                 ),
                               ),
@@ -174,10 +191,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: ZynkColors.primary,
+                                    gradient: const LinearGradient(
+                                      colors: [ZynkColors.gold, ZynkColors.orange],
+                                    ),
                                     borderRadius: BorderRadius.circular(20),
-                                    boxShadow: const [
-                                      BoxShadow(color: Colors.black45, blurRadius: 4),
+                                    boxShadow: [
+                                      BoxShadow(color: ZynkColors.gold.withValues(alpha: 0.3), blurRadius: 8),
                                     ],
                                   ),
                                   child: Text(
@@ -274,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         value: progress.clamp(0.0, 1.0),
                         minHeight: 10,
                         backgroundColor: Colors.white10,
-                        valueColor: AlwaysStoppedAnimation<Color>(ZynkColors.primary),
+                        valueColor: const AlwaysStoppedAnimation<Color>(ZynkColors.gold),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -287,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         ),
                         Text(
                           'View Gallery →',
-                          style: TextStyle(color: ZynkColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: ZynkColors.gold, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -333,9 +352,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           SliverToBoxAdapter(
             child: TabBar(
               controller: _tabController,
-              indicatorColor: ZynkColors.primary,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white30,
+              indicatorColor: ZynkColors.gold,
+              indicatorWeight: 3,
+              labelColor: ZynkColors.offWhite,
+              unselectedLabelColor: ZynkColors.darkMuted,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+              dividerColor: Colors.transparent,
               onTap: (index) => setState(() {}),
               tabs: const [
                 Tab(text: 'Overview'),
@@ -351,7 +374,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             sliver: SliverToBoxAdapter(
               child: [
                 _OverviewTab(user: user, heatmapData: _heatmapData),
-                _EventsTab(user: user),
+                _EventsTab(
+                  createdEvents: _createdEvents,
+                  joinedEvents: _joinedEvents,
+                  onRefresh: _load,
+                ),
                 _BadgesTab(user: user),
               ][_tabController.index],
             ),
@@ -404,22 +431,39 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: ZynkColors.darkSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ZynkColors.darkBorder),
+        gradient: ZynkGradients.cardSurface,
+        borderRadius: BorderRadius.circular(ZynkRadius.lg),
+        border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.5)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: ZynkColors.primary, size: 20),
-          const SizedBox(height: 4),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: ZynkColors.gold.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: ZynkColors.gold, size: 18),
+          ),
+          const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: ZynkColors.offWhite,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
           ),
           Text(
             label,
-            style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 10),
+            style: TextStyle(
+              color: ZynkColors.darkMuted.withValues(alpha: 0.7),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -572,15 +616,97 @@ class _BadgeIcon extends StatelessWidget {
 }
 
 class _EventsTab extends StatelessWidget {
-  final Map<String, dynamic> user;
-  const _EventsTab({required this.user});
+  const _EventsTab({
+    required this.createdEvents,
+    required this.joinedEvents,
+    required this.onRefresh,
+  });
+
+  final List<Event> createdEvents;
+  final List<Event> joinedEvents;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Text('No events found', style: TextStyle(color: ZynkColors.darkMuted)),
+    final allEvents = [
+      ...createdEvents.map((event) => (event: event, label: 'Created')),
+      ...joinedEvents.map((event) => (event: event, label: 'Joined')),
+    ];
+    if (allEvents.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.event_busy_rounded,
+        title: 'No events yet',
+        message: 'Events you create or join will appear here.',
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 920
+              ? 3
+              : constraints.maxWidth >= 620
+                  ? 2
+                  : 1;
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: allEvents.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: columns == 1 ? 1.35 : 0.92,
+            ),
+            itemBuilder: (context, index) {
+              final item = allEvents[index];
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: EventCardWidget(
+                      event: item.event,
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EventDetailsScreen(event: item.event),
+                          ),
+                        );
+                        await onRefresh();
+                      },
+                    ),
+                  ),
+                  Positioned(
+                    right: 12,
+                    top: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: ZynkColors.deepOlive.withValues(alpha: 0.82),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: ZynkColors.sand.withValues(alpha: 0.28),
+                        ),
+                      ),
+                      child: Text(
+                        item.label,
+                        style: const TextStyle(
+                          color: ZynkColors.offWhite,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -622,13 +748,21 @@ class _BadgeTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ZynkColors.darkSurface,
-        borderRadius: BorderRadius.circular(16),
+        gradient: ZynkGradients.cardSurface,
+        borderRadius: BorderRadius.circular(ZynkRadius.lg),
         border: Border.all(
           color: badge.unlocked
-              ? color.withValues(alpha: 0.45)
-              : ZynkColors.darkBorder,
+              ? color.withValues(alpha: 0.4)
+              : ZynkColors.darkBorder.withValues(alpha: 0.4),
         ),
+        boxShadow: badge.unlocked
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.10),
+                  blurRadius: 16,
+                ),
+              ]
+            : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -643,12 +777,78 @@ class _BadgeTile extends StatelessWidget {
             style: TextStyle(
               color: badge.unlocked
                   ? ZynkColors.darkMuted
-                  : ZynkColors.darkMuted.withValues(alpha: 0.72),
+                  : ZynkColors.darkMuted.withValues(alpha: 0.5),
               fontSize: 11,
-              height: 1.25,
+              height: 1.3,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 42),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              gradient: ZynkGradients.cardSurface,
+              borderRadius: BorderRadius.circular(ZynkRadius.xl),
+              border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.5)),
+              boxShadow: ZynkShadows.card,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: ZynkColors.gold.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: ZynkColors.gold.withValues(alpha: 0.7), size: 28),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: ZynkColors.darkText,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: ZynkColors.darkMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -672,7 +872,7 @@ class _ProfileBadge {
 
 List<_ProfileBadge> _profileBadges(Map<String, dynamic> user) {
   final raw = user['badges'];
-  if (raw is List) {
+  if (raw is List && raw.isNotEmpty) {
     return raw
         .whereType<Map>()
         .map(
@@ -687,76 +887,85 @@ List<_ProfileBadge> _profileBadges(Map<String, dynamic> user) {
         .where((badge) => badge.name.isNotEmpty)
         .toList();
   }
-  return const [
+  // Compute unlock states from the user stats we already have
+  final eventsCreated = user['events_created'] ?? 0;
+  final attended = user['attended'] ?? 0;
+  final totalRegistered = user['total_registered'] ?? 0;
+  final level = user['level'] ?? 1;
+  final streak = user['streak'] ?? 0;
+  final role = (user['role'] ?? 'user').toString();
+  final id = user['id'] ?? 999;
+  final totalAttendees = user['total_attendees'] ?? 0;
+  return [
     _ProfileBadge(
       name: 'First Event',
       description: 'Register for your first event.',
       icon: Icons.event_available_rounded,
-      color: Color(0xFFF97316),
-      unlocked: false,
+      color: const Color(0xFFF97316),
+      unlocked: (totalRegistered as int) >= 1,
     ),
     _ProfileBadge(
       name: 'Explorer',
       description: 'Register for 3 events.',
       icon: Icons.explore_rounded,
-      color: Color(0xFF38BDF8),
-      unlocked: false,
+      color: const Color(0xFF38BDF8),
+      unlocked: totalRegistered >= 3,
     ),
     _ProfileBadge(
       name: 'First Creator',
       description: 'Create your first event.',
       icon: Icons.add_circle_rounded,
-      color: Color(0xFFA78BFA),
-      unlocked: false,
+      color: const Color(0xFFA78BFA),
+      unlocked: (eventsCreated as int) >= 1,
     ),
     _ProfileBadge(
       name: 'Rising Star',
       description: 'Reach level 3.',
       icon: Icons.star_rounded,
-      color: Color(0xFFFACC15),
-      unlocked: false,
+      color: const Color(0xFFFACC15),
+      unlocked: (level as int) >= 3,
     ),
     _ProfileBadge(
       name: 'Community Hero',
       description: 'Attend 5 events.',
       icon: Icons.volunteer_activism_rounded,
-      color: Color(0xFF22C55E),
-      unlocked: false,
+      color: const Color(0xFF22C55E),
+      unlocked: (attended as int) >= 5,
     ),
     _ProfileBadge(
       name: '7-Day Streak',
       description: 'Keep a 7-day activity streak.',
       icon: Icons.local_fire_department_rounded,
-      color: Color(0xFFEF4444),
-      unlocked: false,
+      color: const Color(0xFFEF4444),
+      unlocked: (streak as int) >= 7,
     ),
     _ProfileBadge(
       name: 'Verified Organizer',
       description: 'Become an organizer or admin.',
       icon: Icons.verified_rounded,
-      color: Color(0xFF14B8A6),
-      unlocked: false,
+      color: const Color(0xFF14B8A6),
+      unlocked: role == 'organizer' || role == 'admin',
     ),
     _ProfileBadge(
       name: 'Founding Member',
       description: 'Be among the first 100 Zynkup members.',
       icon: Icons.workspace_premium_rounded,
-      color: Color(0xFFFB7185),
-      unlocked: false,
+      color: const Color(0xFFFB7185),
+      unlocked: (id as int) <= 100,
     ),
     _ProfileBadge(
       name: 'Crowd Magnet',
       description: 'Bring 10 total attendees to your events.',
       icon: Icons.groups_rounded,
-      color: Color(0xFF60A5FA),
-      unlocked: false,
+      color: const Color(0xFF60A5FA),
+      unlocked: (totalAttendees as int) >= 10,
     ),
     _ProfileBadge(
       name: 'Elite Member',
       description: 'Reach level 10.',
       icon: Icons.military_tech_rounded,
-      color: Color(0xFFF59E0B),
-      unlocked: false,
+      color: const Color(0xFFF59E0B),
+      unlocked: level >= 10,
     ),
   ];
 }
