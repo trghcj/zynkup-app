@@ -1,9 +1,3 @@
-# Run this script directly on Render using the Shell tab
-# Go to your Render dashboard → zynkup_backend → Shell
-# Then paste and run this Python script
-
-# This adds all missing columns to your existing PostgreSQL database
-# WITHOUT deleting any data
 
 import os
 import psycopg2
@@ -22,6 +16,36 @@ migrations = [
     "ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
     "ALTER TABLE events ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
     "ALTER TABLE events ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
+    """
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='events'
+              AND column_name='image_urls'
+              AND data_type='ARRAY'
+        ) THEN
+            ALTER TABLE events
+            ALTER COLUMN image_urls DROP DEFAULT,
+            ALTER COLUMN image_urls TYPE TEXT
+                USING COALESCE(array_to_string(image_urls, ','), ''),
+            ALTER COLUMN image_urls SET DEFAULT '';
+        END IF;
+
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='events'
+              AND column_name='gallery_files'
+              AND data_type='ARRAY'
+        ) THEN
+            ALTER TABLE events
+            ALTER COLUMN gallery_files DROP DEFAULT,
+            ALTER COLUMN gallery_files TYPE TEXT
+                USING COALESCE(array_to_string(gallery_files, '|||---|||'), ''),
+            ALTER COLUMN gallery_files SET DEFAULT '';
+        END IF;
+    END $$;
+    """,
     """
     DO $$
     BEGIN
@@ -47,4 +71,4 @@ for sql in migrations:
 conn.commit()
 cur.close()
 conn.close()
-print("\n🎉 Migration complete!")
+print("\n Migration complete!")
