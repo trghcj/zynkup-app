@@ -70,6 +70,28 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(color: ZynkColors.darkMuted, height: 1.6),
           ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: ZynkColors.gold.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.25)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline_rounded, color: ZynkColors.gold, size: 16),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'You can only mark attendance for events you created.',
+                    style: TextStyle(color: ZynkColors.gold, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
           TextField(
             controller: _manualController,

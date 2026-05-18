@@ -43,13 +43,16 @@ class _HomeTabState extends State<HomeTab> {
 
     return SafeArea(
       child: RefreshIndicator(
+        color: ZynkColors.gold,
         onRefresh: _load,
         child: CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: _Header()),
             if (_loading)
               const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(color: ZynkColors.gold),
+                ),
               )
             else ...[
               _Section(
@@ -75,33 +78,52 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'ZYNKUP',
-            style: TextStyle(
-              color: ZynkColors.primary,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: ZynkColors.gold,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'ZYNKUP',
+                style: TextStyle(
+                  color: ZynkColors.gold,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 3,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 14),
-          Text(
-            'What is happening around you?',
+          const SizedBox(height: 16),
+          const Text(
+            'What is happening\naround you?',
             style: TextStyle(
               color: ZynkColors.darkText,
-              fontSize: 30,
+              fontSize: 32,
               fontWeight: FontWeight.w900,
-              height: 1,
+              height: 1.05,
+              letterSpacing: -0.8,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             'Create, register, scan QR passes, and relive campus moments.',
-            style: TextStyle(color: ZynkColors.darkMuted, height: 1.4),
+            style: TextStyle(
+              color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+              height: 1.5,
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -124,7 +146,7 @@ class _Section extends StatelessWidget {
           child: Text(
             'Be the first to host something.',
             style: TextStyle(
-              color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+              color: ZynkColors.darkMuted.withValues(alpha: 0.6),
             ),
           ),
         ),
@@ -135,18 +157,36 @@ class _Section extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: ZynkColors.darkText,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 16,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [ZynkColors.gold, ZynkColors.orange],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: ZynkColors.darkText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(
-            height: 274,
+            height: 280,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
