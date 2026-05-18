@@ -58,7 +58,20 @@ def _is_valid_image_source(value: str) -> bool:
     return value.startswith("http://") or value.startswith("https://") or value.startswith("data:image/")
 
 
-def _parse_gallery(raw: str) -> List[dict]:
+def _normalize_text_list(raw: object) -> str:
+    if isinstance(raw, list):
+        return ",".join(str(item).strip() for item in raw if str(item).strip())
+    return str(raw or "")
+
+
+def _normalize_gallery(raw: object) -> str:
+    if isinstance(raw, list):
+        return _SEP.join(str(item).strip() for item in raw if str(item).strip())
+    return str(raw or "")
+
+
+def _parse_gallery(raw: object) -> List[dict]:
+    raw = _normalize_gallery(raw)
     if not raw:
         return []
     try:
@@ -93,7 +106,7 @@ def _public_upload_url(request: Request, filename: str) -> str:
 
 
 def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> dict:
-    raw_urls = event.image_urls or ""
+    raw_urls = _normalize_text_list(event.image_urls)
     urls = [url.strip() for url in raw_urls.split(",") if _is_valid_image_source(url.strip())]
     registration = None
     if current_user_id is not None:
@@ -111,7 +124,7 @@ def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> d
         "image_urls": urls,
         "registration_url": event.registration_url,
         "registration_url_type": event.registration_url_type,
-        "gallery_count": len(_parse_gallery(event.gallery_files or "")),
+        "gallery_count": len(_parse_gallery(event.gallery_files)),
         "attendee_count": len(event.registrations),
         "is_registered": registration is not None,
         "qr_code": registration.qr_code if registration else None,
@@ -308,7 +321,7 @@ async def upload_gallery(
         raise HTTPException(status_code=404, detail="Event not found")
     if event.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the event creator can upload gallery files")
-    existing = _parse_gallery(event.gallery_files or "")
+    existing = _parse_gallery(event.gallery_files)
     if len(existing) + len(files) > MAX_GALLERY_FILES:
         raise HTTPException(status_code=400, detail=f"Max {MAX_GALLERY_FILES} gallery files allowed")
     additions = []
@@ -352,4 +365,4 @@ def get_gallery(event_id: int, db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    return {"event_id": event_id, "files": _parse_gallery(event.gallery_files or "")}
+    return {"event_id": event_id, "files": _parse_gallery(event.gallery_files)}
