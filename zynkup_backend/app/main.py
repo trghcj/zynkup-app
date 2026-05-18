@@ -14,7 +14,7 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 from sqlalchemy import text
 
 from app.database import Base, engine
-from app.routes import users, events, analytics, admin
+from app.routes import users, events, analytics, admin, clubs, notifications, feed
 from app.auth import get_current_user
 from app import models
 
@@ -175,6 +175,9 @@ app.include_router(users.router)
 app.include_router(events.router)
 app.include_router(analytics.router)
 app.include_router(admin.router)
+app.include_router(clubs.router)
+app.include_router(notifications.router)
+app.include_router(feed.router)
 
 @app.get("/", tags=["Health"])
 def home():

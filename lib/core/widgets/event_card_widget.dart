@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -124,25 +125,66 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: ZynkColors.gold,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: ZynkColors.gold.withValues(alpha: 0.4),
-                                blurRadius: 6,
+                        // Dynamic Avatar Stack for energy
+                        if (joined > 0)
+                          SizedBox(
+                            width: 32 + (math.min(joined - 1, 2) * 12).toDouble(),
+                            height: 24,
+                            child: Stack(
+                              children: List.generate(
+                                math.min(joined, 3),
+                                (index) => Positioned(
+                                  left: index * 12.0,
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: ZynkColors.darkSurface,
+                                        width: 1.5,
+                                      ),
+                                      color: ZynkColors.darkSurface2,
+                                    ),
+                                    child: ClipOval(
+                                      child: Image.network(
+                                        'https://api.dicebear.com/7.x/avataaars/png?seed=${widget.event.id}_$index',
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.person,
+                                          size: 14,
+                                          color: ZynkColors.darkMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ],
+                            ),
+                          )
+                        else
+                          Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(
+                              color: ZynkColors.gold,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: ZynkColors.gold.withValues(alpha: 0.4),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
+                        if (joined > 0) const SizedBox(width: 8),
                         Text(
-                          '$joined student${joined == 1 ? '' : 's'} joined',
-                          style: const TextStyle(
-                            color: ZynkColors.gold,
+                          joined > 0 
+                              ? '+$joined going'
+                              : 'Be the first to join',
+                          style: TextStyle(
+                            color: joined > 0 ? ZynkColors.gold : ZynkColors.darkMuted,
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                           ),

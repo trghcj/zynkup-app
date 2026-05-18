@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/event_card_widget.dart';
+import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 
@@ -42,10 +44,11 @@ class _HomeTabState extends State<HomeTab> {
       ..sort((a, b) => b.attendeeCount.compareTo(a.attendeeCount));
 
     return SafeArea(
-      child: RefreshIndicator(
-        color: ZynkColors.gold,
-        onRefresh: _load,
-        child: CustomScrollView(
+      child: ZynkBackground(
+        child: RefreshIndicator(
+          color: ZynkColors.gold,
+          onRefresh: _load,
+          child: CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: _Header()),
             if (_loading)
@@ -55,6 +58,7 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               )
             else ...[
+              const SliverToBoxAdapter(child: _ClubsSection()),
               _Section(
                 title: 'Featured Events',
                 events: _events.take(3).toList(),
@@ -68,6 +72,7 @@ class _HomeTabState extends State<HomeTab> {
             ],
           ],
         ),
+      ),
       ),
     );
   }
@@ -125,7 +130,98 @@ class _Header extends StatelessWidget {
               fontSize: 14,
             ),
           ),
+          const SizedBox(height: 24),
+          // Live Activity Ticker
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: ZynkGradients.cardSurface,
+              borderRadius: BorderRadius.circular(ZynkRadius.lg),
+              border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: ZynkColors.orange.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.local_fire_department_rounded, color: ZynkColors.orange, size: 16),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '120+ students active now',
+                        style: TextStyle(
+                          color: ZynkColors.offWhite,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        '18 events happening this week',
+                        style: TextStyle(
+                          color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Avatar Stack
+                SizedBox(
+                  width: 54,
+                  height: 28,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: 0,
+                        child: _AvatarBubble('https://api.dicebear.com/7.x/avataaars/png?seed=Alex'),
+                      ),
+                      Positioned(
+                        right: 14,
+                        child: _AvatarBubble('https://api.dicebear.com/7.x/avataaars/png?seed=Sam'),
+                      ),
+                      Positioned(
+                        right: 28,
+                        child: _AvatarBubble('https://api.dicebear.com/7.x/avataaars/png?seed=Jordan'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _AvatarBubble extends StatelessWidget {
+  final String url;
+  const _AvatarBubble(this.url);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: ZynkColors.darkSurface, width: 2),
+        color: ZynkColors.darkSurface2,
+      ),
+      child: ClipOval(
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 16, color: ZynkColors.darkMuted),
+        ),
       ),
     );
   }
@@ -208,6 +304,106 @@ class _Section extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ClubsSection extends StatelessWidget {
+  const _ClubsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    // Mock clubs list
+    final clubs = [
+      ('Google Developer Student Clubs', 'GDSC'),
+      ('Tech & Media Club', 'TnM'),
+      ('Dance Society', 'Dance'),
+      ('Music Society', 'Music'),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+          child: Row(
+            children: [
+              Icon(Icons.groups_rounded, color: ZynkColors.orange, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Campus Clubs',
+                style: TextStyle(
+                  color: ZynkColors.offWhite,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: clubs.length,
+            itemBuilder: (context, index) {
+              final club = clubs[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ClubProfileScreen(
+                        clubId: club.$2.toLowerCase(),
+                        clubName: club.$1,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 120,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    gradient: ZynkGradients.cardSurface,
+                    borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                    border: Border.all(color: ZynkColors.darkBorder),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundColor: ZynkColors.darkSurface2,
+                        backgroundImage: NetworkImage(
+                          'https://picsum.photos/seed/${club.$2.toLowerCase()}/200/200',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          club.$2,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: ZynkColors.offWhite,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 }

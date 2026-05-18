@@ -12,10 +12,10 @@ class ZynkBottomNav extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   static const _items = [
-    (Icons.home_rounded, 'Home'),
-    (Icons.explore_rounded, 'Explore'),
+    (Icons.dynamic_feed_rounded, 'Feed'),
+    (Icons.explore_rounded, 'Discover'),
     (Icons.add_circle_rounded, 'Create'),
-    (Icons.event_available_rounded, 'My Events'),
+    (Icons.event_available_rounded, 'Tickets'),
     (Icons.person_rounded, 'Profile'),
   ];
 
