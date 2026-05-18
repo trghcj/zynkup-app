@@ -8,7 +8,7 @@ import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
-
+import 'package:zynkup/core/widgets/zynk_background.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -114,7 +114,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
     return Scaffold(
       backgroundColor: ZynkColors.darkBg,
-      body: CustomScrollView(
+      body: ZynkBackground(
+        child: CustomScrollView(
         slivers: [
           // ── Hero Profile Header ──────────────────────────────────────────
           SliverAppBar(
@@ -384,6 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -737,52 +739,86 @@ class _BadgesTab extends StatelessWidget {
   }
 }
 
-class _BadgeTile extends StatelessWidget {
+class _BadgeTile extends StatefulWidget {
   const _BadgeTile({required this.badge});
-
   final _ProfileBadge badge;
 
   @override
+  State<_BadgeTile> createState() => _BadgeTileState();
+}
+
+class _BadgeTileState extends State<_BadgeTile> with SingleTickerProviderStateMixin {
+  late AnimationController _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+      lowerBound: 0.92,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final badge = widget.badge;
     final color = badge.unlocked ? badge.color : ZynkColors.darkMuted;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: ZynkGradients.cardSurface,
-        borderRadius: BorderRadius.circular(ZynkRadius.lg),
-        border: Border.all(
-          color: badge.unlocked
-              ? color.withValues(alpha: 0.4)
-              : ZynkColors.darkBorder.withValues(alpha: 0.4),
-        ),
-        boxShadow: badge.unlocked
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.10),
-                  blurRadius: 16,
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _BadgeIcon(badge: badge),
-          const SizedBox(height: 12),
-          Text(
-            badge.description,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
+    
+    return GestureDetector(
+      onTapDown: (_) => _anim.reverse(),
+      onTapUp: (_) => _anim.forward(),
+      onTapCancel: () => _anim.forward(),
+      child: ScaleTransition(
+        scale: _anim,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: ZynkGradients.cardSurface,
+            borderRadius: BorderRadius.circular(ZynkRadius.lg),
+            border: Border.all(
               color: badge.unlocked
-                  ? ZynkColors.darkMuted
-                  : ZynkColors.darkMuted.withValues(alpha: 0.5),
-              fontSize: 11,
-              height: 1.3,
+                  ? color.withValues(alpha: 0.4)
+                  : ZynkColors.darkBorder.withValues(alpha: 0.4),
             ),
+            boxShadow: badge.unlocked
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                    ),
+                  ]
+                : null,
           ),
-        ],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _BadgeIcon(badge: badge),
+              const SizedBox(height: 12),
+              Text(
+                badge.description,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: badge.unlocked
+                      ? ZynkColors.darkMuted
+                      : ZynkColors.darkMuted.withValues(alpha: 0.5),
+                  fontSize: 11,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

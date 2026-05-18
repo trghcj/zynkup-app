@@ -4,7 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
-import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
+import 'package:zynkup/core/widgets/event_card_widget.dart';
+import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:zynkup/features/events/models/event_model.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -41,24 +43,24 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickImage() async {
-    // FIX: on web, ImageSource.gallery works but we must use XFile.readAsBytes()
-    // which is already correct — no source change needed. But limit to 1 image.
     final file = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
     );
     if (file == null) return;
-    // FIX: readAsBytes() works on both web and mobile
     final bytes = await file.readAsBytes();
     setState(() {
       _pickedBytes = bytes;
-      // FIX: on web, file.name may include a fake path — extract just the filename
       _pickedName = file.name.split('/').last.split('\\').last;
     });
   }
 
   void _next() {
     if (_step == 0 && !_formKey.currentState!.validate()) return;
+    if (_step == 1 && (_venue.text.trim().isEmpty)) {
+      _show('Please set the venue first.');
+      return;
+    }
     if (_step == 4) {
       _submit();
       return;
@@ -66,8 +68,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     setState(() => _step += 1);
     _page.animateToPage(
       _step,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.fastOutSlowIn,
     );
   }
 
@@ -79,8 +81,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     setState(() => _step -= 1);
     _page.animateToPage(
       _step,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.fastOutSlowIn,
     );
   }
 
@@ -97,13 +99,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
       final images = <String>[];
 
-      // Add pasted URL if present
       if (_imageUrl.text.trim().isNotEmpty) {
         images.add(_imageUrl.text.trim());
       }
 
-      // FIX: upload banner bytes only after we know we have them
-      // On web, uploadImageBytes must send multipart correctly
       if (_pickedBytes != null && _pickedName != null) {
         final uploaded = await ApiService.uploadImageBytes(
           _pickedBytes!,
@@ -123,113 +122,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Event saved and auto-approved.')),
+        const SnackBar(content: Text('Event created successfully!')),
       );
       Navigator.pop(context, true);
     } on ApiException catch (error) {
       _show(error.message);
     } catch (e) {
-      debugPrint('CREATE EVENT ERROR: $e');
       _show('Could not create event. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  void _show(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: ZynkColors.error),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
-      appBar: AppBar(
-        title: const Text('Create Event'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, size: 20),
-            onPressed: () async {
-              await ApiService.logout();
-              if (!mounted) return;
-              Navigator.pushAndRemoveUntil(
-                // ignore: use_build_context_synchronously
-                context,
-                MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
-                (_) => false,
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: _back,
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-            child: LinearProgressIndicator(
-              value: (_step + 1) / 5,
-              color: ZynkColors.primary,
-            ),
-          ),
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: PageView(
-                controller: _page,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _BasicStep(title: _title, description: _description),
-                  _DetailsStep(
-                    venue: _venue,
-                    date: _date,
-                    time: _time,
-                    onDate: _pickDate,
-                    onTime: _pickTime,
-                  ),
-                  _CategoryStep(
-                    value: _category,
-                    onChanged: (value) => setState(() => _category = value),
-                  ),
-                  _MediaStep(
-                    imageUrl: _imageUrl,
-                    pickedBytes: _pickedBytes,
-                    pickedName: _pickedName,
-                    onPick: _pickImage,
-                  ),
-                  _PreviewStep(
-                    title: _title,
-                    venue: _venue,
-                    date: _date,
-                    time: _time,
-                    category: _category,
-                    pickedBytes: _pickedBytes,
-                    imageUrl: _imageUrl,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: ZynkButton(
-              label: _step == 4 ? 'Submit' : 'Continue',
-              icon: _step == 4
-                  ? Icons.check_rounded
-                  : Icons.arrow_forward_rounded,
-              isLoading: _loading,
-              onTap: _next,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _pickDate() async {
@@ -246,309 +148,436 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     final value = await showTimePicker(context: context, initialTime: _time);
     if (value != null) setState(() => _time = value);
   }
-}
 
-class _StepShell extends StatelessWidget {
-  const _StepShell({required this.title, required this.child});
-  final String title;
-  final Widget child;
+  void _show(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: ZynkColors.error),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ZynkColors.darkBg,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: const Text('Host an Event'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded, size: 24),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+        leading: _step > 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _back,
+              )
+            : const SizedBox.shrink(),
+      ),
+      body: ZynkBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildStepper(),
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: PageView(
+                    controller: _page,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildStepShell(
+                        'What are we calling it?',
+                        'Make it catchy and descriptive.',
+                        _buildBasics(),
+                      ),
+                      _buildStepShell(
+                        'When & Where?',
+                        'Set the time and location.',
+                        _buildDetails(),
+                      ),
+                      _buildStepShell(
+                        'What kind of event?',
+                        'Categorize to help students find it.',
+                        _buildCategory(),
+                      ),
+                      _buildStepShell(
+                        'Make it pop',
+                        'Upload a banner or poster for the event.',
+                        _buildMedia(),
+                      ),
+                      _buildStepShell(
+                        'Review & Launch',
+                        'Here is how your event will look.',
+                        _buildPreview(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              _buildBottomBar(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepper() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      child: Row(
+        children: List.generate(5, (index) {
+          final active = _step >= index;
+          return Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: EdgeInsets.only(right: index == 4 ? 0 : 8),
+              height: 4,
+              decoration: BoxDecoration(
+                color: active
+                    ? ZynkColors.gold
+                    : ZynkColors.darkSurface2,
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: active
+                    ? [
+                        BoxShadow(
+                          color: ZynkColors.gold.withValues(alpha: 0.5),
+                          blurRadius: 8,
+                        )
+                      ]
+                    : null,
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildStepShell(String title, String subtitle, Widget child) {
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       children: [
         Text(
           title,
           style: const TextStyle(
-            color: ZynkColors.darkText,
-            fontSize: 28,
+            color: ZynkColors.offWhite,
+            fontSize: 32,
             fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+            height: 1.1,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 32),
         child,
       ],
     );
   }
-}
 
-class _BasicStep extends StatelessWidget {
-  const _BasicStep({required this.title, required this.description});
-  final TextEditingController title;
-  final TextEditingController description;
-
-  @override
-  Widget build(BuildContext context) => _StepShell(
-    title: 'Basic Info',
-    child: Column(
+  Widget _buildBasics() {
+    return Column(
       children: [
         TextFormField(
-          controller: title,
-          decoration: const InputDecoration(labelText: 'Title'),
-          validator: (v) =>
-              v == null || v.trim().isEmpty ? 'Title required' : null,
+          controller: _title,
+          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 18, fontWeight: FontWeight.w700),
+          decoration: const InputDecoration(
+            labelText: 'Event Title',
+            hintText: 'e.g. Syntx Launch 2025',
+          ),
+          validator: (v) => v == null || v.trim().isEmpty ? 'Give your event a name' : null,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 24),
         TextFormField(
-          controller: description,
-          maxLines: 5,
-          decoration: const InputDecoration(labelText: 'Description'),
-          validator: (v) =>
-              v == null || v.trim().isEmpty ? 'Description required' : null,
+          controller: _description,
+          maxLines: 6,
+          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 15),
+          decoration: const InputDecoration(
+            labelText: 'Event Description',
+            hintText: 'What is this event about? Who should attend?',
+          ),
+          validator: (v) => v == null || v.trim().isEmpty ? 'Description is required' : null,
         ),
       ],
-    ),
-  );
-}
+    );
+  }
 
-class _DetailsStep extends StatelessWidget {
-  const _DetailsStep({
-    required this.venue,
-    required this.date,
-    required this.time,
-    required this.onDate,
-    required this.onTime,
-  });
-  final TextEditingController venue;
-  final DateTime date;
-  final TimeOfDay time;
-  final VoidCallback onDate;
-  final VoidCallback onTime;
-
-  @override
-  Widget build(BuildContext context) => _StepShell(
-    title: 'Details',
-    child: Column(
+  Widget _buildDetails() {
+    return Column(
       children: [
         TextFormField(
-          controller: venue,
-          decoration: const InputDecoration(labelText: 'Venue'),
-          validator: (v) =>
-              v == null || v.trim().isEmpty ? 'Venue required' : null,
+          controller: _venue,
+          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 16),
+          decoration: const InputDecoration(
+            labelText: 'Venue / Location',
+            prefixIcon: Icon(Icons.location_on_rounded, color: ZynkColors.darkMuted),
+          ),
         ),
-        const SizedBox(height: 14),
-        ListTile(
-          onTap: onDate,
-          tileColor: ZynkColors.darkSurface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('Date'),
-          subtitle: Text(DateFormat('EEE, MMM d, yyyy').format(date)),
-        ),
-        const SizedBox(height: 10),
-        ListTile(
-          onTap: onTime,
-          tileColor: ZynkColors.darkSurface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('Time'),
-          subtitle: Text(time.format(context)),
-        ),
-      ],
-    ),
-  );
-}
-
-class _CategoryStep extends StatelessWidget {
-  const _CategoryStep({required this.value, required this.onChanged});
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    const categories = ['tech', 'cultural', 'sports', 'workshop', 'seminar'];
-    return _StepShell(
-      title: 'Category',
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: categories
-            .map(
-              (item) => ChoiceChip(
-                selected: value == item,
-                label: Text(item[0].toUpperCase() + item.substring(1)),
-                onSelected: (_) => onChanged(item),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickDate,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: ZynkColors.darkSurface,
+                    borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                    border: Border.all(color: ZynkColors.darkBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Date', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text(
+                        DateFormat('MMM d, yyyy').format(_date),
+                        style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            )
-            .toList(),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickTime,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: ZynkColors.darkSurface,
+                    borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                    border: Border.all(color: ZynkColors.darkBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Time', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _time.format(context),
+                        style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategory() {
+    const categories = [
+      ('tech', Icons.computer_rounded),
+      ('cultural', Icons.theater_comedy_rounded),
+      ('sports', Icons.sports_basketball_rounded),
+      ('workshop', Icons.build_rounded),
+      ('seminar', Icons.record_voice_over_rounded),
+    ];
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: categories.map((item) {
+        final cat = item.$1;
+        final icon = item.$2;
+        final selected = _category == cat;
+        return GestureDetector(
+          onTap: () => setState(() => _category = cat),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: selected ? ZynkGradients.forCategory(cat) : null,
+              color: selected ? null : ZynkColors.darkSurface,
+              borderRadius: BorderRadius.circular(ZynkRadius.pill),
+              border: Border.all(
+                color: selected ? Colors.transparent : ZynkColors.darkBorder,
+              ),
+              boxShadow: selected
+                  ? [BoxShadow(color: ZynkColors.forCategory(cat).withValues(alpha: 0.3), blurRadius: 12)]
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: selected ? Colors.white : ZynkColors.darkMuted, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  cat[0].toUpperCase() + cat.substring(1),
+                  style: TextStyle(
+                    color: selected ? Colors.white : ZynkColors.darkMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildMedia() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: ZynkColors.darkSurface.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(ZynkRadius.xl),
+              border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.3), style: BorderStyle.solid, width: 2),
+            ),
+            child: _pickedBytes != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(ZynkRadius.xl - 2),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.memory(_pickedBytes!, fit: BoxFit.cover),
+                        Container(color: Colors.black45),
+                        const Center(
+                          child: Icon(Icons.edit_rounded, color: Colors.white, size: 32),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: ZynkColors.gold.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.cloud_upload_rounded, color: ZynkColors.gold, size: 32),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Tap to upload poster',
+                        style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'PNG, JPG up to 5MB',
+                        style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Center(child: Text('— OR —', style: TextStyle(color: ZynkColors.darkMuted, fontWeight: FontWeight.w800))),
+        const SizedBox(height: 24),
+        TextFormField(
+          controller: _imageUrl,
+          decoration: const InputDecoration(
+            labelText: 'Paste image URL instead',
+            prefixIcon: Icon(Icons.link_rounded),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreview() {
+    // Generate a mock event to render via the real EventCardWidget
+    final mockEvent = Event(
+      id: 'mock',
+      title: _title.text.isEmpty ? 'Untitled Event' : _title.text,
+      description: _description.text,
+      venue: _venue.text.isEmpty ? 'TBA' : _venue.text,
+      date: DateTime(
+        _date.year, _date.month, _date.day, _time.hour, _time.minute,
+      ),
+      category: EventCategory.values.firstWhere(
+        (e) => e.name == _category,
+        orElse: () => EventCategory.tech,
+      ),
+      organizerId: 'mock',
+      attendeeCount: 0,
+      imageUrls: _imageUrl.text.isNotEmpty ? [_imageUrl.text] : [],
+      registeredUsers: [],
+      isRegistered: false,
+    );
+
+    return Column(
+      children: [
+        const Text(
+          'This is how your event will appear on the feed.',
+          style: TextStyle(color: ZynkColors.darkMuted),
+        ),
+        const SizedBox(height: 24),
+        PointerInterceptor( // Prevents clicks on the mock card
+          child: EventCardWidget(
+            event: mockEvent,
+            onTap: () {},
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      decoration: BoxDecoration(
+        color: ZynkColors.darkBg.withValues(alpha: 0.9),
+        border: Border(top: BorderSide(color: ZynkColors.darkBorder.withValues(alpha: 0.5))),
+      ),
+      child: Row(
+        children: [
+          if (_step > 0) ...[
+            Expanded(
+              child: ZynkButton(
+                label: 'Back',
+                outlined: true,
+                onTap: _back,
+              ),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            flex: 2,
+            child: ZynkButton(
+              label: _step == 4 ? 'Launch Event' : 'Continue',
+              icon: _step == 4 ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
+              isLoading: _loading,
+              onTap: _next,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _MediaStep extends StatelessWidget {
-  const _MediaStep({
-    required this.imageUrl,
-    required this.pickedBytes,
-    required this.pickedName,
-    required this.onPick,
-  });
-  final TextEditingController imageUrl;
-  final Uint8List? pickedBytes;
-  final String? pickedName;
-  final VoidCallback onPick;
+/// Helper to prevent tap events from hitting the mock preview card
+class PointerInterceptor extends StatelessWidget {
+  final Widget child;
+  const PointerInterceptor({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) => _StepShell(
-    title: 'Media',
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        
-TextFormField(
-  controller: imageUrl,
-  decoration: const InputDecoration(
-    labelText: 'Banner image URL (optional)',
-    hintText: 'https://i.imgur.com/... or Cloudinary URL',
-    helperText: '⚠ Google Drive / share.google links are not supported',
-    helperMaxLines: 2,
-  ),
-  validator: (val) {
-    if (val == null || val.trim().isEmpty) return null;
-    if (val.contains('drive.google.com') || val.contains('share.google')) {
-      return 'Google Drive links are blocked by CORS. Use a direct image URL (Imgur, Cloudinary, etc.)';
-    }
-    if (!val.startsWith('http://') && !val.startsWith('https://')) {
-      return 'Must be a valid https:// URL';
-    }
-    return null;
-  },
-),
-        const SizedBox(height: 8),
-        const Center(
-          child: Text(
-            '— or upload a file —',
-            style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
-          ),
-        ),
-        const SizedBox(height: 8),
-        // FIX: show a preview thumbnail if bytes are picked on web
-        if (pickedBytes != null) ...[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.memory(
-              pickedBytes!,
-              height: 160,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            pickedName ?? 'Selected',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: ZynkColors.darkMuted,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        OutlinedButton.icon(
-          onPressed: onPick,
-          icon: const Icon(Icons.upload_rounded),
-          label: Text(pickedBytes == null ? 'Upload banner' : 'Change banner'),
-        ),
-        if (kIsWeb)
-          const Padding(
-            padding: EdgeInsets.only(top: 6),
-            child: Text(
-              'On web, tap "Upload banner" to pick a file from your device.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
-            ),
-          ),
-      ],
-    ),
-  );
-}
-
-class _PreviewStep extends StatelessWidget {
-  const _PreviewStep({
-    required this.title,
-    required this.venue,
-    required this.date,
-    required this.time,
-    required this.category,
-    required this.pickedBytes,
-    required this.imageUrl,
-  });
-  final TextEditingController title;
-  final TextEditingController venue;
-  final DateTime date;
-  final TimeOfDay time;
-  final String category;
-  final Uint8List? pickedBytes;
-  final TextEditingController imageUrl;
-
-  @override
-  Widget build(BuildContext context) => _StepShell(
-    title: 'Preview',
-    child: Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: ZynkColors.darkSurface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: ZynkColors.darkBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // FIX: show banner preview in the Preview step
-          if (pickedBytes != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.memory(
-                pickedBytes!,
-                height: 140,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 12),
-          ] else if (imageUrl.text.trim().isNotEmpty) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imageUrl.text.trim(),
-                height: 140,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          CategoryBadge(category),
-          const SizedBox(height: 12),
-          Text(
-            title.text.isEmpty ? 'Untitled event' : title.text,
-            style: const TextStyle(
-              color: ZynkColors.darkText,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            venue.text.isEmpty ? 'Venue not set' : venue.text,
-            style: const TextStyle(color: ZynkColors.darkMuted),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${DateFormat('MMM d').format(date)} at ${time.format(context)}',
-            style: const TextStyle(
-              color: ZynkColors.primary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Event -> Saved -> Auto Approved',
-            style: TextStyle(color: ZynkColors.darkMuted),
-          ),
-        ],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    return IgnorePointer(child: child);
+  }
 }

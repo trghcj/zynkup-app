@@ -102,3 +102,61 @@ class ActivityLog(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="activities")
+
+
+# ── Phase 3: Major Platform Expansion ───────────────────────────────────────
+
+class Club(Base):
+    __tablename__ = "clubs"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    name        = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    category    = Column(String, nullable=True, default="general")
+    banner_url  = Column(Text, nullable=True)
+    logo_url    = Column(Text, nullable=True)
+    created_at  = Column(DateTime, server_default=func.now())
+    creator_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    creator = relationship("User")
+    members = relationship("ClubMember", back_populates="club", cascade="all, delete-orphan")
+
+
+class ClubMember(Base):
+    __tablename__ = "club_members"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role       = Column(String, default="member", nullable=False) # admin, member
+    joined_at  = Column(DateTime, server_default=func.now())
+
+    club = relationship("Club", back_populates="members")
+    user = relationship("User")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title      = Column(String, nullable=False)
+    body       = Column(String, nullable=False)
+    type       = Column(String, nullable=False) # system, event, club, level_up
+    is_read    = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User")
+
+
+class FeedPost(Base):
+    __tablename__ = "feed_posts"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    author_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content    = Column(Text, nullable=False)
+    image_url  = Column(Text, nullable=True)
+    likes      = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+
+    author = relationship("User")
