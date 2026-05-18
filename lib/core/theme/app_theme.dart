@@ -2,17 +2,24 @@
 import 'package:flutter/material.dart';
 
 // ═══════════════════════════════════════════════════════════════════
-//  ZYNKUP — Warm/Earthy Design System
-//  Palette: Burnt orange · Terracotta · Gold · Charcoal · Cream
+//  ZYNKUP — Premium Olive-Gold-Orange Design System
+//  Palette: Sand · Gold · Orange · Warm Brown · Deep Olive · Off White
 // ═══════════════════════════════════════════════════════════════════
 
 class ZynkColors {
+  static const sand = Color(0xFFD6D09E);
+  static const gold = Color(0xFFC0B348);
+  static const orange = Color(0xFFFA7F1C);
+  static const warmBrown = Color(0xFF887F5A);
+  static const deepOlive = Color(0xFF3D3C21);
+  static const offWhite = Color(0xFFF6F0EB);
+
   // ── Brand ────────────────────────────────────────────────────────
-  static const primary = Color(0xFFE05C2A);
-  static const primaryDark = Color(0xFFC44A1C);
-  static const primaryLight = Color(0xFFFF8055);
-  static const accent = Color(0xFFD4A017);
-  static const accentLight = Color(0xFFF0C840);
+  static const primary = orange;
+  static const primaryDark = Color(0xFFC95D13);
+  static const primaryLight = Color(0xFFFFA45E);
+  static const accent = gold;
+  static const accentLight = sand;
 
   // ── Terracotta ────────────────────────────────────────────────────
   static const terra1 = Color(0xFFB5451B);
@@ -20,12 +27,12 @@ class ZynkColors {
   static const terra3 = Color(0xFFE8875A);
 
   // ── Dark surfaces ─────────────────────────────────────────────────
-  static const darkBg = Color(0xFF18120E);
-  static const darkSurface = Color(0xFF221A14);
-  static const darkSurface2 = Color(0xFF2D231C);
-  static const darkBorder = Color(0xFF3C2E24);
-  static const darkText = Color(0xFFF5EDE4);
-  static const darkMuted = Color(0xFF9C8878);
+  static const darkBg = Color(0xFF12100A);
+  static const darkSurface = Color(0xFF1C1812);
+  static const darkSurface2 = Color(0xFF262014);
+  static const darkBorder = Color(0xFF3A3225);
+  static const darkText = offWhite;
+  static const darkMuted = Color(0xFFB3A68D);
 
   // ── Light surfaces ────────────────────────────────────────────────
   static const lightBg = Color(0xFFFAF6F1);
@@ -42,9 +49,9 @@ class ZynkColors {
 
   // ── Category ─────────────────────────────────────────────────────
   static const catTech = Color(0xFF5C9EE8);
-  static const catCultural = Color(0xFFD4A017);
+  static const catCultural = gold;
   static const catSports = Color(0xFF4CAF7D);
-  static const catWorkshop = Color(0xFFE05C2A);
+  static const catWorkshop = orange;
   static const catSeminar = Color(0xFF9C6FBF);
 
   static Color forCategory(String cat) {
@@ -73,13 +80,34 @@ class ZynkColors {
 
 class ZynkGradients {
   static const brand = LinearGradient(
-    colors: [ZynkColors.primaryDark, ZynkColors.primary, ZynkColors.terra3],
+    colors: [ZynkColors.primaryDark, ZynkColors.orange, ZynkColors.gold],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const warmDark = LinearGradient(
-    colors: [Color(0xFF18120E), Color(0xFF2D1E14)],
+    colors: [Color(0xFF12100A), Color(0xFF1E1B10), Color(0xFF1C1812)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  /// Subtle card surface gradient for premium feel
+  static const cardSurface = LinearGradient(
+    colors: [Color(0xFF1E1A13), Color(0xFF1A1610)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Gold shimmer gradient for premium accents
+  static const goldShimmer = LinearGradient(
+    colors: [ZynkColors.gold, ZynkColors.sand, ZynkColors.gold],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Button gradient
+  static const buttonPrimary = LinearGradient(
+    colors: [Color(0xFFFA7F1C), Color(0xFFD4622E)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -98,7 +126,7 @@ class ZynkGradients {
         );
       case 'cultural':
         return const LinearGradient(
-          colors: [Color(0xFF5A3E00), Color(0xFFD4A017)],
+          colors: [ZynkColors.deepOlive, ZynkColors.gold],
         );
       case 'sports':
         return const LinearGradient(
@@ -106,7 +134,7 @@ class ZynkGradients {
         );
       case 'workshop':
         return const LinearGradient(
-          colors: [ZynkColors.primaryDark, ZynkColors.terra3],
+          colors: [ZynkColors.primaryDark, ZynkColors.orange],
         );
       case 'seminar':
         return const LinearGradient(
@@ -134,44 +162,110 @@ class ZynkGradients {
   }
 }
 
+// ── Spacing tokens (8px grid) ───────────────────────────────────────
+class ZynkSpacing {
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 16.0;
+  static const lg = 24.0;
+  static const xl = 32.0;
+  static const xxl = 48.0;
+}
+
+// ── Border radius tokens ────────────────────────────────────────────
+class ZynkRadius {
+  static const sm = 8.0;
+  static const md = 14.0;
+  static const lg = 18.0;
+  static const xl = 22.0;
+  static const pill = 999.0;
+}
+
+// ── Shadows ─────────────────────────────────────────────────────────
+class ZynkShadows {
+  static List<BoxShadow> card = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.22),
+      blurRadius: 24,
+      offset: const Offset(0, 8),
+    ),
+    BoxShadow(
+      color: ZynkColors.deepOlive.withValues(alpha: 0.08),
+      blurRadius: 48,
+      offset: const Offset(0, 16),
+    ),
+  ];
+
+  static List<BoxShadow> button = [
+    BoxShadow(
+      color: ZynkColors.primary.withValues(alpha: 0.25),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+  ];
+
+  static List<BoxShadow> nav = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.32),
+      blurRadius: 28,
+      offset: const Offset(0, -4),
+    ),
+  ];
+
+  static List<BoxShadow> glow(Color color) => [
+    BoxShadow(
+      color: color.withValues(alpha: 0.22),
+      blurRadius: 18,
+    ),
+  ];
+}
+
 class AppTheme {
   static InputDecorationTheme _input(bool dark) => InputDecorationTheme(
     filled: true,
     fillColor: dark ? ZynkColors.darkSurface2 : ZynkColors.lightSurf2,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(ZynkRadius.md),
       borderSide: BorderSide(
         color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
       ),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(ZynkRadius.md),
       borderSide: BorderSide(
         color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
       ),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: ZynkColors.primary, width: 2),
+      borderRadius: BorderRadius.circular(ZynkRadius.lg),
+      borderSide: const BorderSide(color: ZynkColors.gold, width: 2),
     ),
     errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(ZynkRadius.md),
       borderSide: const BorderSide(color: ZynkColors.error),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(ZynkRadius.md),
+      borderSide: const BorderSide(color: ZynkColors.error, width: 2),
     ),
     labelStyle: TextStyle(
       color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+      fontWeight: FontWeight.w500,
     ),
-    prefixIconColor: ZynkColors.primary,
+    hintStyle: TextStyle(
+      color: (dark ? ZynkColors.darkMuted : ZynkColors.lightMuted).withValues(alpha: 0.6),
+    ),
+    prefixIconColor: ZynkColors.gold,
     suffixIconColor: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
   );
 
   static CardThemeData _card(bool dark) => CardThemeData(
     color: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
-    elevation: dark ? 0 : 1,
-    shadowColor: ZynkColors.primary.withValues(alpha: 0.08),
+    elevation: 0,
+    shadowColor: ZynkColors.deepOlive.withValues(alpha: 0.12),
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(ZynkRadius.xl),
       side: BorderSide(
         color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
       ),
@@ -179,19 +273,19 @@ class AppTheme {
   );
 
   static AppBarTheme _appBar(bool dark) => AppBarTheme(
-    backgroundColor: dark ? ZynkColors.darkSurface : ZynkColors.lightBg,
+    backgroundColor: dark ? ZynkColors.darkBg : ZynkColors.lightBg,
     foregroundColor: dark ? ZynkColors.darkText : ZynkColors.lightText,
     elevation: 0,
     scrolledUnderElevation: 0,
     centerTitle: false,
     titleTextStyle: TextStyle(
       color: dark ? ZynkColors.darkText : ZynkColors.lightText,
-      fontSize: 19,
+      fontSize: 20,
       fontWeight: FontWeight.w800,
-      letterSpacing: -0.4,
+      letterSpacing: -0.5,
     ),
-    iconTheme: const IconThemeData(color: ZynkColors.primary, size: 22),
-    actionsIconTheme: const IconThemeData(color: ZynkColors.primary, size: 22),
+    iconTheme: const IconThemeData(color: ZynkColors.gold, size: 22),
+    actionsIconTheme: const IconThemeData(color: ZynkColors.gold, size: 22),
   );
 
   static ElevatedButtonThemeData get _btn => ElevatedButtonThemeData(
@@ -199,14 +293,91 @@ class AppTheme {
       backgroundColor: ZynkColors.primary,
       foregroundColor: Colors.white,
       elevation: 0,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.lg)),
       textStyle: const TextStyle(
         fontWeight: FontWeight.w700,
         fontSize: 15,
         letterSpacing: 0.3,
       ),
     ),
+  );
+
+  static OutlinedButtonThemeData get _outlineBtn => OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      foregroundColor: ZynkColors.gold,
+      side: const BorderSide(color: ZynkColors.gold, width: 1.5),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.lg)),
+      textStyle: const TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: 15,
+      ),
+    ),
+  );
+
+  static TextButtonThemeData get _textBtn => TextButtonThemeData(
+    style: TextButton.styleFrom(
+      foregroundColor: ZynkColors.orange,
+      textStyle: const TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.md)),
+    ),
+  );
+
+  static TabBarThemeData _tabBar(bool dark) => TabBarThemeData(
+    indicatorColor: ZynkColors.gold,
+    indicatorSize: TabBarIndicatorSize.label,
+    labelColor: dark ? ZynkColors.offWhite : ZynkColors.lightText,
+    unselectedLabelColor: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+    labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+    dividerColor: Colors.transparent,
+  );
+
+  static DialogThemeData _dialog(bool dark) => DialogThemeData(
+    backgroundColor: dark ? ZynkColors.darkSurface : ZynkColors.lightSurface,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(ZynkRadius.xl),
+      side: BorderSide(
+        color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
+      ),
+    ),
+    titleTextStyle: TextStyle(
+      color: dark ? ZynkColors.darkText : ZynkColors.lightText,
+      fontSize: 18,
+      fontWeight: FontWeight.w800,
+    ),
+    contentTextStyle: TextStyle(
+      color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+      fontSize: 14,
+      height: 1.5,
+    ),
+  );
+
+  static ChipThemeData _chip(bool dark) => ChipThemeData(
+    backgroundColor: dark ? ZynkColors.darkSurface2 : ZynkColors.lightSurf2,
+    selectedColor: ZynkColors.deepOlive,
+    labelStyle: TextStyle(
+      color: dark ? ZynkColors.darkMuted : ZynkColors.lightMuted,
+      fontWeight: FontWeight.w600,
+      fontSize: 13,
+    ),
+    secondaryLabelStyle: const TextStyle(
+      color: ZynkColors.gold,
+      fontWeight: FontWeight.w700,
+      fontSize: 13,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(ZynkRadius.pill),
+      side: BorderSide(
+        color: dark ? ZynkColors.darkBorder : ZynkColors.lightBorder,
+      ),
+    ),
+    showCheckmark: false,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
   );
 
   static ThemeData get dark => ThemeData(
@@ -226,12 +397,49 @@ class AppTheme {
     cardTheme: _card(true),
     inputDecorationTheme: _input(true),
     elevatedButtonTheme: _btn,
+    outlinedButtonTheme: _outlineBtn,
+    textButtonTheme: _textBtn,
+    tabBarTheme: _tabBar(true),
+    dialogTheme: _dialog(true),
+    chipTheme: _chip(true),
     dividerColor: ZynkColors.darkBorder,
     snackBarTheme: SnackBarThemeData(
       backgroundColor: ZynkColors.darkSurface2,
-      contentTextStyle: const TextStyle(color: ZynkColors.darkText),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      contentTextStyle: const TextStyle(color: ZynkColors.darkText, fontWeight: FontWeight.w500),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ZynkRadius.md),
+        side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.2)),
+      ),
       behavior: SnackBarBehavior.floating,
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return ZynkColors.deepOlive;
+          return ZynkColors.darkSurface2;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return ZynkColors.gold;
+          return ZynkColors.darkMuted;
+        }),
+        side: WidgetStateProperty.all(
+          const BorderSide(color: ZynkColors.darkBorder),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.lg)),
+        ),
+        textStyle: WidgetStateProperty.all(
+          const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+      ),
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: ZynkColors.darkSurface2,
+        borderRadius: BorderRadius.circular(ZynkRadius.sm),
+        border: Border.all(color: ZynkColors.darkBorder),
+      ),
+      textStyle: const TextStyle(color: ZynkColors.darkText, fontSize: 12),
     ),
   );
 
@@ -252,11 +460,16 @@ class AppTheme {
     cardTheme: _card(false),
     inputDecorationTheme: _input(false),
     elevatedButtonTheme: _btn,
+    outlinedButtonTheme: _outlineBtn,
+    textButtonTheme: _textBtn,
+    tabBarTheme: _tabBar(false),
+    dialogTheme: _dialog(false),
+    chipTheme: _chip(false),
     dividerColor: ZynkColors.lightBorder,
     snackBarTheme: SnackBarThemeData(
       backgroundColor: ZynkColors.lightText,
       contentTextStyle: const TextStyle(color: Colors.white),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.md)),
       behavior: SnackBarBehavior.floating,
     ),
   );
@@ -264,7 +477,7 @@ class AppTheme {
 
 // ── Shared Widgets ────────────────────────────────────────────────
 
-class ZynkButton extends StatelessWidget {
+class ZynkButton extends StatefulWidget {
   final String label;
   final VoidCallback? onTap;
   final bool isLoading;
@@ -285,81 +498,133 @@ class ZynkButton extends StatelessWidget {
   });
 
   @override
+  State<ZynkButton> createState() => _ZynkButtonState();
+}
+
+class _ZynkButtonState extends State<ZynkButton> with SingleTickerProviderStateMixin {
+  late AnimationController _anim;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.96).animate(
+      CurvedAnimation(parent: _anim, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final c = bgColor ?? ZynkColors.primary;
-    if (outlined) {
+    final c = widget.bgColor ?? ZynkColors.primary;
+    if (widget.outlined) {
       return SizedBox(
         width: double.infinity,
-        height: height,
-        child: OutlinedButton(
-          onPressed: isLoading ? null : onTap,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: c,
-            side: BorderSide(color: c, width: 1.5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+        height: widget.height,
+        child: AnimatedBuilder(
+          animation: _scale,
+          builder: (context, child) => Transform.scale(
+            scale: _scale.value,
+            child: child,
           ),
-          child: _inner(c),
+          child: OutlinedButton(
+            onPressed: widget.isLoading ? null : widget.onTap,
+            onHover: (hovering) {
+              if (hovering) { _anim.forward(); } else { _anim.reverse(); }
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: c,
+              side: BorderSide(color: c.withValues(alpha: 0.6), width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(ZynkRadius.lg),
+              ),
+              backgroundColor: c.withValues(alpha: 0.06),
+            ),
+            child: _inner(c),
+          ),
         ),
       );
     }
     return SizedBox(
       width: double.infinity,
-      height: height,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: isLoading
-              ? null
-              : LinearGradient(
-                  colors: [c, Color.lerp(c, Colors.black, 0.18)!],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-          color: isLoading ? c.withValues(alpha: 0.5) : null,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isLoading
-              ? null
-              : [
-                  BoxShadow(
-                    color: c.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+      height: widget.height,
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (context, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
         ),
-        child: ElevatedButton(
-          onPressed: isLoading ? null : onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: widget.isLoading
+                ? null
+                : LinearGradient(
+                    colors: [c, Color.lerp(c, Colors.black, 0.22)!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            color: widget.isLoading ? c.withValues(alpha: 0.4) : null,
+            borderRadius: BorderRadius.circular(ZynkRadius.lg),
+            boxShadow: widget.isLoading
+                ? null
+                : [
+                    BoxShadow(
+                      color: c.withValues(alpha: 0.28),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: c.withValues(alpha: 0.10),
+                      blurRadius: 40,
+                      offset: const Offset(0, 16),
+                    ),
+                  ],
           ),
-          child: _inner(Colors.white),
+          child: ElevatedButton(
+            onPressed: widget.isLoading ? null : widget.onTap,
+            onHover: (hovering) {
+              if (hovering) { _anim.forward(); } else { _anim.reverse(); }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(ZynkRadius.lg),
+              ),
+            ),
+            child: _inner(Colors.white),
+          ),
         ),
       ),
     );
   }
 
   Widget _inner(Color c) {
-    if (isLoading) {
+    if (widget.isLoading) {
       return SizedBox(
         width: 20,
         height: 20,
         child: CircularProgressIndicator(strokeWidth: 2, color: c),
       );
     }
-    if (icon != null) {
+    if (widget.icon != null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 18, color: c),
+          Icon(widget.icon, size: 18, color: c),
           const SizedBox(width: 8),
           Text(
-            label,
+            widget.label,
             style: TextStyle(
               color: c,
               fontWeight: FontWeight.w700,
@@ -370,11 +635,15 @@ class ZynkButton extends StatelessWidget {
       );
     }
     return Text(
-      label,
+      widget.label,
       style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 15),
     );
   }
 }
+
+/// Helper: use AnimatedBuilder pattern (Flutter 3.x compat)
+/// NOTE: We use Flutter's built-in AnimatedBuilder directly.
+/// The ZynkButton references it as `AnimatedBuilder` from material.dart.
 
 class CategoryBadge extends StatelessWidget {
   final String category;
@@ -384,11 +653,11 @@ class CategoryBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = ZynkColors.forCategory(category);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: c.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(ZynkRadius.pill),
+        border: Border.all(color: c.withValues(alpha: 0.3)),
       ),
       child: Text(
         category.toUpperCase(),
@@ -396,7 +665,7 @@ class CategoryBadge extends StatelessWidget {
           color: c,
           fontSize: 9,
           fontWeight: FontWeight.w800,
-          letterSpacing: 0.8,
+          letterSpacing: 1.0,
         ),
       ),
     );
@@ -427,6 +696,38 @@ class ZynkDivider extends StatelessWidget {
         ),
         Expanded(child: Divider(color: c)),
       ],
+    );
+  }
+}
+
+/// Glass-morphism container used across the app
+class ZynkGlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final double borderRadius;
+  final Color? borderColor;
+
+  const ZynkGlassCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.borderRadius = ZynkRadius.xl,
+    this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding ?? const EdgeInsets.all(ZynkSpacing.md),
+      decoration: BoxDecoration(
+        gradient: ZynkGradients.cardSurface,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: borderColor ?? ZynkColors.darkBorder.withValues(alpha: 0.6),
+        ),
+        boxShadow: ZynkShadows.card,
+      ),
+      child: child,
     );
   }
 }

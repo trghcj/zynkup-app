@@ -25,16 +25,23 @@ class ZynkBottomNav extends StatelessWidget {
       top: false,
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: ZynkColors.darkBorder),
+          color: ZynkColors.darkSurface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(ZynkRadius.xl),
+          border: Border.all(
+            color: ZynkColors.gold.withValues(alpha: 0.12),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 22,
-              offset: const Offset(0, 12),
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 28,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: ZynkColors.deepOlive.withValues(alpha: 0.15),
+              blurRadius: 48,
+              offset: const Offset(0, 16),
             ),
           ],
         ),
@@ -42,44 +49,68 @@ class ZynkBottomNav extends StatelessWidget {
           children: List.generate(_items.length, (index) {
             final item = _items[index];
             final selected = currentIndex == index;
+            final isCreate = index == 2;
             return Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18),
+              child: GestureDetector(
                 onTap: () => onChanged(index),
+                behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: selected
-                        ? ZynkColors.primary.withValues(alpha: 0.16)
+                        ? (isCreate
+                            ? ZynkColors.primary.withValues(alpha: 0.18)
+                            : ZynkColors.gold.withValues(alpha: 0.10))
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(ZynkRadius.lg),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        item.$1,
-                        color: selected
-                            ? ZynkColors.primary
-                            : ZynkColors.darkMuted,
-                        size: index == 2 ? 28 : 22,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        item.$2,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        decoration: isCreate && selected
+                            ? BoxDecoration(
+                                color: ZynkColors.primary,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: ZynkColors.primary.withValues(alpha: 0.3),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              )
+                            : null,
+                        padding: isCreate
+                            ? const EdgeInsets.all(6)
+                            : EdgeInsets.zero,
+                        child: Icon(
+                          item.$1,
                           color: selected
-                              ? ZynkColors.primary
-                              : ZynkColors.darkMuted,
-                          fontSize: 10,
-                          fontWeight: selected
-                              ? FontWeight.w800
-                              : FontWeight.w600,
+                              ? (isCreate ? Colors.white : ZynkColors.gold)
+                              : ZynkColors.darkMuted.withValues(alpha: 0.6),
+                          size: isCreate ? 26 : 22,
                         ),
                       ),
+                      if (!isCreate) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          item.$2,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: selected
+                                ? ZynkColors.gold
+                                : ZynkColors.darkMuted.withValues(alpha: 0.5),
+                            fontSize: 10,
+                            fontWeight: selected
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
