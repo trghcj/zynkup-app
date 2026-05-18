@@ -11,6 +11,8 @@ from dotenv import load_dotenv  # type: ignore
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
+from sqlalchemy import text
+
 from app.database import Base, engine
 from app.routes import users, events, analytics, admin
 from app.auth import get_current_user
@@ -64,6 +66,76 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
+
+
+def repair_event_schema() -> None:
+    """Keep older Render databases compatible with the current SQLAlchemy model."""
+    if engine.dialect.name != "postgresql":
+        return
+
+    statements = [
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS creator_id INTEGER REFERENCES users(id)",
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS image_urls TEXT DEFAULT ''",
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS gallery_files TEXT DEFAULT ''",
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_url VARCHAR",
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_url_type VARCHAR",
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
+        "ALTER TABLE events ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name='events'
+                  AND column_name='image_urls'
+                  AND data_type='ARRAY'
+            ) THEN
+                ALTER TABLE events
+                ALTER COLUMN image_urls DROP DEFAULT,
+                ALTER COLUMN image_urls TYPE TEXT
+                    USING COALESCE(array_to_string(image_urls, ','), ''),
+                ALTER COLUMN image_urls SET DEFAULT '';
+            END IF;
+
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name='events'
+                  AND column_name='gallery_files'
+                  AND data_type='ARRAY'
+            ) THEN
+                ALTER TABLE events
+                ALTER COLUMN gallery_files DROP DEFAULT,
+                ALTER COLUMN gallery_files TYPE TEXT
+                    USING COALESCE(array_to_string(gallery_files, '|||---|||'), ''),
+                ALTER COLUMN gallery_files SET DEFAULT '';
+            END IF;
+        END $$;
+        """,
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name='events' AND column_name='organizer_id'
+            ) THEN
+                UPDATE events
+                SET creator_id = organizer_id
+                WHERE creator_id IS NULL AND organizer_id IS NOT NULL;
+            END IF;
+        END $$;
+        """,
+    ]
+
+    try:
+        with engine.begin() as conn:
+            for statement in statements:
+                conn.execute(text(statement))
+    except Exception as exc:
+        logger.error(f"EVENT SCHEMA REPAIR FAILED: {exc}", exc_info=True)
+
+
+repair_event_schema()
 
 # ── Uploads ──────────────────────────────────────────────────────────────────
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
