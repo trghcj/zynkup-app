@@ -319,14 +319,28 @@ class _Section extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: events.length,
               separatorBuilder: (_, __) => const SizedBox(width: 14),
-              itemBuilder: (context, index) => SizedBox(
-                width: 270,
-                child: EventCardWidget(
-                  event: events[index],
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EventDetailsScreen(event: events[index]),
+              itemBuilder: (context, index) => TweenAnimationBuilder<double>(
+                duration: Duration(milliseconds: 350 + (index * 80)),
+                tween: Tween(begin: 0.0, end: 1.0),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(0, 16 * (1.0 - value)),
+                    child: Opacity(
+                      opacity: value,
+                      child: child,
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 270,
+                  child: EventCardWidget(
+                    event: events[index],
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EventDetailsScreen(event: events[index]),
+                      ),
                     ),
                   ),
                 ),
@@ -346,10 +360,6 @@ class _ClubsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (clubs.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -396,71 +406,106 @@ class _ClubsSection extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: clubs.length,
-            itemBuilder: (context, index) {
-              final club = clubs[index] as Map<String, dynamic>;
-              final String clubName = club['name'] ?? '';
-              final String clubId = (club['id'] ?? '').toString();
-              final String? logoUrl = club['logo_url'];
-              final displayImage = (logoUrl != null && logoUrl.isNotEmpty)
-                  ? logoUrl
-                  : 'https://picsum.photos/seed/$clubId/200/200';
+        if (clubs.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              height: 100,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: ZynkGradients.cardSurface,
+                borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                border: Border.all(color: ZynkColors.darkBorder),
+              ),
+              child: const Center(
+                child: Text(
+                  'No clubs founded yet. Tap Create to start one!',
+                  style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: clubs.length,
+              itemBuilder: (context, index) {
+                final club = clubs[index] as Map<String, dynamic>;
+                final String clubName = club['name'] ?? '';
+                final String clubId = (club['id'] ?? '').toString();
+                final String? logoUrl = club['logo_url'];
+                final displayImage = (logoUrl != null && logoUrl.isNotEmpty)
+                    ? logoUrl
+                    : 'https://picsum.photos/seed/$clubId/200/200';
 
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ClubProfileScreen(
-                        clubId: clubId,
-                        clubName: clubName,
+                return TweenAnimationBuilder<double>(
+                  duration: Duration(milliseconds: 300 + (index * 60)),
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    return Transform.translate(
+                      offset: Offset(16 * (1.0 - value), 0),
+                      child: Opacity(
+                        opacity: value,
+                        child: child,
                       ),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 120,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    gradient: ZynkGradients.cardSurface,
-                    borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                    border: Border.all(color: ZynkColors.darkBorder),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 32,
-                        backgroundColor: ZynkColors.darkSurface2,
-                        backgroundImage: NetworkImage(displayImage),
-                      ),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          clubName,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: ZynkColors.offWhite,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                    );
+                  },
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ClubProfileScreen(
+                            clubId: clubId,
+                            clubName: clubName,
+                            clubData: club,
                           ),
                         ),
+                      );
+                    },
+                    child: Container(
+                      width: 120,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        gradient: ZynkGradients.cardSurface,
+                        borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                        border: Border.all(color: ZynkColors.darkBorder),
                       ),
-                    ],
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 32,
+                            backgroundColor: ZynkColors.darkSurface2,
+                            backgroundImage: NetworkImage(displayImage),
+                          ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              clubName,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: ZynkColors.offWhite,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
         const SizedBox(height: 16),
       ],
     );

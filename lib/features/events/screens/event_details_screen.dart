@@ -347,12 +347,15 @@ class _HeroImage extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.network(
-          image,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            decoration: BoxDecoration(
-              gradient: ZynkGradients.forCategory(event.category.name),
+        Hero(
+          tag: 'event_image_${event.id}',
+          child: Image.network(
+            image,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              decoration: BoxDecoration(
+                gradient: ZynkGradients.forCategory(event.category.name),
+              ),
             ),
           ),
         ),
