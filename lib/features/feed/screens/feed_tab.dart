@@ -95,18 +95,64 @@ class _FeedTabState extends State<FeedTab> {
                     ),
                   ),
                 ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: GestureDetector(
+                      onTap: _createNewPost,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: ZynkGradients.cardSurface,
+                          borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                          border: Border.all(color: ZynkColors.darkBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundImage: const NetworkImage('https://api.dicebear.com/7.x/avataaars/png?seed=You'),
+                              backgroundColor: ZynkColors.darkSurface2,
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                "Share a campus update...",
+                                style: TextStyle(
+                                  color: ZynkColors.darkMuted,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.add_photo_alternate_rounded,
+                              color: ZynkColors.gold,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 if (_loading)
-                  const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(color: ZynkColors.gold),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: CircularProgressIndicator(color: ZynkColors.gold),
+                      ),
                     ),
                   )
                 else if (_posts.isEmpty)
-                  const SliverFillRemaining(
-                    child: Center(
-                      child: Text(
-                        'No campus updates yet.',
-                        style: TextStyle(color: ZynkColors.darkMuted),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child: Text(
+                          'No campus updates yet. Be the first to share one!',
+                          style: TextStyle(color: ZynkColors.darkMuted),
+                        ),
                       ),
                     ),
                   )

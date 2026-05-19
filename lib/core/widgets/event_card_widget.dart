@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -31,43 +32,54 @@ class _EventCardWidgetState extends State<EventCardWidget> {
         : widget.event.registeredUsers.length;
 
     return MouseRegion(
+      cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          transform: _hovering
-              // ignore: deprecated_member_use
-              ? (Matrix4.identity()..scale(1.02))
-              : Matrix4.identity(),
-          transformAlignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: ZynkGradients.cardSurface,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 220),
+        scale: _hovering ? 1.025 : 1.0,
+        curve: Curves.easeOutCubic,
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(ZynkRadius.xl),
-            border: Border.all(
-              color: _hovering
-                  ? ZynkColors.gold.withValues(alpha: 0.3)
-                  : ZynkColors.darkBorder.withValues(alpha: 0.6),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: _hovering ? 0.28 : 0.18),
-                blurRadius: _hovering ? 32 : 22,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: ZynkColors.deepOlive.withValues(alpha: 0.06),
-                blurRadius: 48,
-                offset: const Offset(0, 20),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Banner(event: widget.event, compact: widget.compact),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: _hovering ? 0.04 : 0.02),
+                  borderRadius: BorderRadius.circular(ZynkRadius.xl),
+                  border: Border.all(
+                    color: _hovering
+                        ? ZynkColors.forCategory(category).withValues(alpha: 0.35)
+                        : Colors.white.withValues(alpha: 0.06),
+                  ),
+                  boxShadow: _hovering
+                      ? [
+                          BoxShadow(
+                            color: ZynkColors.forCategory(category).withValues(alpha: 0.15),
+                            blurRadius: 36,
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 32,
+                            offset: const Offset(0, 12),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.18),
+                            blurRadius: 22,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Banner(event: widget.event, compact: widget.compact),
               Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -198,7 +210,10 @@ class _EventCardWidgetState extends State<EventCardWidget> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+),
+);
   }
 }
 
@@ -219,13 +234,16 @@ class _Banner extends StatelessWidget {
       borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
       child: Stack(
         children: [
-          Image.network(
-            image,
-            height: height,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                _GradientBanner(event: event, height: height),
+          Hero(
+            tag: 'event_image_${event.id}',
+            child: Image.network(
+              image,
+              height: height,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  _GradientBanner(event: event, height: height),
+            ),
           ),
           // Bottom fade for text readability
           Positioned(

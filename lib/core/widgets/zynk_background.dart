@@ -35,10 +35,14 @@ class _ZynkBackgroundState extends State<ZynkBackground>
     return Stack(
       fit: StackFit.expand,
       children: [
-        // 1. Deep Space Base
-        Container(color: ZynkColors.darkBg),
+        // 1. Deep Space Gradient base instead of muddy brown
+        Container(
+          decoration: const BoxDecoration(
+            gradient: ZynkGradients.warmDark,
+          ),
+        ),
 
-        // 2. Animated Floating Orbs
+        // 2. Cinematic Drifting category-accented glows (Tech-Blue, Seminar-Purple, Sports-Green)
         AnimatedBuilder(
           animation: _anim,
           builder: (context, _) {
@@ -46,31 +50,31 @@ class _ZynkBackgroundState extends State<ZynkBackground>
             return Stack(
               fit: StackFit.expand,
               children: [
-                // Gold Orb (Top Right)
+                // Tech Blue Glow Orb (Pulsing Top Left)
                 Positioned(
-                  top: -100 + math.sin(t) * 40,
-                  right: -50 + math.cos(t) * 30,
+                  top: -120 + math.sin(t) * 35,
+                  left: -80 + math.cos(t * 0.8) * 45,
                   child: _Orb(
-                    color: ZynkColors.gold.withValues(alpha: 0.15),
-                    size: 300,
+                    color: const Color(0xFF5C9EE8).withValues(alpha: 0.08),
+                    size: 320,
                   ),
                 ),
-                // Deep Olive Orb (Bottom Left)
+                // Seminar Purple Glow Orb (Pulsing Bottom Right)
                 Positioned(
-                  bottom: -150 + math.cos(t * 1.5) * 50,
-                  left: -100 + math.sin(t * 0.8) * 40,
+                  bottom: -150 + math.cos(t * 1.2) * 55,
+                  right: -100 + math.sin(t * 0.9) * 35,
                   child: _Orb(
-                    color: ZynkColors.deepOlive.withValues(alpha: 0.25),
-                    size: 400,
+                    color: const Color(0xFF9C6FBF).withValues(alpha: 0.12),
+                    size: 380,
                   ),
                 ),
-                // Orange Accent Orb (Center Right)
+                // Sports Green Glow Orb (Drifting Center Left)
                 Positioned(
-                  top: MediaQuery.of(context).size.height * 0.4 + math.sin(t * 1.2) * 60,
-                  right: -150 + math.cos(t * 1.1) * 20,
+                  top: MediaQuery.of(context).size.height * 0.35 + math.sin(t * 0.7) * 40,
+                  left: -120 + math.cos(t * 1.4) * 30,
                   child: _Orb(
-                    color: ZynkColors.orange.withValues(alpha: 0.08),
-                    size: 250,
+                    color: const Color(0xFF4CAF7D).withValues(alpha: 0.06),
+                    size: 260,
                   ),
                 ),
               ],
@@ -78,9 +82,11 @@ class _ZynkBackgroundState extends State<ZynkBackground>
           },
         ),
 
-        // 3. Subtle Noise Texture Overlay (Optional, using a semi-transparent dark layer for now to blend)
-        Container(
-          color: ZynkColors.darkBg.withValues(alpha: 0.6),
+        // 3. Subtle Technical Canvas Grid Pattern Overlay
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _GridPainter(),
+          ),
         ),
 
         // 4. Content
@@ -106,9 +112,29 @@ class _Orb extends StatelessWidget {
         color: color,
       ),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+        filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
         child: Container(color: Colors.transparent),
       ),
     );
   }
+}
+
+class _GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.012)
+      ..strokeWidth = 1.0;
+
+    const spacing = 45.0;
+    for (double x = 0; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
