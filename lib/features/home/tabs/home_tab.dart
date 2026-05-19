@@ -17,6 +17,10 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   var _events = <Event>[];
   bool _loading = true;
+  int _activeStudents = 0;
+  int _eventsThisWeek = 0;
+  List<String> _activeAvatars = [];
+  List<dynamic> _clubs = [];
 
   @override
   void initState() {
@@ -25,12 +29,26 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> _load() async {
-    final data = await ApiService.getEvents(force: true, limit: 50);
+    final results = await Future.wait([
+      ApiService.getEvents(force: true, limit: 50),
+      ApiService.getCampusStats(),
+      ApiService.getClubs(),
+    ]);
+
     if (!mounted) return;
+
+    final eventsData = results[0] as List<dynamic>;
+    final statsData = results[1] as Map<String, dynamic>;
+    final clubsData = results[2] as List<dynamic>;
+
     setState(() {
-      _events = data
+      _events = eventsData
           .map((item) => Event.fromJson(item as Map<String, dynamic>))
           .toList();
+      _activeStudents = statsData['active_students'] as int? ?? 0;
+      _eventsThisWeek = statsData['events_this_week'] as int? ?? 0;
+      _activeAvatars = List<String>.from(statsData['active_avatars'] ?? []);
+      _clubs = clubsData;
       _loading = false;
     });
   }
@@ -49,37 +67,51 @@ class _HomeTabState extends State<HomeTab> {
           color: ZynkColors.gold,
           onRefresh: _load,
           child: CustomScrollView(
-          slivers: [
-            const SliverToBoxAdapter(child: _Header()),
-            if (_loading)
-              const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(color: ZynkColors.gold),
+            slivers: [
+              SliverToBoxAdapter(
+                child: _Header(
+                  activeStudents: _activeStudents,
+                  eventsThisWeek: _eventsThisWeek,
+                  activeAvatars: _activeAvatars,
                 ),
-              )
-            else ...[
-              const SliverToBoxAdapter(child: _ClubsSection()),
-              _Section(
-                title: 'Featured Events',
-                events: _events.take(3).toList(),
               ),
-              _Section(
-                title: 'Upcoming Events',
-                events: upcoming.take(5).toList(),
-              ),
-              _Section(title: 'Trending', events: trending.take(5).toList()),
-              const SliverToBoxAdapter(child: SizedBox(height: 110)),
+              if (_loading)
+                const SliverFillRemaining(
+                  child: Center(
+                    child: CircularProgressIndicator(color: ZynkColors.gold),
+                  ),
+                )
+              else ...[
+                SliverToBoxAdapter(child: _ClubsSection(clubs: _clubs)),
+                _Section(
+                  title: 'Featured Events',
+                  events: _events.take(3).toList(),
+                ),
+                _Section(
+                  title: 'Upcoming Events',
+                  events: upcoming.take(5).toList(),
+                ),
+                _Section(title: 'Trending', events: trending.take(5).toList()),
+                const SliverToBoxAdapter(child: SizedBox(height: 110)),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
       ),
     );
   }
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  final int activeStudents;
+  final int eventsThisWeek;
+  final List<String> activeAvatars;
+
+  const _Header({
+    required this.activeStudents,
+    required this.eventsThisWeek,
+    required this.activeAvatars,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,16 +186,16 @@ class _Header extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '120+ students active now',
-                        style: TextStyle(
+                      Text(
+                        '$activeStudents+ students active now',
+                        style: const TextStyle(
                           color: ZynkColors.offWhite,
                           fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        '18 events happening this week',
+                        '$eventsThisWeek events happening this week',
                         style: TextStyle(
                           color: ZynkColors.darkMuted.withValues(alpha: 0.8),
                           fontSize: 11,
@@ -178,18 +210,11 @@ class _Header extends StatelessWidget {
                   height: 28,
                   child: Stack(
                     children: [
-                      Positioned(
-                        right: 0,
-                        child: _AvatarBubble('https://api.dicebear.com/7.x/avataaars/png?seed=Alex'),
-                      ),
-                      Positioned(
-                        right: 14,
-                        child: _AvatarBubble('https://api.dicebear.com/7.x/avataaars/png?seed=Sam'),
-                      ),
-                      Positioned(
-                        right: 28,
-                        child: _AvatarBubble('https://api.dicebear.com/7.x/avataaars/png?seed=Jordan'),
-                      ),
+                      for (int i = 0; i < activeAvatars.length && i < 3; i++)
+                        Positioned(
+                          right: i * 14.0,
+                          child: _AvatarBubble(activeAvatars[i]),
+                        ),
                     ],
                   ),
                 ),
@@ -309,17 +334,14 @@ class _Section extends StatelessWidget {
 }
 
 class _ClubsSection extends StatelessWidget {
-  const _ClubsSection();
+  final List<dynamic> clubs;
+  const _ClubsSection({required this.clubs});
 
   @override
   Widget build(BuildContext context) {
-    // Mock clubs list
-    final clubs = [
-      ('Google Developer Student Clubs', 'GDSC'),
-      ('Tech & Media Club', 'TnM'),
-      ('Dance Society', 'Dance'),
-      ('Music Society', 'Music'),
-    ];
+    if (clubs.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,15 +371,22 @@ class _ClubsSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: clubs.length,
             itemBuilder: (context, index) {
-              final club = clubs[index];
+              final club = clubs[index] as Map<String, dynamic>;
+              final String clubName = club['name'] ?? '';
+              final String clubId = (club['id'] ?? '').toString();
+              final String? logoUrl = club['logo_url'];
+              final displayImage = (logoUrl != null && logoUrl.isNotEmpty)
+                  ? logoUrl
+                  : 'https://picsum.photos/seed/$clubId/200/200';
+
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => ClubProfileScreen(
-                        clubId: club.$2.toLowerCase(),
-                        clubName: club.$1,
+                        clubId: clubId,
+                        clubName: clubName,
                       ),
                     ),
                   );
@@ -376,15 +405,13 @@ class _ClubsSection extends StatelessWidget {
                       CircleAvatar(
                         radius: 32,
                         backgroundColor: ZynkColors.darkSurface2,
-                        backgroundImage: NetworkImage(
-                          'https://picsum.photos/seed/${club.$2.toLowerCase()}/200/200',
-                        ),
+                        backgroundImage: NetworkImage(displayImage),
                       ),
                       const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(
-                          club.$2,
+                          clubName,
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

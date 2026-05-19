@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:zynkup/core/api/api_service.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -10,12 +11,25 @@ class FeedTab extends StatefulWidget {
 }
 
 class _FeedTabState extends State<FeedTab> {
-  bool _loading = false;
+  bool _loading = true;
+  List<dynamic> _posts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Mock load
-    if (mounted) setState(() => _loading = false);
+    final data = await ApiService.getFeed();
+    if (mounted) {
+      setState(() {
+        _posts = data;
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -57,11 +71,28 @@ class _FeedTabState extends State<FeedTab> {
                     child: CircularProgressIndicator(color: ZynkColors.gold),
                   ),
                 )
+              else if (_posts.isEmpty)
+                const SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      'No campus updates yet.',
+                      style: TextStyle(color: ZynkColors.darkMuted),
+                    ),
+                  ),
+                )
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _FeedPostCard(index: index),
-                    childCount: 5,
+                    (context, index) => _FeedPostCard(
+                      post: _posts[index] as Map<String, dynamic>,
+                      onLike: () async {
+                        final postId = _posts[index]['id'] as int?;
+                        if (postId != null) {
+                          await ApiService.getFeed(); // Refresh or call like
+                        }
+                      },
+                    ),
+                    childCount: _posts.length,
                   ),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 110)),
@@ -74,11 +105,40 @@ class _FeedTabState extends State<FeedTab> {
 }
 
 class _FeedPostCard extends StatelessWidget {
-  final int index;
-  const _FeedPostCard({required this.index});
+  final Map<String, dynamic> post;
+  final VoidCallback onLike;
+
+  const _FeedPostCard({
+    required this.post,
+    required this.onLike,
+  });
+
+  String _timeAgo(String? dateTimeStr) {
+    if (dateTimeStr == null) return 'some time ago';
+    try {
+      final dt = DateTime.parse(dateTimeStr).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inDays > 0) return '${diff.inDays}d ago';
+      if (diff.inHours > 0) return '${diff.inHours}h ago';
+      if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+      return 'just now';
+    } catch (_) {
+      return 'some time ago';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final String authorName = post['author_name'] ?? 'Anonymous';
+    final String? authorAvatar = post['author_avatar'];
+    final String avatarUrl = (authorAvatar != null && authorAvatar.isNotEmpty)
+        ? authorAvatar
+        : 'https://api.dicebear.com/7.x/avataaars/png?seed=$authorName';
+    final String content = post['content'] ?? '';
+    final String? imageUrl = post['image_url'];
+    final int likes = post['likes'] ?? 0;
+    final String timeStr = _timeAgo(post['created_at'] as String?);
+
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       decoration: BoxDecoration(
@@ -96,7 +156,7 @@ class _FeedPostCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundImage: NetworkImage('https://api.dicebear.com/7.x/avataaars/png?seed=User$index'),
+                  backgroundImage: NetworkImage(avatarUrl),
                   backgroundColor: ZynkColors.darkSurface2,
                 ),
                 const SizedBox(width: 12),
@@ -105,14 +165,14 @@ class _FeedPostCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Student $index',
+                        authorName,
                         style: const TextStyle(
                           color: ZynkColors.offWhite,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
-                        '2 hours ago',
+                        timeStr,
                         style: TextStyle(
                           color: ZynkColors.darkMuted.withValues(alpha: 0.8),
                           fontSize: 12,
@@ -129,10 +189,10 @@ class _FeedPostCard extends StatelessWidget {
             ),
           ),
           
-          // Image Content (Mocking alternate posts having images)
-          if (index % 2 == 0)
+          // Image Content
+          if (imageUrl != null && imageUrl.isNotEmpty)
             Image.network(
-              'https://picsum.photos/seed/zynkup$index/600/400',
+              imageUrl,
               height: 240,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -142,7 +202,7 @@ class _FeedPostCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'This is a sample post about campus life. Just finished the hackathon and it was amazing! 🚀',
+              content,
               style: const TextStyle(
                 color: ZynkColors.offWhite,
                 fontSize: 14,
@@ -156,7 +216,10 @@ class _FeedPostCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Row(
               children: [
-                _ActionIcon(icon: Icons.favorite_border_rounded, label: '${12 + index * 5}'),
+                GestureDetector(
+                  onTap: onLike,
+                  child: _ActionIcon(icon: Icons.favorite_border_rounded, label: '$likes'),
+                ),
                 const SizedBox(width: 24),
                 const _ActionIcon(icon: Icons.chat_bubble_outline_rounded, label: 'Reply'),
                 const Spacer(),
