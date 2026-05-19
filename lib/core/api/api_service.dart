@@ -587,4 +587,127 @@ class ApiService {
       return [];
     }
   }
+
+  static Future<Map<String, dynamic>> createFeedPost({
+    required String content,
+    String? imageUrl,
+    String? bannerUrl,
+  }) async {
+    await loadToken();
+    try {
+      final res = await http.post(
+        Uri.parse("$baseUrl/feed/"),
+        headers: await _headers,
+        body: jsonEncode({
+          "content": content,
+          if (imageUrl != null) "image_url": imageUrl,
+          if (bannerUrl != null) "banner_url": bannerUrl,
+        }),
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to create post.");
+    }
+  }
+
+  static Future<bool> likeFeedPost(int postId) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/feed/$postId/like"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<List<dynamic>> getFeedComments(int postId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/feed/$postId/comments"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> createFeedComment(
+    int postId,
+    String content,
+  ) async {
+    await loadToken();
+    try {
+      final res = await http.post(
+        Uri.parse("$baseUrl/feed/$postId/comments"),
+        headers: await _headers,
+        body: jsonEncode({"content": content}),
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to create comment.");
+    }
+  }
+
+  static Future<Map<String, dynamic>> createClub({
+    required String name,
+    required String description,
+    String? category,
+    String? bannerUrl,
+    String? logoUrl,
+  }) async {
+    await loadToken();
+    try {
+      final res = await http.post(
+        Uri.parse("$baseUrl/clubs/"),
+        headers: await _headers,
+        body: jsonEncode({
+          "name": name,
+          "description": description,
+          "category": category ?? "general",
+          if (bannerUrl != null) "banner_url": bannerUrl,
+          if (logoUrl != null) "logo_url": logoUrl,
+        }),
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to create club.");
+    }
+  }
+
+  static Future<bool> joinClub(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/clubs/$clubId/join"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 }
+

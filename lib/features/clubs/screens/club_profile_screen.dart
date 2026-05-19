@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 
 class ClubProfileScreen extends StatefulWidget {
   final String clubId;
   final String clubName;
+  final Map<String, dynamic>? clubData;
 
   const ClubProfileScreen({
     super.key,
     required this.clubId,
     required this.clubName,
+    this.clubData,
   });
 
   @override
@@ -18,12 +21,19 @@ class ClubProfileScreen extends StatefulWidget {
 
 class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Map<String, dynamic>? _club;
+  bool _loading = false;
   bool _isMember = false;
   
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    if (widget.clubData != null) {
+      _club = widget.clubData;
+    } else {
+      _loadClub();
+    }
   }
 
   @override
@@ -32,136 +42,235 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     super.dispose();
   }
 
-  void _toggleMembership() {
-    setState(() {
-      _isMember = !_isMember;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isMember ? 'Joined ${widget.clubName}!' : 'Left ${widget.clubName}'),
-        backgroundColor: _isMember ? ZynkColors.primary : ZynkColors.darkMuted,
-      ),
-    );
+  Future<void> _loadClub() async {
+    setState(() => _loading = true);
+    try {
+      final allClubs = await ApiService.getClubs();
+      final found = allClubs.firstWhere(
+        (c) => c['id'].toString() == widget.clubId,
+        orElse: () => null,
+      );
+      if (mounted) {
+        setState(() {
+          _club = found;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _toggleMembership() async {
+    final success = await ApiService.joinClub(int.parse(widget.clubId));
+    if (success) {
+      setState(() {
+        _isMember = !_isMember;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isMember ? 'Joined ${widget.clubName}!' : 'Left ${widget.clubName}'),
+            backgroundColor: _isMember ? ZynkColors.primary : ZynkColors.darkMuted,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update membership. Please try again.'),
+            backgroundColor: ZynkColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bannerImage = (_club != null && _club!['banner_url'] != null && _club!['banner_url'].isNotEmpty)
+        ? _club!['banner_url']
+        : 'https://picsum.photos/seed/${widget.clubId}/800/400';
+
+    final logoImage = (_club != null && _club!['logo_url'] != null && _club!['logo_url'].isNotEmpty)
+        ? _club!['logo_url']
+        : 'https://picsum.photos/seed/${widget.clubId}/200/200';
+
     return Scaffold(
       backgroundColor: ZynkColors.darkBg,
       body: ZynkBackground(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverAppBar(
-                expandedHeight: 280,
-                pinned: true,
-                backgroundColor: ZynkColors.darkBg,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: Text(
-                    widget.clubName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: ZynkColors.offWhite,
-                      shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
-                    ),
-                  ),
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        'https://picsum.photos/seed/${widget.clubId}/800/400',
-                        fit: BoxFit.cover,
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              ZynkColors.darkBg.withValues(alpha: 0.8),
-                              ZynkColors.darkBg,
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
+            : NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverAppBar(
+                      expandedHeight: 280,
+                      pinned: true,
+                      backgroundColor: ZynkColors.darkBg,
+                      flexibleSpace: FlexibleSpaceBar(
+                        title: Text(
+                          widget.clubName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: ZynkColors.offWhite,
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
                           ),
                         ),
+                        background: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              bannerImage,
+                              fit: BoxFit.cover,
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    ZynkColors.darkBg.withValues(alpha: 0.8),
+                                    ZynkColors.darkBg,
+                                  ],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: Center(
-                      child: ZynkButton(
-                        label: _isMember ? 'Joined' : 'Join Club',
-                        outlined: _isMember,
-                        icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
-                        onTap: _toggleMembership,
+                      actions: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: Center(
+                            child: ZynkButton(
+                              label: _isMember ? 'Joined' : 'Join Club',
+                              outlined: _isMember,
+                              icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
+                              onTap: _toggleMembership,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Custom logo avatar stacked with the profile header details
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: ZynkColors.darkSurface,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: ZynkColors.gold, width: 2),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 32,
+                                    backgroundImage: NetworkImage(logoImage),
+                                    backgroundColor: ZynkColors.darkSurface2,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: ZynkColors.gold.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                                          border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.3)),
+                                        ),
+                                        child: Text(
+                                          (_club?['category'] ?? 'general').toString().toUpperCase(),
+                                          style: const TextStyle(
+                                            color: ZynkColors.gold,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      const Text(
+                                        'Official Student Club',
+                                        style: TextStyle(
+                                          color: ZynkColors.darkMuted,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              _club != null && _club!['description'] != null
+                                  ? _club!['description']
+                                  : 'The official ${widget.clubName} of MAIT. We build, create, and innovate together.',
+                              style: const TextStyle(color: ZynkColors.offWhite, fontSize: 14, height: 1.5),
+                            ),
+                            const SizedBox(height: 16),
+                            const Row(
+                              children: [
+                                Icon(Icons.people_alt_rounded, color: ZynkColors.gold, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  '1.2k Members',
+                                  style: TextStyle(color: ZynkColors.gold, fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(width: 24),
+                                Icon(Icons.workspace_premium_rounded, color: ZynkColors.orange, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Rank #2',
+                                  style: TextStyle(color: ZynkColors.orange, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'The official ${widget.clubName} of MAIT. We build, create, and innovate together.',
-                        style: const TextStyle(color: ZynkColors.offWhite, fontSize: 14, height: 1.5),
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _SliverAppBarDelegate(
+                        TabBar(
+                          controller: _tabController,
+                          indicatorColor: ZynkColors.gold,
+                          labelColor: ZynkColors.gold,
+                          unselectedLabelColor: ZynkColors.darkMuted,
+                          dividerColor: Colors.transparent,
+                          tabs: const [
+                            Tab(text: 'Events'),
+                            Tab(text: 'Members'),
+                            Tab(text: 'Gallery'),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Icon(Icons.people_alt_rounded, color: ZynkColors.gold, size: 18),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '1.2k Members',
-                            style: TextStyle(color: ZynkColors.gold, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(width: 24),
-                          const Icon(Icons.workspace_premium_rounded, color: ZynkColors.orange, size: 18),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Rank #2',
-                            style: TextStyle(color: ZynkColors.orange, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ];
+                },
+                body: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildEventsTab(),
+                    _buildMembersTab(),
+                    _buildGalleryTab(),
+                  ],
                 ),
               ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverAppBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    indicatorColor: ZynkColors.gold,
-                    labelColor: ZynkColors.gold,
-                    unselectedLabelColor: ZynkColors.darkMuted,
-                    dividerColor: Colors.transparent,
-                    tabs: const [
-                      Tab(text: 'Events'),
-                      Tab(text: 'Members'),
-                      Tab(text: 'Gallery'),
-                    ],
-                  ),
-                ),
-              ),
-            ];
-          },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildEventsTab(),
-              _buildMembersTab(),
-              _buildGalleryTab(),
-            ],
-          ),
-        ),
       ),
     );
   }
