@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/api/api_service.dart';
+import 'package:zynkup/features/feed/screens/create_post_screen.dart';
+import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -32,73 +34,115 @@ class _FeedTabState extends State<FeedTab> {
     }
   }
 
+  Future<void> _createNewPost() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+    );
+    if (result == true) {
+      _load();
+    }
+  }
+
+  void _showComments(Map<String, dynamic> post) {
+    final postId = post['id'] as int?;
+    if (postId == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PostCommentsSheet(
+        postId: postId,
+        authorName: post['author_name'] ?? 'Anonymous',
+        authorAvatar: post['author_avatar'],
+        postContent: post['content'] ?? '',
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ZynkBackground(
-        child: RefreshIndicator(
-          color: ZynkColors.gold,
-          onRefresh: _load,
-          child: CustomScrollView(
-            slivers: [
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Campus Feed',
-                        style: TextStyle(
-                          color: ZynkColors.offWhite,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.8,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: ZynkBackground(
+          child: RefreshIndicator(
+            color: ZynkColors.gold,
+            onRefresh: _load,
+            child: CustomScrollView(
+              slivers: [
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Campus Feed',
+                          style: TextStyle(
+                            color: ZynkColors.offWhite,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.8,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Stay updated with what\'s happening on campus.',
+                        SizedBox(height: 8),
+                        Text(
+                          'Stay updated with what\'s happening on campus.',
+                          style: TextStyle(color: ZynkColors.darkMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_loading)
+                  const SliverFillRemaining(
+                    child: Center(
+                      child: CircularProgressIndicator(color: ZynkColors.gold),
+                    ),
+                  )
+                else if (_posts.isEmpty)
+                  const SliverFillRemaining(
+                    child: Center(
+                      child: Text(
+                        'No campus updates yet.',
                         style: TextStyle(color: ZynkColors.darkMuted),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_loading)
-                const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(color: ZynkColors.gold),
-                  ),
-                )
-              else if (_posts.isEmpty)
-                const SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'No campus updates yet.',
-                      style: TextStyle(color: ZynkColors.darkMuted),
                     ),
-                  ),
-                )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _FeedPostCard(
-                      post: _posts[index] as Map<String, dynamic>,
-                      onLike: () async {
-                        final postId = _posts[index]['id'] as int?;
-                        if (postId != null) {
-                          await ApiService.getFeed(); // Refresh or call like
-                        }
+                  )
+                else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final post = _posts[index] as Map<String, dynamic>;
+                        return _FeedPostCard(
+                          post: post,
+                          onLike: () async {
+                            final postId = post['id'] as int?;
+                            if (postId != null) {
+                              setState(() {
+                                post['likes'] = (post['likes'] ?? 0) + 1;
+                              });
+                              await ApiService.likeFeedPost(postId);
+                            }
+                          },
+                          onReply: () => _showComments(post),
+                        );
                       },
+                      childCount: _posts.length,
                     ),
-                    childCount: _posts.length,
                   ),
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: 110)),
-            ],
+                const SliverToBoxAdapter(child: SizedBox(height: 110)),
+              ],
+            ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createNewPost,
+        backgroundColor: ZynkColors.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.add_comment_rounded, color: Colors.white),
       ),
     );
   }
@@ -107,10 +151,12 @@ class _FeedTabState extends State<FeedTab> {
 class _FeedPostCard extends StatelessWidget {
   final Map<String, dynamic> post;
   final VoidCallback onLike;
+  final VoidCallback onReply;
 
   const _FeedPostCard({
     required this.post,
     required this.onLike,
+    required this.onReply,
   });
 
   String _timeAgo(String? dateTimeStr) {
@@ -136,8 +182,11 @@ class _FeedPostCard extends StatelessWidget {
         : 'https://api.dicebear.com/7.x/avataaars/png?seed=$authorName';
     final String content = post['content'] ?? '';
     final String? imageUrl = post['image_url'];
+    final String? bannerUrl = post['banner_url'];
     final int likes = post['likes'] ?? 0;
     final String timeStr = _timeAgo(post['created_at'] as String?);
+
+    final hasBanner = bannerUrl != null && bannerUrl.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -149,6 +198,18 @@ class _FeedPostCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Banner Attachment
+          if (hasBanner)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(ZynkRadius.lg - 1)),
+              child: Image.network(
+                bannerUrl,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            
           // Author Header
           Padding(
             padding: const EdgeInsets.all(16),
@@ -218,10 +279,20 @@ class _FeedPostCard extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: onLike,
-                  child: _ActionIcon(icon: Icons.favorite_border_rounded, label: '$likes'),
+                  child: _ActionIcon(
+                    icon: likes > 0 ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    iconColor: likes > 0 ? ZynkColors.orange : ZynkColors.darkMuted,
+                    label: '$likes',
+                  ),
                 ),
                 const SizedBox(width: 24),
-                const _ActionIcon(icon: Icons.chat_bubble_outline_rounded, label: 'Reply'),
+                GestureDetector(
+                  onTap: onReply,
+                  child: const _ActionIcon(
+                    icon: Icons.chat_bubble_outline_rounded,
+                    label: 'Reply',
+                  ),
+                ),
                 const Spacer(),
                 const _ActionIcon(icon: Icons.share_rounded, label: 'Share'),
               ],
@@ -236,13 +307,19 @@ class _FeedPostCard extends StatelessWidget {
 class _ActionIcon extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _ActionIcon({required this.icon, required this.label});
+  final Color? iconColor;
+
+  const _ActionIcon({
+    required this.icon,
+    required this.label,
+    this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: ZynkColors.darkMuted, size: 20),
+        Icon(icon, color: iconColor ?? ZynkColors.darkMuted, size: 20),
         const SizedBox(width: 6),
         Text(
           label,

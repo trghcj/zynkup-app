@@ -156,7 +156,21 @@ class FeedPost(Base):
     author_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
     content    = Column(Text, nullable=False)
     image_url  = Column(Text, nullable=True)
+    banner_url = Column(Text, nullable=True)
     likes      = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())
 
     author = relationship("User")
+
+
+class FeedComment(Base):
+    __tablename__ = "feed_comments"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    post_id    = Column(Integer, ForeignKey("feed_posts.id"), nullable=False)
+    author_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content    = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    post   = relationship("FeedPost")
+    author = relationship("User")
