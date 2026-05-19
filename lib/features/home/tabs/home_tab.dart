@@ -4,6 +4,7 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/event_card_widget.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
+import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 
@@ -82,7 +83,12 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 )
               else ...[
-                SliverToBoxAdapter(child: _ClubsSection(clubs: _clubs)),
+                SliverToBoxAdapter(
+                  child: _ClubsSection(
+                    clubs: _clubs,
+                    onRefresh: _load,
+                  ),
+                ),
                 _Section(
                   title: 'Featured Events',
                   events: _events.take(3).toList(),
@@ -335,7 +341,8 @@ class _Section extends StatelessWidget {
 
 class _ClubsSection extends StatelessWidget {
   final List<dynamic> clubs;
-  const _ClubsSection({required this.clubs});
+  final VoidCallback onRefresh;
+  const _ClubsSection({required this.clubs, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -346,19 +353,44 @@ class _ClubsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.groups_rounded, color: ZynkColors.orange, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Campus Clubs',
-                style: TextStyle(
-                  color: ZynkColors.offWhite,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
+              const Row(
+                children: [
+                  Icon(Icons.groups_rounded, color: ZynkColors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Campus Clubs',
+                    style: TextStyle(
+                      color: ZynkColors.offWhite,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreateClubScreen()),
+                  );
+                  if (result == true) {
+                    onRefresh();
+                  }
+                },
+                icon: const Icon(Icons.add_rounded, size: 18, color: ZynkColors.gold),
+                label: const Text(
+                  'Create',
+                  style: TextStyle(
+                    color: ZynkColors.gold,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],
