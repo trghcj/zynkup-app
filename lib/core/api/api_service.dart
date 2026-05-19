@@ -536,4 +536,55 @@ class ApiService {
       return {};
     }
   }
+
+  // ── Campus Stats ──────────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getCampusStats() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/analytics/campus-stats"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  // ── Clubs ──────────────────────────────────────────────────────────────────
+  static Future<List<dynamic>> getClubs() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ── Feed ───────────────────────────────────────────────────────────────────
+  static Future<List<dynamic>> getFeed() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/feed/"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
 }
