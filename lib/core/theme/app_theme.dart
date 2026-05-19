@@ -1,5 +1,7 @@
 // lib/core/theme/app_theme.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 //  ZYNKUP — Premium Olive-Gold-Orange Design System
@@ -27,10 +29,10 @@ class ZynkColors {
   static const terra3 = Color(0xFFE8875A);
 
   // ── Dark surfaces ─────────────────────────────────────────────────
-  static const darkBg = Color(0xFF12100A);
-  static const darkSurface = Color(0xFF1C1812);
-  static const darkSurface2 = Color(0xFF262014);
-  static const darkBorder = Color(0xFF3A3225);
+  static const darkBg = Color(0xFF050505);
+  static const darkSurface = Color(0xFF0F0F0F);
+  static const darkSurface2 = Color(0xFF161616);
+  static const darkBorder = Color(0xFF202020);
   static const darkText = offWhite;
   static const darkMuted = Color(0xFFB3A68D);
 
@@ -86,14 +88,14 @@ class ZynkGradients {
   );
 
   static const warmDark = LinearGradient(
-    colors: [Color(0xFF12100A), Color(0xFF1E1B10), Color(0xFF1C1812)],
+    colors: [Color(0xFF050505), Color(0xFF0C0C0C), Color(0xFF101010)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   /// Subtle card surface gradient for premium feel
   static const cardSurface = LinearGradient(
-    colors: [Color(0xFF1E1A13), Color(0xFF1A1610)],
+    colors: [Color(0xFF0D0D0D), Color(0xFF080808)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -218,6 +220,17 @@ class ZynkShadows {
       blurRadius: 18,
     ),
   ];
+
+  static List<BoxShadow> categoryGlow(String category) {
+    final color = ZynkColors.forCategory(category);
+    return [
+      BoxShadow(
+        color: color.withValues(alpha: 0.08),
+        blurRadius: 36,
+        spreadRadius: 2,
+      ),
+    ];
+  }
 }
 
 class AppTheme {
@@ -380,99 +393,127 @@ class AppTheme {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
   );
 
-  static ThemeData get dark => ThemeData(
-    brightness: Brightness.dark,
-    useMaterial3: true,
-    colorScheme: const ColorScheme.dark(
-      primary: ZynkColors.primary,
-      secondary: ZynkColors.accent,
-      surface: ZynkColors.darkSurface,
-      error: ZynkColors.error,
-      onPrimary: Colors.white,
-      onSurface: ZynkColors.darkText,
-      onSecondary: Colors.white,
-    ),
-    scaffoldBackgroundColor: ZynkColors.darkBg,
-    appBarTheme: _appBar(true),
-    cardTheme: _card(true),
-    inputDecorationTheme: _input(true),
-    elevatedButtonTheme: _btn,
-    outlinedButtonTheme: _outlineBtn,
-    textButtonTheme: _textBtn,
-    tabBarTheme: _tabBar(true),
-    dialogTheme: _dialog(true),
-    chipTheme: _chip(true),
-    dividerColor: ZynkColors.darkBorder,
-    snackBarTheme: SnackBarThemeData(
-      backgroundColor: ZynkColors.darkSurface2,
-      contentTextStyle: const TextStyle(color: ZynkColors.darkText, fontWeight: FontWeight.w500),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(ZynkRadius.md),
-        side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.2)),
+  static ThemeData get dark {
+    final baseTextTheme = ThemeData.dark().textTheme;
+    return ThemeData(
+      brightness: Brightness.dark,
+      useMaterial3: true,
+      textTheme: GoogleFonts.outfitTextTheme(baseTextTheme).copyWith(
+        displayLarge: GoogleFonts.sora(textStyle: baseTextTheme.displayLarge),
+        displayMedium: GoogleFonts.sora(textStyle: baseTextTheme.displayMedium),
+        displaySmall: GoogleFonts.sora(textStyle: baseTextTheme.displaySmall),
+        headlineLarge: GoogleFonts.sora(textStyle: baseTextTheme.headlineLarge, fontWeight: FontWeight.w900),
+        headlineMedium: GoogleFonts.sora(textStyle: baseTextTheme.headlineMedium, fontWeight: FontWeight.w800),
+        headlineSmall: GoogleFonts.sora(textStyle: baseTextTheme.headlineSmall, fontWeight: FontWeight.w700),
+        titleLarge: GoogleFonts.sora(textStyle: baseTextTheme.titleLarge, fontWeight: FontWeight.w700),
+        titleMedium: GoogleFonts.sora(textStyle: baseTextTheme.titleMedium, fontWeight: FontWeight.w600),
+        titleSmall: GoogleFonts.sora(textStyle: baseTextTheme.titleSmall, fontWeight: FontWeight.w600),
       ),
-      behavior: SnackBarBehavior.floating,
-    ),
-    segmentedButtonTheme: SegmentedButtonThemeData(
-      style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return ZynkColors.deepOlive;
-          return ZynkColors.darkSurface2;
-        }),
-        foregroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return ZynkColors.gold;
-          return ZynkColors.darkMuted;
-        }),
-        side: WidgetStateProperty.all(
-          const BorderSide(color: ZynkColors.darkBorder),
+      colorScheme: const ColorScheme.dark(
+        primary: ZynkColors.primary,
+        secondary: ZynkColors.accent,
+        surface: ZynkColors.darkSurface,
+        error: ZynkColors.error,
+        onPrimary: Colors.white,
+        onSurface: ZynkColors.darkText,
+        onSecondary: Colors.white,
+      ),
+      scaffoldBackgroundColor: ZynkColors.darkBg,
+      appBarTheme: _appBar(true),
+      cardTheme: _card(true),
+      inputDecorationTheme: _input(true),
+      elevatedButtonTheme: _btn,
+      outlinedButtonTheme: _outlineBtn,
+      textButtonTheme: _textBtn,
+      tabBarTheme: _tabBar(true),
+      dialogTheme: _dialog(true),
+      chipTheme: _chip(true),
+      dividerColor: ZynkColors.darkBorder,
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: ZynkColors.darkSurface2,
+        contentTextStyle: const TextStyle(color: ZynkColors.darkText, fontWeight: FontWeight.w500),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ZynkRadius.md),
+          side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.2)),
         ),
-        shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.lg)),
-        ),
-        textStyle: WidgetStateProperty.all(
-          const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        behavior: SnackBarBehavior.floating,
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return ZynkColors.deepOlive;
+            return ZynkColors.darkSurface2;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return ZynkColors.gold;
+            return ZynkColors.darkMuted;
+          }),
+          side: WidgetStateProperty.all(
+            const BorderSide(color: ZynkColors.darkBorder),
+          ),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.lg)),
+          ),
+          textStyle: WidgetStateProperty.all(
+            const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
         ),
       ),
-    ),
-    tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(
-        color: ZynkColors.darkSurface2,
-        borderRadius: BorderRadius.circular(ZynkRadius.sm),
-        border: Border.all(color: ZynkColors.darkBorder),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: ZynkColors.darkSurface2,
+          borderRadius: BorderRadius.circular(ZynkRadius.sm),
+          border: Border.all(color: ZynkColors.darkBorder),
+        ),
+        textStyle: const TextStyle(color: ZynkColors.darkText, fontSize: 12),
       ),
-      textStyle: const TextStyle(color: ZynkColors.darkText, fontSize: 12),
-    ),
-  );
+    );
+  }
 
-  static ThemeData get light => ThemeData(
-    brightness: Brightness.light,
-    useMaterial3: true,
-    colorScheme: const ColorScheme.light(
-      primary: ZynkColors.primary,
-      secondary: ZynkColors.accent,
-      surface: ZynkColors.lightSurface,
-      error: ZynkColors.error,
-      onPrimary: Colors.white,
-      onSurface: ZynkColors.lightText,
-      onSecondary: Colors.white,
-    ),
-    scaffoldBackgroundColor: ZynkColors.lightBg,
-    appBarTheme: _appBar(false),
-    cardTheme: _card(false),
-    inputDecorationTheme: _input(false),
-    elevatedButtonTheme: _btn,
-    outlinedButtonTheme: _outlineBtn,
-    textButtonTheme: _textBtn,
-    tabBarTheme: _tabBar(false),
-    dialogTheme: _dialog(false),
-    chipTheme: _chip(false),
-    dividerColor: ZynkColors.lightBorder,
-    snackBarTheme: SnackBarThemeData(
-      backgroundColor: ZynkColors.lightText,
-      contentTextStyle: const TextStyle(color: Colors.white),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.md)),
-      behavior: SnackBarBehavior.floating,
-    ),
-  );
+  static ThemeData get light {
+    final baseTextTheme = ThemeData.light().textTheme;
+    return ThemeData(
+      brightness: Brightness.light,
+      useMaterial3: true,
+      textTheme: GoogleFonts.outfitTextTheme(baseTextTheme).copyWith(
+        displayLarge: GoogleFonts.sora(textStyle: baseTextTheme.displayLarge),
+        displayMedium: GoogleFonts.sora(textStyle: baseTextTheme.displayMedium),
+        displaySmall: GoogleFonts.sora(textStyle: baseTextTheme.displaySmall),
+        headlineLarge: GoogleFonts.sora(textStyle: baseTextTheme.headlineLarge, fontWeight: FontWeight.w900),
+        headlineMedium: GoogleFonts.sora(textStyle: baseTextTheme.headlineMedium, fontWeight: FontWeight.w800),
+        headlineSmall: GoogleFonts.sora(textStyle: baseTextTheme.headlineSmall, fontWeight: FontWeight.w700),
+        titleLarge: GoogleFonts.sora(textStyle: baseTextTheme.titleLarge, fontWeight: FontWeight.w700),
+        titleMedium: GoogleFonts.sora(textStyle: baseTextTheme.titleMedium, fontWeight: FontWeight.w600),
+        titleSmall: GoogleFonts.sora(textStyle: baseTextTheme.titleSmall, fontWeight: FontWeight.w600),
+      ),
+      colorScheme: const ColorScheme.light(
+        primary: ZynkColors.primary,
+        secondary: ZynkColors.accent,
+        surface: ZynkColors.lightSurface,
+        error: ZynkColors.error,
+        onPrimary: Colors.white,
+        onSurface: ZynkColors.lightText,
+        onSecondary: Colors.white,
+      ),
+      scaffoldBackgroundColor: ZynkColors.lightBg,
+      appBarTheme: _appBar(false),
+      cardTheme: _card(false),
+      inputDecorationTheme: _input(false),
+      elevatedButtonTheme: _btn,
+      outlinedButtonTheme: _outlineBtn,
+      textButtonTheme: _textBtn,
+      tabBarTheme: _tabBar(false),
+      dialogTheme: _dialog(false),
+      chipTheme: _chip(false),
+      dividerColor: ZynkColors.lightBorder,
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: ZynkColors.lightText,
+        contentTextStyle: const TextStyle(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.md)),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 }
 
 // ── Shared Widgets ────────────────────────────────────────────────
@@ -717,17 +758,23 @@ class ZynkGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: padding ?? const EdgeInsets.all(ZynkSpacing.md),
-      decoration: BoxDecoration(
-        gradient: ZynkGradients.cardSurface,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-          color: borderColor ?? ZynkColors.darkBorder.withValues(alpha: 0.6),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          padding: padding ?? const EdgeInsets.all(ZynkSpacing.md),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: borderColor ?? Colors.white.withValues(alpha: 0.06),
+            ),
+            boxShadow: ZynkShadows.card,
+          ),
+          child: child,
         ),
-        boxShadow: ZynkShadows.card,
       ),
-      child: child,
     );
   }
 }
