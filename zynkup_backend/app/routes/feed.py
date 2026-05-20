@@ -5,8 +5,8 @@ from typing import List, Optional
 from datetime import datetime
 
 from ..database import get_db
-from ..models import FeedPost, User, FeedComment
-from ..auth import get_current_user
+from ..models import FeedPost, User, FeedComment, FeedLike
+from ..auth import get_current_user, get_optional_current_user
 
 router = APIRouter(prefix="/feed", tags=["Feed"])
 
@@ -24,6 +24,7 @@ class FeedPostResponse(BaseModel):
     image_url: Optional[str]
     banner_url: Optional[str]
     likes: int
+    is_liked: bool = False
     created_at: datetime
 
     class Config:
@@ -65,12 +66,18 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         image_url=new_post.image_url,
         banner_url=new_post.banner_url,
         likes=new_post.likes,
+        is_liked=False,
         created_at=new_post.created_at
     )
 
 @router.get("/", response_model=List[FeedPostResponse])
-def get_feed(db: Session = Depends(get_db)):
-    posts = db.query(FeedPost).order_by(FeedPost.created_at.desc()).all()
+def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+    # Filter out heavily reported posts if needed, or return all but marked
+    posts = db.query(FeedPost).filter(FeedPost.report_count < 10).order_by(FeedPost.created_at.desc()).all()
+    liked_post_ids = set()
+    if current_user:
+        liked_post_ids = {like.post_id for like in db.query(FeedLike).filter(FeedLike.user_id == current_user.id).all()}
+
     result = []
     for p in posts:
         result.append(FeedPostResponse(
@@ -82,6 +89,7 @@ def get_feed(db: Session = Depends(get_db)):
             image_url=p.image_url,
             banner_url=p.banner_url,
             likes=p.likes,
+            is_liked=(p.id in liked_post_ids),
             created_at=p.created_at
         ))
     return result
@@ -89,10 +97,34 @@ def get_feed(db: Session = Depends(get_db)):
 @router.post("/{post_id}/like")
 def like_post(post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     post = db.query(FeedPost).filter(FeedPost.id == post_id).first()
-    if post:
+    if not post:
+        raise HTTPException(status_code=404, detail="Feed post not found")
+    
+    existing_like = db.query(FeedLike).filter(FeedLike.post_id == post_id, FeedLike.user_id == current_user.id).first()
+    if existing_like:
+        # Unlike
+        db.delete(existing_like)
+        post.likes = max(0, post.likes - 1)
+        db.commit()
+        return {"message": "Unliked", "is_liked": False, "likes": post.likes}
+    else:
+        # Like
+        new_like = FeedLike(post_id=post_id, user_id=current_user.id)
+        db.add(new_like)
         post.likes += 1
         db.commit()
-    return {"message": "Liked"}
+        return {"message": "Liked", "is_liked": True, "likes": post.likes}
+
+@router.post("/{post_id}/report")
+def report_post(post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    post = db.query(FeedPost).filter(FeedPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Feed post not found")
+    
+    post.is_reported = True
+    post.report_count += 1
+    db.commit()
+    return {"message": "Post reported successfully", "report_count": post.report_count}
 
 @router.post("/{post_id}/comments", response_model=FeedCommentResponse)
 def create_comment(post_id: int, comment_data: FeedCommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

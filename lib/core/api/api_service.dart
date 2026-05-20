@@ -303,6 +303,7 @@ class ApiService {
     List<String>? imageUrls,
     String? registrationUrl,
     String? registrationUrlType,
+    int? clubId,
   }) async {
     await loadToken();
     try {
@@ -320,6 +321,7 @@ class ApiService {
           if (registrationUrl != null) "registration_url": registrationUrl,
           if (registrationUrlType != null)
             "registration_url_type": registrationUrlType,
+          if (clubId != null) "club_id": clubId,
         }),
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
@@ -707,6 +709,139 @@ class ApiService {
       return res.statusCode == 200;
     } catch (_) {
       return false;
+    }
+  }
+
+  // ── Extended Feed ──────────────────────────────────────────────────────────
+  static Future<bool> reportFeedPost(int postId) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/feed/$postId/report"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Extended Clubs ─────────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>?> getClubById(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/$clubId"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getClubMembers(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/$clubId/members"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> updateClubMemberRole(int clubId, int userId, String role) async {
+    try {
+      await loadToken();
+      final res = await http.put(
+        Uri.parse("$baseUrl/clubs/$clubId/members/$userId/role"),
+        headers: await _headers,
+        body: jsonEncode({"role": role}),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<List<dynamic>> getClubEvents(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/$clubId/events"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<List<dynamic>> getClubGallery(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/$clubId/gallery"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        return body['files'] as List<dynamic>? ?? [];
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> uploadClubGallery(
+    int clubId,
+    Uint8List fileBytes,
+    String filename,
+  ) async {
+    try {
+      await loadToken();
+      final req = http.MultipartRequest(
+        'POST',
+        Uri.parse("$baseUrl/clubs/$clubId/gallery"),
+      );
+      if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
+      
+      final ext = filename.split('.').last.toLowerCase();
+      String mime = 'image/jpeg';
+      if (ext == 'png') mime = 'image/png';
+      if (ext == 'webp') mime = 'image/webp';
+      
+      req.files.add(
+        http.MultipartFile.fromBytes(
+          'files',
+          fileBytes,
+          filename: filename,
+          contentType: MediaType.parse(mime),
+        ),
+      );
+      
+      final res = await http.Response.fromStream(await req.send());
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Club gallery upload failed.");
     }
   }
 }

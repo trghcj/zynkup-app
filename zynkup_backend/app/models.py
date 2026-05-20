@@ -54,6 +54,7 @@ class Event(Base):
     is_approved           = Column(Boolean, default=True, nullable=False)
     created_at            = Column(DateTime, server_default=func.now())
     creator_id            = Column(Integer, ForeignKey("users.id"), nullable=True)
+    club_id               = Column(Integer, ForeignKey("clubs.id"), nullable=True)
 
     # Media
     image_urls            = Column(Text, nullable=True, default="")
@@ -69,6 +70,7 @@ class Event(Base):
     report_count          = Column(Integer, default=0, nullable=False)
 
     creator       = relationship("User", back_populates="events")
+    club          = relationship("Club")
     registrations = relationship("Registration", back_populates="event",
                                  cascade="all, delete-orphan")
 
@@ -115,6 +117,7 @@ class Club(Base):
     category    = Column(String, nullable=True, default="general")
     banner_url  = Column(Text, nullable=True)
     logo_url    = Column(Text, nullable=True)
+    gallery_files = Column(Text, nullable=True, default="")
     created_at  = Column(DateTime, server_default=func.now())
     creator_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
 
@@ -158,6 +161,8 @@ class FeedPost(Base):
     image_url  = Column(Text, nullable=True)
     banner_url = Column(Text, nullable=True)
     likes      = Column(Integer, default=0)
+    is_reported = Column(Boolean, default=False, nullable=False)
+    report_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
     author = relationship("User")
@@ -173,4 +178,16 @@ class FeedComment(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     post   = relationship("FeedPost")
-    author = relationship("User")
+    author = relationship("User")
+
+
+class FeedLike(Base):
+    __tablename__ = "feed_likes"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    post_id    = Column(Integer, ForeignKey("feed_posts.id"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    post   = relationship("FeedPost")
+    user   = relationship("User")
