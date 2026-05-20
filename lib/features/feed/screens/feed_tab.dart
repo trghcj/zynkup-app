@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/api/api_service.dart';
@@ -57,6 +58,87 @@ class _FeedTabState extends State<FeedTab> {
         authorAvatar: post['author_avatar'],
         postContent: post['content'] ?? '',
       ),
+    );
+  }
+
+  void _showMoreOptions(Map<String, dynamic> post) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: ZynkColors.darkSurface2,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: ZynkColors.darkBorder),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ZynkColors.darkMuted.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.chat_bubble_outline_rounded, color: ZynkColors.gold),
+                title: const Text(
+                  'Watch Full Feed / View Discussion',
+                  style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showComments(post);
+                },
+              ),
+              const Divider(color: ZynkColors.darkBorder),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined, color: ZynkColors.error),
+                title: const Text(
+                  'Report Bad Content',
+                  style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
+                ),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(context);
+                  final postId = post['id'] as int?;
+                  if (postId != null) {
+                    final success = await ApiService.reportFeedPost(postId);
+                    if (success) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            children: [
+                              Icon(Icons.check_circle_outline_rounded, color: ZynkColors.error),
+                              SizedBox(width: 12),
+                              Text('Post reported successfully.'),
+                            ],
+                          ),
+                          backgroundColor: ZynkColors.darkSurface,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    } else {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to report post.'),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -166,13 +248,36 @@ class _FeedTabState extends State<FeedTab> {
                           onLike: () async {
                             final postId = post['id'] as int?;
                             if (postId != null) {
+                              final isLiked = post['is_liked'] == true;
                               setState(() {
-                                post['likes'] = (post['likes'] ?? 0) + 1;
+                                post['is_liked'] = !isLiked;
+                                post['likes'] = (post['likes'] ?? 0) + (isLiked ? -1 : 1);
                               });
                               await ApiService.likeFeedPost(postId);
                             }
                           },
                           onReply: () => _showComments(post),
+                          onShare: () {
+                            Clipboard.setData(ClipboardData(text: post['content'] ?? ''));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Row(
+                                  children: [
+                                    Icon(Icons.check_circle_outline_rounded, color: ZynkColors.gold),
+                                    SizedBox(width: 12),
+                                    Text('Copied post text to clipboard!'),
+                                  ],
+                                ),
+                                backgroundColor: ZynkColors.darkSurface2,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.3)),
+                                ),
+                              ),
+                            );
+                          },
+                          onMore: () => _showMoreOptions(post),
                         );
                       },
                       childCount: _posts.length,
@@ -198,11 +303,15 @@ class _FeedPostCard extends StatelessWidget {
   final Map<String, dynamic> post;
   final VoidCallback onLike;
   final VoidCallback onReply;
+  final VoidCallback onShare;
+  final VoidCallback onMore;
 
   const _FeedPostCard({
     required this.post,
     required this.onLike,
     required this.onReply,
+    required this.onShare,
+    required this.onMore,
   });
 
   String _timeAgo(String? dateTimeStr) {
@@ -230,6 +339,7 @@ class _FeedPostCard extends StatelessWidget {
     final String? imageUrl = post['image_url'];
     final String? bannerUrl = post['banner_url'];
     final int likes = post['likes'] ?? 0;
+    final bool isLiked = post['is_liked'] == true;
     final String timeStr = _timeAgo(post['created_at'] as String?);
 
     final hasBanner = bannerUrl != null && bannerUrl.isNotEmpty;
@@ -290,7 +400,7 @@ class _FeedPostCard extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_horiz_rounded, color: ZynkColors.darkMuted),
-                  onPressed: () {},
+                  onPressed: onMore,
                 ),
               ],
             ),
@@ -326,8 +436,8 @@ class _FeedPostCard extends StatelessWidget {
                 GestureDetector(
                   onTap: onLike,
                   child: _ActionIcon(
-                    icon: likes > 0 ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    iconColor: likes > 0 ? ZynkColors.orange : ZynkColors.darkMuted,
+                    icon: isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    iconColor: isLiked ? ZynkColors.orange : ZynkColors.darkMuted,
                     label: '$likes',
                   ),
                 ),
@@ -340,7 +450,10 @@ class _FeedPostCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                const _ActionIcon(icon: Icons.share_rounded, label: 'Share'),
+                GestureDetector(
+                  onTap: onShare,
+                  child: const _ActionIcon(icon: Icons.share_rounded, label: 'Share'),
+                ),
               ],
             ),
           ),
