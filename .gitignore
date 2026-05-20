@@ -78,9 +78,7 @@ app.*.map.json
 *.swp
 .DS_Store
 .atom/
-build/*
-!build/web/
-!build/web/**
+build/
 .buildlog/
 .history
 .svn/
