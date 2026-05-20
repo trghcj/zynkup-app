@@ -9,7 +9,8 @@ import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 
 class CreateEventScreen extends StatefulWidget {
-  const CreateEventScreen({super.key});
+  final int? clubId;
+  const CreateEventScreen({super.key, this.clubId});
 
   @override
   State<CreateEventScreen> createState() => _CreateEventScreenState();
@@ -118,6 +119,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         date: dateTime.toIso8601String(),
         category: _category,
         imageUrls: images,
+        clubId: widget.clubId,
       );
 
       if (!mounted) return;

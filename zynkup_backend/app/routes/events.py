@@ -42,6 +42,7 @@ class EventCreate(BaseModel):
     image_urls: Optional[List[str]] = []
     registration_url: Optional[str] = None
     registration_url_type: Optional[str] = None
+    club_id: Optional[int] = None
 
 
 class EventUpdate(BaseModel):
@@ -120,6 +121,7 @@ def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> d
         "category": event.category,
         "isApproved": event.is_approved,
         "organizerId": str(event.creator_id) if event.creator_id else "",
+        "club_id": event.club_id,
         "registeredUsers": [str(item.user_id) for item in event.registrations],
         "image_urls": urls,
         "registration_url": event.registration_url,
@@ -165,6 +167,7 @@ def create_event(
             category=payload.category.strip().lower(),
             is_approved=True,
             creator_id=current_user.id,
+            club_id=payload.club_id,
             image_urls=image_urls,
             registration_url=payload.registration_url,
             registration_url_type=payload.registration_url_type,
