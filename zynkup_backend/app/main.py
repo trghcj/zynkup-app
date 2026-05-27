@@ -18,6 +18,16 @@ from app.routes import users, events, analytics, admin, clubs, notifications, fe
 from app.auth import get_current_user
 from app import models
 
+import cloudinary
+import cloudinary.uploader
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
+
 ENV = os.getenv("ENV", "development")
 logging.basicConfig(
     level=logging.DEBUG if ENV == "development" else logging.WARNING,
@@ -81,9 +91,11 @@ def repair_event_schema() -> None:
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS banner_url TEXT",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE club_members ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'member'",
             "ALTER TABLE clubs ADD COLUMN IF NOT EXISTS gallery_files TEXT DEFAULT ''",
             """
             DO $$
@@ -138,10 +150,12 @@ def repair_event_schema() -> None:
             logger.error(f"EVENT SCHEMA REPAIR FAILED: {exc}", exc_info=True)
     elif engine.dialect.name == "sqlite":
         statements = [
+            "ALTER TABLE users ADD COLUMN fcm_token VARCHAR",
             "ALTER TABLE events ADD COLUMN club_id INTEGER",
             "ALTER TABLE clubs ADD COLUMN gallery_files TEXT",
             "ALTER TABLE feed_posts ADD COLUMN is_reported BOOLEAN DEFAULT 0 NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE club_members ADD COLUMN role VARCHAR DEFAULT 'member'",
         ]
         with engine.begin() as conn:
             for statement in statements:
@@ -178,10 +192,19 @@ async def upload_file(
     if len(contents) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Max 15MB")
 
-    filename = f"{uuid.uuid4().hex}{ext}"
-    file_path = Path(UPLOAD_DIR) / filename
-    file_path.write_bytes(contents)
-    public_url = _public_upload_url(request, filename)
+    try:
+        if os.getenv("CLOUDINARY_CLOUD_NAME"):
+            upload_result = cloudinary.uploader.upload(contents, folder="zynkup")
+            public_url = upload_result.get("secure_url")
+            filename = upload_result.get("public_id")
+        else:
+            filename = f"{uuid.uuid4().hex}{ext}"
+            file_path = Path(UPLOAD_DIR) / filename
+            file_path.write_bytes(contents)
+            public_url = _public_upload_url(request, filename)
+    except Exception as e:
+        logger.error(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Upload failed")
 
     logger.info(f"Uploaded {filename} by user {current_user.id}")
     return {"url": public_url, "filename": filename}

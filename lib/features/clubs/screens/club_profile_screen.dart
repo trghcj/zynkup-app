@@ -372,12 +372,16 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
         ? _club!['logo_url']
         : 'https://picsum.photos/seed/${widget.clubId}/200/200';
 
-    return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
-      body: ZynkBackground(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
-            : NestedScrollView(
+    return FractionallySizedBox(
+      heightFactor: 0.92,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Scaffold(
+          backgroundColor: ZynkColors.darkBg,
+          body: ZynkBackground(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
+                : NestedScrollView(
                 headerSliverBuilder: (context, innerBoxIsScrolled) {
                   return [
                     SliverAppBar(
@@ -538,8 +542,10 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   ],
                 ),
               ),
-      ),
-    );
+            ),
+          ),
+        ),
+      );
   }
 
   Widget _buildEventsTab() {
@@ -603,11 +609,11 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     event: event,
                     onTap: () {
                       final eventObj = Event.fromJson(event);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EventDetailsScreen(event: eventObj),
-                        ),
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => EventDetailsScreen(event: eventObj),
                       );
                     },
                   );

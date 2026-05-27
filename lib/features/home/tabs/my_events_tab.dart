@@ -132,12 +132,11 @@ class _MyEventsTabState extends State<MyEventsTab> {
                   itemBuilder: (context, index) => EventCardWidget(
                     event: events[index],
                     onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              EventDetailsScreen(event: events[index]),
-                        ),
+                      await showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => EventDetailsScreen(event: events[index]),
                       );
                       await _load();
                     },

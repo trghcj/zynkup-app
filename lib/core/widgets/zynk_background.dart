@@ -50,30 +50,30 @@ class _ZynkBackgroundState extends State<ZynkBackground>
             return Stack(
               fit: StackFit.expand,
               children: [
-                // Tech Blue Glow Orb (Pulsing Top Left)
+                // Tech Cyber-Cyan Glow Orb (Pulsing Top Left)
                 Positioned(
                   top: -120 + math.sin(t) * 35,
                   left: -80 + math.cos(t * 0.8) * 45,
                   child: _Orb(
-                    color: const Color(0xFF5C9EE8).withValues(alpha: 0.08),
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
                     size: 320,
                   ),
                 ),
-                // Seminar Purple Glow Orb (Pulsing Bottom Right)
+                // Seminar Magenta Glow Orb (Pulsing Bottom Right)
                 Positioned(
                   bottom: -150 + math.cos(t * 1.2) * 55,
                   right: -100 + math.sin(t * 0.9) * 35,
                   child: _Orb(
-                    color: const Color(0xFF9C6FBF).withValues(alpha: 0.12),
+                    color: const Color(0xFFD500F9).withValues(alpha: 0.18),
                     size: 380,
                   ),
                 ),
-                // Sports Green Glow Orb (Drifting Center Left)
+                // Energy Yellow/Gold Glow Orb (Drifting Center Left)
                 Positioned(
                   top: MediaQuery.of(context).size.height * 0.35 + math.sin(t * 0.7) * 40,
                   left: -120 + math.cos(t * 1.4) * 30,
                   child: _Orb(
-                    color: const Color(0xFF4CAF7D).withValues(alpha: 0.06),
+                    color: const Color(0xFFFFEA00).withValues(alpha: 0.12),
                     size: 260,
                   ),
                 ),

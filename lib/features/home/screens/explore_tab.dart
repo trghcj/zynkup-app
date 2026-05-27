@@ -316,9 +316,11 @@ class _EventCard extends StatelessWidget {
     final hasImage = event.imageUrls.isNotEmpty;
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => EventDetailsScreen(event: event)),
+      onTap: () => showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => EventDetailsScreen(event: event),
       ),
       child: Container(
         decoration: BoxDecoration(

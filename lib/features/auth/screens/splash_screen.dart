@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
-import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
 import 'package:zynkup/features/home/screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -21,14 +20,13 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _route() async {
     await Future<void>.delayed(const Duration(milliseconds: 900));
     await ApiService.loadToken();
-    final user = ApiService.hasToken ? await ApiService.getCurrentUser() : null;
+    if (ApiService.hasToken) {
+      await ApiService.getCurrentUser();
+    }
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            user == null ? const GuestHomeScreen() : const HomeScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 

@@ -17,11 +17,13 @@ class ZynkColors {
   static const offWhite = Color(0xFFF6F0EB);
 
   // ── Brand ────────────────────────────────────────────────────────
-  static const primary = orange;
+  static const Color primary = orange;
   static const primaryDark = Color(0xFFC95D13);
   static const primaryLight = Color(0xFFFFA45E);
-  static const accent = gold;
-  static const accentLight = sand;
+  static const Color accent = Color(0xFFC0B348);
+  static Color get accentGlow => gold.withValues(alpha: 0.2);
+
+  static const Color accentLight = Color(0xFFD6D09E);
 
   // ── Terracotta ────────────────────────────────────────────────────
   static const terra1 = Color(0xFFB5451B);

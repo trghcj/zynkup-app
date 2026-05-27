@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
-import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
 import 'package:zynkup/features/home/screens/home_screen.dart';
 
 class AuthGate extends StatefulWidget {
@@ -12,7 +11,6 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   bool _loading = true;
-  bool _signedIn = false;
 
   @override
   void initState() {
@@ -22,13 +20,11 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _load() async {
     await ApiService.loadToken();
-    final signedIn =
-        ApiService.hasToken && await ApiService.getCurrentUser() != null;
+    if (ApiService.hasToken) {
+      await ApiService.getCurrentUser();
+    }
     if (!mounted) return;
-    setState(() {
-      _signedIn = signedIn;
-      _loading = false;
-    });
+    setState(() => _loading = false);
   }
 
   @override
@@ -36,6 +32,6 @@ class _AuthGateState extends State<AuthGate> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return _signedIn ? const HomeScreen() : const GuestHomeScreen();
+    return const HomeScreen();
   }
 }

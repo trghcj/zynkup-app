@@ -3,6 +3,7 @@ import logging
 import os
 import httpx
 from typing import Optional
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
@@ -113,10 +114,10 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token({"sub": str(user.id)})
-    
+
     # Award daily login XP
     add_xp(db, user, "daily_login")
-    
+
     logger.info(f"Login: id={user.id}")
     return _user_response(user, token)
 
@@ -180,10 +181,10 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
             logger.info(f"New Google user: id={user.id}")
 
         token = create_access_token({"sub": str(user.id)})
-        
+
         # Award daily login XP
         add_xp(db, user, "daily_login")
-        
+
         return _user_response(user, token)
 
     except HTTPException:
@@ -252,7 +253,7 @@ def update_profile(
     if data.avatar_seed  is not None: current_user.avatar_seed  = data.avatar_seed
     if data.avatar_type  is not None: current_user.avatar_type  = data.avatar_type
     if data.theme        is not None: current_user.theme        = data.theme
-    
+
     # Bonus XP for completing profile (first time)
     if data.name and not current_user.name:
         add_xp(db, current_user, "complete_profile")
@@ -308,6 +309,44 @@ def my_registrations(
         for r in regs
     ]
 
+# ── Profile Activity Timeline ─────────────────────────────────────────────────
+
+@router.get("/me/timeline")
+def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    timeline = []
+
+    # Events
+    regs = db.query(models.Registration).filter(models.Registration.user_id == current_user.id).all()
+    for r in regs:
+        timeline.append({
+            "type": "event_registration",
+            "title": f"Registered for {r.event.title}",
+            "date": (r.created_at or datetime.utcnow()).isoformat(),
+            "target_id": r.event_id
+        })
+
+    # Clubs
+    memberships = db.query(models.ClubMember).filter(models.ClubMember.user_id == current_user.id).all()
+    for m in memberships:
+        timeline.append({
+            "type": "club_join",
+            "title": f"Joined {m.club.name}",
+            "date": (m.joined_at or datetime.utcnow()).isoformat(),
+            "target_id": m.club_id
+        })
+
+    # Posts
+    posts = db.query(models.FeedPost).filter(models.FeedPost.author_id == current_user.id).all()
+    for p in posts:
+        timeline.append({
+            "type": "post_created",
+            "title": "Shared a new campus update",
+            "date": (p.created_at or datetime.utcnow()).isoformat(),
+            "target_id": p.id
+        })
+
+    timeline.sort(key=lambda x: x["date"], reverse=True)
+    return timeline[:50]
 
 # ── Admin: promote user ───────────────────────────────────────────────────────
 

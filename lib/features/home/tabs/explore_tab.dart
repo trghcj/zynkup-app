@@ -187,12 +187,11 @@ class _ExploreTabState extends State<ExploreTab> {
                   separatorBuilder: (_, __) => const SizedBox(height: 14),
                   itemBuilder: (context, index) => EventCardWidget(
                     event: events[index],
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            EventDetailsScreen(event: events[index]),
-                      ),
+                    onTap: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => EventDetailsScreen(event: events[index]),
                     ),
                   ),
                 ),

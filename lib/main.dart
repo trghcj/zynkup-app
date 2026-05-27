@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'core/api/api_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'firebase_options.dart';
 
@@ -15,27 +16,52 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiService.loadToken();
 
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    await FirebaseMessaging.instance.requestPermission(
+
+    final messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
+
+    // Register FCM Token
+    final token = await messaging.getToken();
+    if (token != null) {
+       ApiService.registerFcmToken(token);
+    }
+    messaging.onTokenRefresh.listen((newToken) {
+       ApiService.registerFcmToken(newToken);
+    });
+
   } catch (error) {
     debugPrint('Firebase init skipped: $error');
   }
 
-  await ApiService.loadToken();
   runApp(const ZynkupApp());
 }
 
-class ZynkupApp extends StatelessWidget {
+class ZynkupApp extends StatefulWidget {
   const ZynkupApp({super.key});
+
+  @override
+  State<ZynkupApp> createState() => _ZynkupAppState();
+}
+
+class _ZynkupAppState extends State<ZynkupApp> {
+  @override
+  void initState() {
+    super.initState();
+    themeProvider.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +70,16 @@ class ZynkupApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      themeMode: themeProvider.themeMode,
       home: const SplashScreen(),
     );
   }
 }
 
-class MyApp extends ZynkupApp {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const ZynkupApp();
+  }
 }

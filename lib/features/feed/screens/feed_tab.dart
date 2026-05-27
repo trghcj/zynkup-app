@@ -5,6 +5,8 @@ import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
+import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
+import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -16,6 +18,7 @@ class FeedTab extends StatefulWidget {
 class _FeedTabState extends State<FeedTab> {
   bool _loading = true;
   List<dynamic> _posts = [];
+  int? _currentUserId;
 
   @override
   void initState() {
@@ -26,9 +29,11 @@ class _FeedTabState extends State<FeedTab> {
   Future<void> _load() async {
     if (!mounted) return;
     setState(() => _loading = true);
+    final user = ApiService.hasToken ? await ApiService.getCurrentUser() : null;
     final data = await ApiService.getFeed();
     if (mounted) {
       setState(() {
+        _currentUserId = int.tryParse(user?['id']?.toString() ?? '');
         _posts = data;
         _loading = false;
       });
@@ -36,6 +41,10 @@ class _FeedTabState extends State<FeedTab> {
   }
 
   Future<void> _createNewPost() async {
+    if (!ApiService.hasToken) {
+      showLoginPrompt(context, message: 'Join the campus to share a post.');
+      return;
+    }
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CreatePostScreen()),
@@ -46,6 +55,10 @@ class _FeedTabState extends State<FeedTab> {
   }
 
   void _showComments(Map<String, dynamic> post) {
+    if (!ApiService.hasToken) {
+      showLoginPrompt(context, message: 'Join the campus to comment on posts.');
+      return;
+    }
     final postId = post['id'] as int?;
     if (postId == null) return;
     showModalBottomSheet(
@@ -65,7 +78,7 @@ class _FeedTabState extends State<FeedTab> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return Container(
           decoration: BoxDecoration(
             color: ZynkColors.darkSurface2,
@@ -92,7 +105,7 @@ class _FeedTabState extends State<FeedTab> {
                   style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showComments(post);
                 },
               ),
@@ -105,7 +118,11 @@ class _FeedTabState extends State<FeedTab> {
                 ),
                 onTap: () async {
                   final messenger = ScaffoldMessenger.of(context);
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
+                  if (!ApiService.hasToken) {
+                    showLoginPrompt(context, message: 'Sign in to report unsafe content.');
+                    return;
+                  }
                   final postId = post['id'] as int?;
                   if (postId != null) {
                     final success = await ApiService.reportFeedPost(postId);
@@ -135,6 +152,49 @@ class _FeedTabState extends State<FeedTab> {
                   }
                 },
               ),
+              if (_currentUserId != null &&
+                  post['author_id']?.toString() == _currentUserId.toString()) ...[
+                const Divider(color: ZynkColors.darkBorder),
+                ListTile(
+                  leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
+                  title: const Text(
+                    'Edit Post',
+                    style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    final result = await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => EditPostSheet(
+                        postId: post['id'],
+                        initialContent: post['content'] ?? '',
+                      ),
+                    );
+                    if (result != null) _load();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_rounded, color: ZynkColors.error),
+                  title: const Text(
+                    'Delete Post',
+                    style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    Navigator.pop(sheetContext);
+                    final success = await ApiService.deleteFeedPost(post['id']);
+                    if (success) {
+                      _load();
+                    } else {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Failed to delete post')),
+                      );
+                    }
+                  },
+                ),
+              ],
             ],
           ),
         );
@@ -170,7 +230,7 @@ class _FeedTabState extends State<FeedTab> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Stay updated with what\'s happening on campus.',
+                          'What\'s buzzing on campus?',
                           style: TextStyle(color: ZynkColors.darkMuted),
                         ),
                       ],
@@ -199,7 +259,7 @@ class _FeedTabState extends State<FeedTab> {
                             const SizedBox(width: 12),
                             const Expanded(
                               child: Text(
-                                "Share a campus update...",
+                                "What's buzzing right now?",
                                 style: TextStyle(
                                   color: ZynkColors.darkMuted,
                                   fontSize: 14,
@@ -232,7 +292,7 @@ class _FeedTabState extends State<FeedTab> {
                       padding: EdgeInsets.symmetric(vertical: 60),
                       child: Center(
                         child: Text(
-                          'No campus updates yet. Be the first to share one!',
+                          'Your campus story starts here - be the first.',
                           style: TextStyle(color: ZynkColors.darkMuted),
                         ),
                       ),
@@ -246,6 +306,10 @@ class _FeedTabState extends State<FeedTab> {
                         return _FeedPostCard(
                           post: post,
                           onLike: () async {
+                            if (!ApiService.hasToken) {
+                              showLoginPrompt(context, message: 'Join the campus to like this post.');
+                              return;
+                            }
                             final postId = post['id'] as int?;
                             if (postId != null) {
                               final isLiked = post['is_liked'] == true;
@@ -278,6 +342,28 @@ class _FeedTabState extends State<FeedTab> {
                             );
                           },
                           onMore: () => _showMoreOptions(post),
+                          onReact: (emoji) async {
+                            if (!ApiService.hasToken) {
+                              showLoginPrompt(context, message: 'Join the campus to react.');
+                              return;
+                            }
+                            final postId = post['id'] as int?;
+                            if (postId != null) {
+                              await ApiService.reactToFeedPost(postId, emoji);
+                              _load();
+                            }
+                          },
+                          onVote: (optionIndex) async {
+                            if (!ApiService.hasToken) {
+                              showLoginPrompt(context, message: 'Join the campus to vote.');
+                              return;
+                            }
+                            final postId = post['id'] as int?;
+                            if (postId != null) {
+                              await ApiService.votePoll(postId, optionIndex);
+                              _load();
+                            }
+                          },
                         );
                       },
                       childCount: _posts.length,
@@ -305,6 +391,8 @@ class _FeedPostCard extends StatelessWidget {
   final VoidCallback onReply;
   final VoidCallback onShare;
   final VoidCallback onMore;
+  final Function(String) onReact;
+  final Function(int) onVote;
 
   const _FeedPostCard({
     required this.post,
@@ -312,6 +400,8 @@ class _FeedPostCard extends StatelessWidget {
     required this.onReply,
     required this.onShare,
     required this.onMore,
+    required this.onReact,
+    required this.onVote,
   });
 
   String _timeAgo(String? dateTimeStr) {
@@ -365,7 +455,7 @@ class _FeedPostCard extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
             ),
-            
+
           // Author Header
           Padding(
             padding: const EdgeInsets.all(16),
@@ -405,7 +495,7 @@ class _FeedPostCard extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Image Content
           if (imageUrl != null && imageUrl.isNotEmpty)
             Image.network(
@@ -414,7 +504,7 @@ class _FeedPostCard extends StatelessWidget {
               width: double.infinity,
               fit: BoxFit.cover,
             ),
-            
+
           // Text Content
           Padding(
             padding: const EdgeInsets.all(16),
@@ -427,7 +517,7 @@ class _FeedPostCard extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Action Bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -457,7 +547,133 @@ class _FeedPostCard extends StatelessWidget {
               ],
             ),
           ),
+
+          if (post['poll'] != null)
+            _PollWidget(poll: post['poll'] as Map<String, dynamic>, onVote: onVote),
+          _ReactionStrip(
+            reactions: post['reactions'] as Map<String, dynamic>? ?? {},
+            onReact: onReact,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _PollWidget extends StatelessWidget {
+  final Map<String, dynamic> poll;
+  final Function(int) onVote;
+
+  const _PollWidget({required this.poll, required this.onVote});
+
+  @override
+  Widget build(BuildContext context) {
+    final question = poll['question'] as String? ?? '';
+    final options = (poll['options'] as List<dynamic>?) ?? [];
+    final votes = poll['votes'] as Map<String, dynamic>? ?? {};
+    final totalVotes = votes.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: ZynkColors.darkSurface2,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: ZynkColors.darkBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(question, style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ...List.generate(options.length, (index) {
+              final optionText = options[index].toString();
+              final voteCount = votes.values.where((v) => v == index).length;
+              final percent = totalVotes > 0 ? voteCount / totalVotes : 0.0;
+
+              return GestureDetector(
+                onTap: () => onVote(index),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: ZynkColors.darkSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ZynkColors.darkBorder),
+                  ),
+                  child: Stack(
+                    children: [
+                      FractionallySizedBox(
+                        widthFactor: percent,
+                        child: Container(
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: ZynkColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(optionText, style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13)),
+                            if (totalVotes > 0)
+                              Text('${(percent * 100).toStringAsFixed(0)}%', style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            Text('$totalVotes votes', style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionStrip extends StatelessWidget {
+  final Map<String, dynamic> reactions;
+  final Function(String) onReact;
+
+  const _ReactionStrip({required this.reactions, required this.onReact});
+
+  @override
+  Widget build(BuildContext context) {
+    final emojis = ['🔥', '🎉', '💯', '👀'];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: emojis.map((emoji) {
+          final count = reactions[emoji] as int? ?? 0;
+          return GestureDetector(
+            onTap: () => onReact(emoji),
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: count > 0 ? ZynkColors.primary.withValues(alpha: 0.2) : ZynkColors.darkSurface2,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: count > 0 ? ZynkColors.primary : ZynkColors.darkBorder),
+              ),
+              child: Row(
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 14)),
+                  if (count > 0) ...[
+                    const SizedBox(width: 4),
+                    Text('$count', style: const TextStyle(color: ZynkColors.offWhite, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

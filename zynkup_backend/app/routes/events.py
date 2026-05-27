@@ -14,6 +14,7 @@ from app import models
 from app.database import get_db
 from app.auth import get_current_user, get_optional_current_user
 from app.gamification import add_xp
+from app.fcm import send_fcm_notification, EVENT_JOINED, ATTENDANCE_MARKED
 
 router = APIRouter(prefix="/events", tags=["Events"])
 logger = logging.getLogger(__name__)
@@ -256,7 +257,7 @@ def delete_event(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id:
+    if event.creator_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only the creator can delete this event")
     db.delete(event)
     db.commit()
@@ -286,6 +287,14 @@ def register_event(
     # Award XP for registering
     add_xp(db, current_user, "register_event")
 
+    if current_user.fcm_token:
+        send_fcm_notification(
+            token=current_user.fcm_token,
+            title="Event Registered",
+            body=f"You successfully registered for {event.title}.",
+            data={"type": EVENT_JOINED, "event_id": str(event_id)}
+        )
+
     return {"message": "Registered successfully", "qr_code": registration.qr_code}
 
 
@@ -307,6 +316,14 @@ def mark_attendance(
         
         # Award XP to the ATTEENDEE (registration.user)
         add_xp(db, registration.user, "attend_event")
+
+        if registration.user.fcm_token:
+            send_fcm_notification(
+                token=registration.user.fcm_token,
+                title="Attendance Marked",
+                body=f"You have been marked present for {registration.event.title}!",
+                data={"type": ATTENDANCE_MARKED, "event_id": str(registration.event_id)}
+            )
 
     return {
         "message": "Attendance marked",
