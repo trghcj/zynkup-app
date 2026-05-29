@@ -7,6 +7,7 @@ import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
 import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
+import 'package:share_plus/share_plus.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -321,25 +322,32 @@ class _FeedTabState extends State<FeedTab> {
                             }
                           },
                           onReply: () => _showComments(post),
-                          onShare: () {
-                            Clipboard.setData(ClipboardData(text: post['content'] ?? ''));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Row(
-                                  children: [
-                                    Icon(Icons.check_circle_outline_rounded, color: ZynkColors.gold),
-                                    SizedBox(width: 12),
-                                    Text('Copied post text to clipboard!'),
-                                  ],
+                          onShare: () async {
+                            final text = post['content'] ?? '';
+                            if (text.isEmpty) return;
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await Share.share(text);
+                            } catch (_) {
+                              await Clipboard.setData(ClipboardData(text: text));
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.check_circle_outline_rounded, color: ZynkColors.gold),
+                                      SizedBox(width: 12),
+                                      Text('Copied post text to clipboard!'),
+                                    ],
+                                  ),
+                                  backgroundColor: ZynkColors.darkSurface2,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.3)),
+                                  ),
                                 ),
-                                backgroundColor: ZynkColors.darkSurface2,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.3)),
-                                ),
-                              ),
-                            );
+                              );
+                            }
                           },
                           onMore: () => _showMoreOptions(post),
                           onReact: (emoji) async {

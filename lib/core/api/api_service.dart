@@ -195,7 +195,7 @@ class ApiService {
         _cachedUser = jsonDecode(res.body) as Map<String, dynamic>;
         return _cachedUser;
       }
-      if (res.statusCode == 401) await logout();
+      if (res.statusCode == 401 || res.statusCode == 403) await logout();
       return null;
     } catch (_) {
       return null;
