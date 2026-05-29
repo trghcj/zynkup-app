@@ -26,9 +26,6 @@ typing-inspection==0.4.2
 typing_extensions==4.12.2
 uvicorn==0.30.6
 cloudinary>=1.36.0
-<<<<<<< HEAD
 firebase-admin>=6.2.0
 websockets>=12.0
-=======
 firebase-admin>=6.2.0
->>>>>>> main
