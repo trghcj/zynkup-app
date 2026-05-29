@@ -53,7 +53,6 @@ def send_fcm_notification(token: str, title: str, body: str, data: dict = None):
     except Exception as e:
         logger.error(f"Error sending FCM message: {e}")
         return False
-<<<<<<< HEAD
 
 def create_notification_helper(db, user_id: int, title: str, body: str, type: str, data: dict = None):
     """
@@ -103,5 +102,3 @@ def create_notification_helper(db, user_id: int, title: str, body: str, type: st
         logger.error(f"Error in create_notification_helper: {e}")
         db.rollback()
         return None
-=======
->>>>>>> main
