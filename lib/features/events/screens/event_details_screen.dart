@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -96,7 +97,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _share() async {
-    final text = 'Join ${_event.title} on Zynkup: https://zynkup.app/events/${_event.id}';
+    final baseUrl = kIsWeb ? Uri.base.origin : 'https://zynkup-app.vercel.app';
+    final text = 'Join ${_event.title} on Zynkup: $baseUrl/events/${_event.id}';
     try {
       await Share.share(text);
     } catch (_) {

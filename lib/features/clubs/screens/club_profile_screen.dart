@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
 import 'package:zynkup/features/feed/screens/feed_tab.dart';
 import 'package:zynkup/features/feed/screens/create_post_screen.dart';
+import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 
 class ClubProfileScreen extends StatefulWidget {
@@ -191,6 +192,42 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           ),
         );
       }
+    }
+  }
+
+  Future<void> _deleteClub() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Club?'),
+        content: const Text('This action cannot be undone. All events, members, and posts will be deleted.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: ZynkColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    final success = await ApiService.deleteClub(int.parse(widget.clubId));
+    if (success && mounted) {
+      Navigator.of(context).pop(); // Close club profile
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Club deleted successfully.'),
+          backgroundColor: ZynkColors.darkSurface2,
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete club. Please try again.'),
+          backgroundColor: ZynkColors.error,
+        ),
+      );
     }
   }
 
@@ -450,16 +487,34 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       ),
                       actions: [
                         Padding(
-                          padding: const EdgeInsets.only(right: 16.0),
+                          padding: const EdgeInsets.only(right: 8.0),
                           child: Center(
-                            child: ZynkButton(
-                              label: _isMember ? 'Joined' : 'Join Club',
-                              outlined: _isMember,
-                              icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
-                              onTap: _toggleMembership,
+                            child: SizedBox(
+                              width: 130,
+                              height: 40,
+                              child: ZynkButton(
+                                height: 40,
+                                label: _isMember ? 'Joined' : 'Join Club',
+                                outlined: _isMember,
+                                icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
+                                onTap: _toggleMembership,
+                              ),
                             ),
                           ),
                         ),
+                        if (_club != null && _currentUser != null && _club!['creator_id'] == _currentUser!['id'])
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: ZynkColors.darkText),
+                            onSelected: (val) {
+                              if (val == 'delete') _deleteClub();
+                            },
+                            itemBuilder: (ctx) => [
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Delete Club', style: TextStyle(color: ZynkColors.error)),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                     SliverToBoxAdapter(
@@ -657,7 +712,23 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         }
                       },
                       onReply: () {
-                        // TODO: Implement comments sheet for club profile
+                        if (!ApiService.hasToken) {
+                          showLoginPrompt(context, message: 'Join the campus to comment on posts.');
+                          return;
+                        }
+                        final postId = post['id'] as int?;
+                        if (postId == null) return;
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => PostCommentsSheet(
+                            postId: postId,
+                            authorName: post['author_name'] ?? 'Anonymous',
+                            authorAvatar: post['author_avatar'],
+                            postContent: post['content'] ?? '',
+                          ),
+                        );
                       },
                       onShare: () async {
                         final text = post['content'] ?? '';

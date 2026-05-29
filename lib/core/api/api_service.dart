@@ -192,13 +192,34 @@ class ApiService {
         headers: await _headers,
       );
       if (res.statusCode == 200) {
-        _cachedUser = jsonDecode(res.body) as Map<String, dynamic>;
-        return _cachedUser;
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        _cachedUser = data;
+        return data;
       }
-      if (res.statusCode == 401 || res.statusCode == 403) await logout();
+      if (res.statusCode == 401 || res.statusCode == 403) {
+        await logout();
+        return null;
+      }
       return null;
     } catch (_) {
       return null;
+    }
+  }
+
+  static Future<bool> updateUser(Map<String, dynamic> data) async {
+    try {
+      await loadToken();
+      final res = await http.put(
+        Uri.parse("$baseUrl/users/me"),
+        headers: await _headers,
+        body: jsonEncode(data),
+      );
+      if (res.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -770,6 +791,19 @@ class ApiService {
       await loadToken();
       final res = await http.post(
         Uri.parse("$baseUrl/clubs/$clubId/join"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> deleteClub(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("$baseUrl/clubs/$clubId"),
         headers: await _headers,
       );
       return res.statusCode == 200;

@@ -380,7 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             padding: const EdgeInsets.only(bottom: 100),
             sliver: SliverToBoxAdapter(
               child: [
-                _OverviewTab(user: user, heatmapData: _heatmapData),
+                _OverviewTab(user: user, heatmapData: _heatmapData, onBioUpdated: _load),
                 _TimelineTab(timeline: _timeline),
                 _EventsTab(
                   createdEvents: _createdEvents,
@@ -483,7 +483,51 @@ class _StatCard extends StatelessWidget {
 class _OverviewTab extends StatelessWidget {
   final Map<String, dynamic> user;
   final Map<String, int> heatmapData;
-  const _OverviewTab({required this.user, required this.heatmapData});
+  final VoidCallback onBioUpdated;
+  const _OverviewTab({required this.user, required this.heatmapData, required this.onBioUpdated});
+
+  Future<void> _editBio(BuildContext context) async {
+    final controller = TextEditingController(text: user['bio'] ?? '');
+    bool saving = false;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Bio'),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: const InputDecoration(hintText: 'Write something about yourself...'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      setState(() => saving = true);
+                      final success = await ApiService.updateUser({'bio': controller.text.trim()});
+                      if (success && ctx.mounted) {
+                        Navigator.pop(ctx, true);
+                      } else {
+                        setState(() => saving = false);
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Save', style: TextStyle(color: ZynkColors.gold)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == true) {
+      onBioUpdated();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -496,9 +540,20 @@ class _OverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Bio',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Bio',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, size: 16, color: ZynkColors.gold),
+                onPressed: () => _editBio(context),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
