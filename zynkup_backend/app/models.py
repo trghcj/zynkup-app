@@ -14,11 +14,7 @@ class User(Base):
     google_id    = Column(String, unique=True, nullable=True, index=True)
     name         = Column(String, nullable=True)
     avatar_url   = Column(Text, nullable=True)
-<<<<<<< HEAD
     role         = Column(String, nullable=False, default="ROLE_USER")
-=======
-    role         = Column(String, nullable=False, default="user")
->>>>>>> main
     fcm_token    = Column(String, nullable=True)
     created_at   = Column(DateTime, server_default=func.now())
 
