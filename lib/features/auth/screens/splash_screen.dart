@@ -32,15 +32,18 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: ZynkColors.darkBg,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.bolt_rounded, color: ZynkColors.primary, size: 68),
-            SizedBox(height: 14),
-            Text(
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset('assets/logos/icon.jpg', width: 72, height: 72),
+            ),
+            const SizedBox(height: 14),
+            const Text(
               'ZYNKUP',
               style: TextStyle(
                 color: ZynkColors.darkText,
@@ -49,8 +52,8 @@ class _SplashScreenState extends State<SplashScreen> {
                 letterSpacing: 3,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'Your campus, unlocked.',
               style: TextStyle(color: ZynkColors.darkMuted),
             ),
