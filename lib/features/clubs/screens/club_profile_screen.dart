@@ -168,16 +168,17 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
       showLoginPrompt(context, message: 'Sign in to join this club.');
       return;
     }
-    final success = await ApiService.joinClub(int.parse(widget.clubId));
-    if (success) {
+    final result = await ApiService.joinClub(int.parse(widget.clubId));
+    if (result != null && result['success'] == true) {
+      final didJoin = result['joined'] == true;
       // Reload club details to get fresh member count and is_member status
       await _loadClub();
       _loadMembers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isMember ? 'Joined ${widget.clubName}!' : 'Left ${widget.clubName}'),
-            backgroundColor: _isMember ? ZynkColors.primary : ZynkColors.darkMuted,
+            content: Text(didJoin ? 'Joined ${widget.clubName}!' : 'Left ${widget.clubName}'),
+            backgroundColor: didJoin ? ZynkColors.primary : ZynkColors.darkMuted,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -233,9 +234,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
 
   bool get _canHostEvent {
     if (_club == null || _currentUser == null) return false;
-    if (_club!['creator_id'] == _currentUser!['id']) return true;
+    if (_club!['creator_id']?.toString() == _currentUser!['id']?.toString()) return true;
     final record = _clubMembers.firstWhere(
-      (m) => m['user_id'] == _currentUser!['id'],
+      (m) => m['user_id']?.toString() == _currentUser!['id']?.toString(),
       orElse: () => null,
     );
     if (record != null) {
@@ -247,9 +248,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
 
   bool get _canUploadGallery {
     if (_club == null || _currentUser == null) return false;
-    if (_club!['creator_id'] == _currentUser!['id']) return true;
+    if (_club!['creator_id']?.toString() == _currentUser!['id']?.toString()) return true;
     final record = _clubMembers.firstWhere(
-      (m) => m['user_id'] == _currentUser!['id'],
+      (m) => m['user_id']?.toString() == _currentUser!['id']?.toString(),
       orElse: () => null,
     );
     if (record != null) {
@@ -486,7 +487,11 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         ),
                       ),
                       actions: [
-                        Padding(
+                        // Show Join/Leave button for everyone except the club creator
+                        if (_club == null ||
+                            _currentUser == null ||
+                            (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
+                          Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: Center(
                             child: SizedBox(
@@ -502,7 +507,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             ),
                           ),
                         ),
-                        if (_club != null && _currentUser != null && _club!['creator_id'] == _currentUser!['id'])
+                        if (_club != null && _currentUser != null && _club!['creator_id']?.toString() == _currentUser!['id']?.toString())
                           PopupMenuButton<String>(
                             icon: const Icon(Icons.more_vert, color: ZynkColors.darkText),
                             onSelected: (val) {
@@ -870,7 +875,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
       return const Center(child: CircularProgressIndicator(color: ZynkColors.gold));
     }
     
-    final isCreator = _club != null && _club!['creator_id'] == _currentUser?['id'];
+    final isCreator = _club != null && _club!['creator_id']?.toString() == _currentUser?['id']?.toString();
     
     return RefreshIndicator(
       color: ZynkColors.gold,
@@ -891,7 +896,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     ? avatar
                     : 'https://api.dicebear.com/7.x/avataaars/png?seed=$name';
                     
-                final isSelfCreator = userId == _club!['creator_id'];
+                final isSelfCreator = userId.toString() == _club!['creator_id']?.toString();
 
                 return ListTile(
                   leading: CircleAvatar(

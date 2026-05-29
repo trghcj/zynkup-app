@@ -200,7 +200,9 @@ def delete_club(club_id: int, db: Session = Depends(get_db), current_user: User 
         raise HTTPException(status_code=404, detail="Club not found")
     if club.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the club creator can delete this club")
-    
+
+    # Cascade-delete all members first to avoid orphan FK rows
+    db.query(ClubMember).filter(ClubMember.club_id == club_id).delete(synchronize_session=False)
     db.delete(club)
     db.commit()
     return {"message": "Club deleted successfully"}
