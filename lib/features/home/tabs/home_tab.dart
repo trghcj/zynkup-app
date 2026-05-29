@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/event_card_widget.dart';
+import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
 import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
@@ -336,11 +337,11 @@ class _Section extends StatelessWidget {
                   width: 270,
                   child: EventCardWidget(
                     event: events[index],
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EventDetailsScreen(event: events[index]),
-                      ),
+                    onTap: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => EventDetailsScreen(event: events[index]),
                     ),
                   ),
                 ),
@@ -385,6 +386,10 @@ class _ClubsSection extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: () async {
+                  if (!ApiService.hasToken) {
+                    showLoginPrompt(context, message: 'Sign in to found a campus club.');
+                    return;
+                  }
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CreateClubScreen()),
@@ -456,14 +461,14 @@ class _ClubsSection extends StatelessWidget {
                   },
                   child: GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ClubProfileScreen(
-                            clubId: clubId,
-                            clubName: clubName,
-                            clubData: club,
-                          ),
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => ClubProfileScreen(
+                          clubId: clubId,
+                          clubName: clubName,
+                          clubData: club,
                         ),
                       );
                     },

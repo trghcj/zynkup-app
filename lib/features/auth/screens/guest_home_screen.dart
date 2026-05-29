@@ -78,44 +78,18 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 14),
                     itemBuilder: (_, index) => EventCardWidget(
                       event: events[index],
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EventDetailsScreen(
-                            event: events[index],
-                            isGuest: true,
-                          ),
+                      onTap: () => showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => EventDetailsScreen(
+                          event: events[index],
+                          isGuest: true,
                         ),
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: ZynkButton(
-                  label: 'Continue as Guest',
-                  outlined: true,
-                  icon: Icons.visibility_rounded,
-                  onTap: () {},
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ZynkButton(
-                  label: 'Sign in with Google',
-                  icon: Icons.login_rounded,
-                  onTap: _login,
-                ),
-              ),
             ],
           ),
         ),
@@ -222,7 +196,7 @@ class _EmptyGuest extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Text(
-        'Be the first to host something.',
+        'Your next campus moment starts here.',
         style: TextStyle(color: ZynkColors.darkMuted),
       ),
     );

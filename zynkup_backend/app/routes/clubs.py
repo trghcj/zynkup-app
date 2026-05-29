@@ -149,7 +149,7 @@ def get_clubs(db: Session = Depends(get_db), current_user: Optional[User] = Depe
     user_memberships = set()
     if current_user:
         user_memberships = {m.club_id for m in db.query(ClubMember).filter(ClubMember.user_id == current_user.id).all()}
-    
+
     result = []
     for c in clubs:
         count = db.query(ClubMember).filter(ClubMember.club_id == c.id).count()
@@ -173,11 +173,11 @@ def get_club(club_id: int, db: Session = Depends(get_db), current_user: Optional
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-        
+
     is_member = False
     if current_user:
         is_member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first() is not None
-        
+
     count = db.query(ClubMember).filter(ClubMember.club_id == club_id).count()
     return ClubResponse(
         id=club.id,
@@ -198,14 +198,14 @@ def join_club(club_id: int, db: Session = Depends(get_db), current_user: User = 
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-        
+
     existing = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
     if existing:
         # Toggle leave if already joined to make it toggleable, or handle standard leave/join
         db.delete(existing)
         db.commit()
         return {"message": "Left club successfully", "joined": False}
-        
+
     member = ClubMember(club_id=club_id, user_id=current_user.id, role="member")
     db.add(member)
     db.commit()
@@ -216,7 +216,7 @@ def get_club_members(club_id: int, db: Session = Depends(get_db)):
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-        
+
     members = db.query(ClubMember).filter(ClubMember.club_id == club_id).order_by(ClubMember.joined_at.asc()).all()
     result = []
     for m in members:
@@ -239,27 +239,53 @@ def update_member_role(club_id: int, user_id: int, payload: MemberRoleUpdate, db
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-        
-    if club.creator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the club creator can update member roles")
-        
+
+    actor = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
+    is_owner = club.creator_id == current_user.id or (actor and actor.role == "owner")
+
+    if not is_owner and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only club owners can update member roles")
+
     member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == user_id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Club member not found")
-        
+
     if member.user_id == club.creator_id:
         raise HTTPException(status_code=400, detail="Cannot change creator's role")
-        
+
     member.role = payload.role.strip()
     db.commit()
     return {"message": f"Updated role to {member.role}"}
+
+@router.delete("/{club_id}/members/{user_id}")
+def remove_member(club_id: int, user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    actor = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
+    has_permission = club.creator_id == current_user.id or (actor and actor.role in ("owner", "moderator")) or current_user.role == "admin"
+
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="Not authorized to remove members")
+
+    member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == user_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if member.user_id == club.creator_id or member.role == "owner":
+        raise HTTPException(status_code=403, detail="Cannot remove club owner")
+
+    db.delete(member)
+    db.commit()
+    return {"message": "Member removed"}
 
 @router.get("/{club_id}/events")
 def get_club_events(club_id: int, db: Session = Depends(get_db)):
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-        
+
     # Helper to convert events
     from .events import _event_to_dict
     events = db.query(Event).filter(Event.club_id == club_id).order_by(Event.date.asc()).all()
@@ -283,20 +309,20 @@ async def upload_club_gallery(
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-        
+
     # Permission check: creator or non-member roles (admin, moderator, custom assigned role)
     member_record = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
     has_permission = (
-        club.creator_id == current_user.id or 
+        club.creator_id == current_user.id or
         (member_record is not None and member_record.role != "member")
     )
     if not has_permission:
         raise HTTPException(status_code=403, detail="Only the club creator or assigned organizers can upload to gallery")
-        
+
     existing = _parse_gallery(club.gallery_files)
     if len(existing) + len(files) > MAX_GALLERY_FILES:
         raise HTTPException(status_code=400, detail=f"Max {MAX_GALLERY_FILES} gallery files allowed")
-        
+
     additions = []
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     for file in files:
@@ -325,7 +351,7 @@ async def upload_club_gallery(
         db.rollback()
         logger.error(f"CLUB GALLERY DB SAVE ERROR: {db_err}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to save club gallery: {str(db_err)}")
-        
+
     return {
         "message": f"{len(additions)} file(s) uploaded",
         "files": additions,

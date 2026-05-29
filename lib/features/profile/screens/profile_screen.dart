@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/theme/theme_provider.dart';
 import 'package:zynkup/core/widgets/event_card_widget.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
@@ -21,6 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   Map<String, int> _heatmapData = {};
   List<Event> _createdEvents = [];
   List<Event> _joinedEvents = [];
+  List<dynamic> _timeline = [];
   bool _loading = true;
 
   late TabController _tabController;
@@ -31,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _load();
   }
 
@@ -51,6 +53,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ApiService.getHeatmapData().catchError((_) => <String, int>{}),
       ApiService.getMyEvents().catchError((_) => <dynamic>[]),
       ApiService.getMyRegistrations().catchError((_) => <dynamic>[]),
+      ApiService.getTimeline().catchError((_) => <dynamic>[]),
     ]);
     if (!mounted) return;
     final user = results[0] as Map<String, dynamic>?;
@@ -59,6 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         : <String, int>{};
     final createdRaw = (results[2] is List) ? results[2] as List<dynamic> : <dynamic>[];
     final joinedRaw = (results[3] is List) ? results[3] as List<dynamic> : <dynamic>[];
+    final timelineRaw = (results.length > 4 && results[4] is List) ? results[4] as List<dynamic> : <dynamic>[];
 
     setState(() {
       _user = user;
@@ -73,6 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           .whereType<Map<String, dynamic>>()
           .map(Event.fromJson)
           .toList();
+      _timeline = timelineRaw;
       _loading = false;
       if (user != null) {
         _nameC.text = user['name'] ?? '';
@@ -101,14 +106,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final email = user['email'] ?? 'user@zynkup.com';
     final seed = user['avatar_seed'] ?? email;
     final avatarType = user['avatar_type'] ?? 'rings';
-    
+
     // Level progress calculation
     int nextLevelXP = level * level * 25;
     int currentLevelXP = (level - 1) * (level - 1) * 25;
-    
+
     // Fallback for edge cases
     if (nextLevelXP <= currentLevelXP) nextLevelXP = currentLevelXP + 25;
-    
+
     double progress = (xp - currentLevelXP) / (nextLevelXP - currentLevelXP);
     if (progress.isNaN || progress.isInfinite) progress = 0.0;
 
@@ -143,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                       ),
                     ),
                   ),
-                  
+
                   // Content
                   Padding(
                     padding: const EdgeInsets.only(top: 80),
@@ -213,9 +218,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         Text(
                           user['name'] ?? 'Student',
                           style: const TextStyle(
@@ -225,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             letterSpacing: -0.5,
                           ),
                         ),
-                        
+
                         Text(
                           '@${user['email']?.split('@')[0] ?? 'user'}',
                           style: const TextStyle(
@@ -233,9 +238,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             fontSize: 14,
                           ),
                         ),
-                        
+
                         const SizedBox(height: 12),
-                        
+
                         // Streak + XP Info
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -363,6 +368,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               onTap: (index) => setState(() {}),
               tabs: const [
                 Tab(text: 'Overview'),
+                Tab(text: 'Timeline'),
                 Tab(text: 'Events'),
                 Tab(text: 'Badges'),
               ],
@@ -375,6 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             sliver: SliverToBoxAdapter(
               child: [
                 _OverviewTab(user: user, heatmapData: _heatmapData),
+                _TimelineTab(timeline: _timeline),
                 _EventsTab(
                   createdEvents: _createdEvents,
                   joinedEvents: _joinedEvents,
@@ -499,6 +506,8 @@ class _OverviewTab extends StatelessWidget {
             style: const TextStyle(color: ZynkColors.darkMuted),
           ),
           const SizedBox(height: 24),
+          const _ThemeToggleTile(),
+          const SizedBox(height: 24),
           const Text(
             'Achievements',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -535,6 +544,172 @@ class _OverviewTab extends StatelessWidget {
             child: ActivityHeatmap(data: heatmapData),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ThemeToggleTile extends StatelessWidget {
+  const _ThemeToggleTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: themeProvider,
+      builder: (context, _) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: ZynkColors.darkSurface2,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: ZynkColors.darkBorder),
+          ),
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: ZynkColors.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.palette_rounded, color: ZynkColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Theme Mode',
+                    style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              SegmentedButton<AppThemeMode>(
+                segments: const [
+                  ButtonSegment(value: AppThemeMode.dark, label: Text('Dark')),
+                  ButtonSegment(value: AppThemeMode.light, label: Text('Light')),
+                  ButtonSegment(value: AppThemeMode.system, label: Text('System')),
+                ],
+                selected: {themeProvider.currentTheme},
+                onSelectionChanged: (selection) => themeProvider.setTheme(selection.first),
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.selected)
+                        ? ZynkColors.darkBg
+                        : ZynkColors.darkMuted,
+                  ),
+                  backgroundColor: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.selected)
+                        ? ZynkColors.gold
+                        : ZynkColors.darkSurface,
+                  ),
+                  side: WidgetStateProperty.all(
+                    BorderSide(color: ZynkColors.darkBorder.withValues(alpha: 0.8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TimelineTab extends StatelessWidget {
+  final List<dynamic> timeline;
+  const _TimelineTab({required this.timeline});
+
+  @override
+  Widget build(BuildContext context) {
+    if (timeline.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.history_rounded,
+        title: 'No Activity Yet',
+        message: 'Join clubs, register for events, or post to your feed to see your activity here.',
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: timeline.length,
+        itemBuilder: (context, index) {
+          final item = timeline[index];
+          final type = item['type'] as String? ?? '';
+          final title = item['title'] as String? ?? '';
+          final dateStr = item['date'] as String?;
+
+          IconData icon;
+          Color color;
+          if (type == 'event_registration') {
+            icon = Icons.event_available_rounded;
+            color = ZynkColors.accent;
+          } else if (type == 'club_join') {
+            icon = Icons.groups_rounded;
+            color = ZynkColors.primary;
+          } else {
+            icon = Icons.post_add_rounded;
+            color = ZynkColors.gold;
+          }
+
+          String timeAgo = 'recently';
+          if (dateStr != null) {
+            try {
+              final dt = DateTime.parse(dateStr).toLocal();
+              final diff = DateTime.now().difference(dt);
+              if (diff.inDays > 0) {
+                timeAgo = '${diff.inDays}d ago';
+              } else if (diff.inHours > 0) {
+                timeAgo = '${diff.inHours}h ago';
+              } else if (diff.inMinutes > 0) {
+                timeAgo = '${diff.inMinutes}m ago';
+              } else {
+                timeAgo = 'just now';
+              }
+            } catch (_) {}
+          }
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: ZynkColors.darkSurface2,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ZynkColors.darkBorder),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(timeAgo, style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -669,11 +844,11 @@ class _EventsTab extends StatelessWidget {
                     child: EventCardWidget(
                       event: item.event,
                       onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EventDetailsScreen(event: item.event),
-                          ),
+                        await showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => EventDetailsScreen(event: item.event),
                         );
                         await onRefresh();
                       },
@@ -772,7 +947,7 @@ class _BadgeTileState extends State<_BadgeTile> with SingleTickerProviderStateMi
   Widget build(BuildContext context) {
     final badge = widget.badge;
     final color = badge.unlocked ? badge.color : ZynkColors.darkMuted;
-    
+
     return GestureDetector(
       onTapDown: (_) => _anim.reverse(),
       onTapUp: (_) => _anim.forward(),

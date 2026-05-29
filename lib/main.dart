@@ -54,8 +54,11 @@ class ZynkupApp extends StatefulWidget {
   State<ZynkupApp> createState() => _ZynkupAppState();
 }
 
+<<<<<<< HEAD
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+=======
+>>>>>>> main
 class _ZynkupAppState extends State<ZynkupApp> {
   @override
   void initState() {
@@ -63,6 +66,7 @@ class _ZynkupAppState extends State<ZynkupApp> {
     themeProvider.addListener(() {
       setState(() {});
     });
+<<<<<<< HEAD
     
     ApiService.latestNotification.addListener(() {
       final notif = ApiService.latestNotification.value;
@@ -77,6 +81,8 @@ class _ZynkupAppState extends State<ZynkupApp> {
         );
       }
     });
+=======
+>>>>>>> main
   }
 
   @override

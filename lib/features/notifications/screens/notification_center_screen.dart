@@ -9,6 +9,7 @@ class NotificationCenterScreen extends StatefulWidget {
   State<NotificationCenterScreen> createState() => _NotificationCenterScreenState();
 }
 
+<<<<<<< HEAD
 class _GroupedNotification {
   final String title;
   final List<dynamic> items;
@@ -18,6 +19,10 @@ class _GroupedNotification {
 class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   List<dynamic> _notifications = [];
   List<_GroupedNotification> _grouped = [];
+=======
+class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
+  List<dynamic> _notifications = [];
+>>>>>>> main
   bool _loading = true;
 
   @override
@@ -33,6 +38,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         _notifications = notifs;
         _loading = false;
       });
+<<<<<<< HEAD
       _groupNotifications();
     }
   }
@@ -79,6 +85,11 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     });
   }
 
+=======
+    }
+  }
+
+>>>>>>> main
   Future<void> _markAllRead() async {
     final success = await ApiService.markAllRead();
     if (success && mounted) {
@@ -87,7 +98,10 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
           n['is_read'] = true;
         }
       });
+<<<<<<< HEAD
       _groupNotifications();
+=======
+>>>>>>> main
     }
   }
 
@@ -104,6 +118,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     switch (type) {
       case 'EVENT_JOINED':
         return Icons.event_available_rounded;
+<<<<<<< HEAD
       case 'EVENT_REMINDER':
         return Icons.notifications_active_rounded;
       case 'NEW_COMMENT':
@@ -117,6 +132,13 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         return Icons.emoji_events_rounded;
       case 'XP_GAINED':
         return Icons.bolt_rounded;
+=======
+      case 'NEW_COMMENT':
+      case 'NEW_REPLY':
+        return Icons.comment_rounded;
+      case 'ATTENDANCE_MARKED':
+        return Icons.how_to_reg_rounded;
+>>>>>>> main
       default:
         return Icons.notifications_rounded;
     }
@@ -126,6 +148,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     switch (type) {
       case 'EVENT_JOINED':
       case 'ATTENDANCE_MARKED':
+<<<<<<< HEAD
         return ZynkColors.success;
       case 'EVENT_REMINDER':
         return ZynkColors.warning;
@@ -138,6 +161,11 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         return ZynkColors.gold;
       case 'XP_GAINED':
         return ZynkColors.orange;
+=======
+        return ZynkColors.accentGlow;
+      case 'NEW_COMMENT':
+        return ZynkColors.primary;
+>>>>>>> main
       default:
         return ZynkColors.offWhite;
     }
@@ -169,6 +197,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                     style: TextStyle(color: ZynkColors.darkMuted),
                   ),
                 )
+<<<<<<< HEAD
               : ListView.builder(
                   itemCount: _grouped.length,
                   itemBuilder: (context, sectionIndex) {
@@ -258,6 +287,71 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           },
                         ),
                       ],
+=======
+              : ListView.separated(
+                  itemCount: _notifications.length,
+                  separatorBuilder: (context, index) => const Divider(
+                    color: ZynkColors.darkBorder,
+                    height: 1,
+                  ),
+                  itemBuilder: (context, index) {
+                    final notif = _notifications[index];
+                    final isRead = notif['is_read'] == true;
+                    final createdStr = notif['created_at'];
+                    final createdAt = createdStr != null 
+                        ? DateTime.tryParse(createdStr)?.toLocal() ?? DateTime.now()
+                        : DateTime.now();
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      tileColor: isRead ? Colors.transparent : ZynkColors.darkSurface,
+                      leading: CircleAvatar(
+                        backgroundColor: _getColorForType(notif['type']).withValues(alpha: 0.2),
+                        child: Icon(
+                          _getIconForType(notif['type']),
+                          color: _getColorForType(notif['type']),
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        notif['title'] ?? 'Notification',
+                        style: TextStyle(
+                          color: isRead ? ZynkColors.offWhite : Colors.white,
+                          fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            notif['content'] ?? '',
+                            style: TextStyle(
+                              color: isRead ? ZynkColors.darkMuted : ZynkColors.offWhite,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _timeAgo(createdAt),
+                            style: const TextStyle(
+                              color: ZynkColors.darkMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        if (!isRead) {
+                          ApiService.markNotificationRead(notif['id']);
+                          setState(() {
+                            notif['is_read'] = true;
+                          });
+                        }
+                      },
+>>>>>>> main
                     );
                   },
                 ),

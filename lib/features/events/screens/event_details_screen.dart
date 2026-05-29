@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
-import 'package:zynkup/features/auth/screens/login_screen.dart';
+import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
+import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_gallery_screen.dart';
 import 'package:zynkup/features/events/screens/qr_scanner_screen.dart';
@@ -70,11 +71,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _register() async {
-    if (widget.isGuest) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const UserLoginScreen()),
-      );
+    if (widget.isGuest || !ApiService.hasToken) {
+      showLoginPrompt(context, message: 'Sign in to register and receive your QR pass.');
       return;
     }
     setState(() => _registering = true);
@@ -166,11 +164,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final joined = _event.attendeeCount > 0
         ? _event.attendeeCount
         : _event.registeredUsers.length;
-    return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
-          : CustomScrollView(
+    return FractionallySizedBox(
+      heightFactor: 0.92,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Scaffold(
+          backgroundColor: ZynkColors.darkBg,
+          body: ZynkBackground(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
+                : CustomScrollView(
               slivers: [
                 SliverAppBar(
                   pinned: true,
@@ -314,6 +317,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
     );
   }
 }

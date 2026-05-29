@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/zynk_bottom_nav.dart';
 import 'package:zynkup/core/api/api_service.dart';
-import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
+import 'package:zynkup/features/auth/screens/login_screen.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
 import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
@@ -10,6 +11,8 @@ import 'package:zynkup/features/home/tabs/home_tab.dart';
 import 'package:zynkup/features/home/tabs/my_events_tab.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/features/feed/screens/feed_tab.dart';
+import 'package:zynkup/features/notifications/screens/notification_center_screen.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +23,40 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
+  int _unreadCount = 0;
+  Map<String, dynamic>? _user;
+  Timer? _notifTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+    _notifTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchUnread());
+  }
+
+  @override
+  void dispose() {
+    _notifTimer?.cancel();
+    super.dispose();
+  }
+
+  bool get _isGuest => _user == null;
+
+  Future<void> _loadUser() async {
+    await ApiService.loadToken();
+    final user = ApiService.hasToken ? await ApiService.getCurrentUser(force: true) : null;
+    if (!mounted) return;
+    setState(() => _user = user);
+    await _fetchUnread();
+  }
+
+  Future<void> _fetchUnread() async {
+    if (!ApiService.hasToken) return;
+    final count = await ApiService.getUnreadNotificationCount();
+    if (mounted && count != _unreadCount) {
+      setState(() => _unreadCount = count);
+    }
+  }
 
   final _tabs = const [
     FeedTab(),
@@ -30,6 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   Future<void> _create() async {
+    if (_isGuest) {
+      showLoginPrompt(context, message: 'Sign in to post, host events, and found clubs.');
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -58,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'Create New',
+                'Start Something',
                 style: TextStyle(
                   color: ZynkColors.offWhite,
                   fontSize: 22,
@@ -92,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               _CreationHubItem(
                 icon: Icons.event_rounded,
-                title: 'Host an Event',
+                title: 'Host Something Epic',
                 subtitle: 'Organize workshops, seminars, or cultural meets',
                 gradient: ZynkGradients.forCategory('tech'),
                 onTap: () {
@@ -136,6 +177,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _create();
       return;
     }
+    if (_isGuest && (index == 3 || index == 4)) {
+      showLoginPrompt(context, message: 'Sign in to view your tickets and profile.');
+      return;
+    }
     setState(() => _index = index);
   }
 
@@ -146,28 +191,67 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Zynkup'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_rounded, size: 22),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications coming soon!')),
-              );
-            },
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_rounded, size: 22),
+                onPressed: () {
+                  if (_isGuest) {
+                    showLoginPrompt(context, message: 'Sign in to see your notifications.');
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationCenterScreen()),
+                  ).then((_) => _fetchUnread());
+                },
+              ),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 12,
+                  top: 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: ZynkColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      _unreadCount > 9 ? '9+' : _unreadCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, size: 20),
-            tooltip: 'Sign out',
-            onPressed: () async {
-              await ApiService.logout();
-              if (!mounted) return;
-              Navigator.pushAndRemoveUntil(
-                // ignore: use_build_context_synchronously
+          if (_isGuest)
+            TextButton.icon(
+              onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
-                (_) => false,
-              );
-            },
-          ),
+                MaterialPageRoute(builder: (_) => const UserLoginScreen()),
+              ).then((_) => _loadUser()),
+              icon: const Icon(Icons.login_rounded, size: 18),
+              label: const Text('Login'),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, size: 20),
+              tooltip: 'Sign out',
+              onPressed: () async {
+                await ApiService.logout();
+                if (!mounted) return;
+                setState(() {
+                  _user = null;
+                  _unreadCount = 0;
+                  _index = 0;
+                });
+              },
+            ),
           const SizedBox(width: 8),
         ],
       ),
