@@ -786,16 +786,22 @@ class ApiService {
     }
   }
 
-  static Future<bool> joinClub(int clubId) async {
+  /// Returns a map with `success` (bool) and `joined` (bool, true=joined, false=left).
+  /// Returns null on network/server error.
+  static Future<Map<String, dynamic>?> joinClub(int clubId) async {
     try {
       await loadToken();
       final res = await http.post(
         Uri.parse("$baseUrl/clubs/$clubId/join"),
         headers: await _headers,
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        return {'success': true, 'joined': body['joined'] == true};
+      }
+      return null;
     } catch (_) {
-      return false;
+      return null;
     }
   }
 
@@ -1092,4 +1098,3 @@ class ApiService {
     }
   }
 }
-
