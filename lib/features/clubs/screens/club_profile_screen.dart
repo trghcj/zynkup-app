@@ -487,26 +487,6 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         ),
                       ),
                       actions: [
-                        // Show Join/Leave button for everyone except the club creator
-                        if (_club == null ||
-                            _currentUser == null ||
-                            (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
-                          Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: Center(
-                            child: SizedBox(
-                              width: 130,
-                              height: 40,
-                              child: ZynkButton(
-                                height: 40,
-                                label: _isMember ? 'Joined' : 'Join Club',
-                                outlined: _isMember,
-                                icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
-                                onTap: _toggleMembership,
-                              ),
-                            ),
-                          ),
-                        ),
                         if (_club != null && _currentUser != null && _club!['creator_id']?.toString() == _currentUser!['id']?.toString())
                           PopupMenuButton<String>(
                             icon: const Icon(Icons.more_vert, color: ZynkColors.darkText),
@@ -578,6 +558,17 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                     ],
                                   ),
                                 ),
+                                if (_club == null || _currentUser == null || (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
+                                  SizedBox(
+                                    width: 110,
+                                    child: ZynkButton(
+                                      height: 36,
+                                      label: _isMember ? 'Joined' : 'Join',
+                                      outlined: _isMember,
+                                      icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
+                                      onTap: _toggleMembership,
+                                    ),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 20),
