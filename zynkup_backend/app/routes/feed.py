@@ -17,10 +17,6 @@ class FeedPostCreate(BaseModel):
     banner_url: Optional[str] = None
     poll_question: Optional[str] = None
     poll_options: Optional[List[str]] = None
-<<<<<<< HEAD
-    club_id: Optional[int] = None
-=======
->>>>>>> main
 
 class FeedPostUpdate(BaseModel):
     content: Optional[str] = None
@@ -35,8 +31,6 @@ class FeedPostResponse(BaseModel):
     content: str
     image_url: Optional[str]
     banner_url: Optional[str]
-    imageUrl: Optional[str] = None
-    bannerUrl: Optional[str] = None
     likes: int
     is_liked: bool = False
     created_at: datetime
@@ -67,8 +61,7 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         author_id=current_user.id,
         content=post_data.content,
         image_url=post_data.image_url,
-        banner_url=post_data.banner_url,
-        club_id=post_data.club_id
+        banner_url=post_data.banner_url
     )
     db.add(new_post)
     db.commit()
@@ -101,8 +94,6 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         content=new_post.content,
         image_url=new_post.image_url,
         banner_url=new_post.banner_url,
-        imageUrl=new_post.image_url,
-        bannerUrl=new_post.banner_url,
         likes=new_post.likes,
         is_liked=False,
         created_at=new_post.created_at,
@@ -112,39 +103,14 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
 
 @router.get("/", response_model=List[FeedPostResponse])
 def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
-<<<<<<< HEAD
-    posts = db.query(FeedPost).filter(FeedPost.report_count < 10, FeedPost.club_id == None).order_by(FeedPost.created_at.desc()).limit(100).all()
-
-    now = datetime.utcnow()
-    user_memberships = set()
-    interacted_authors = set()
-    if current_user:
-        from app.models import ClubMember
-        user_memberships = {m.club_id for m in db.query(ClubMember).filter(ClubMember.user_id == current_user.id).all()}
-        # Authors user liked or commented on
-        interacted_authors = {l.post.author_id for l in db.query(FeedLike).filter(FeedLike.user_id == current_user.id).all()}
-
-=======
     posts = db.query(FeedPost).filter(FeedPost.report_count < 10).order_by(FeedPost.created_at.desc()).limit(100).all()
 
     now = datetime.utcnow()
->>>>>>> main
     def get_score(p):
         age_hours = (now - p.created_at).total_seconds() / 3600
         age_hours = max(0.1, age_hours)
         comments_count = len(p.comments)
         score = (p.likes * 2) + (comments_count * 3)
-<<<<<<< HEAD
-        
-        # Affinity boosts
-        if current_user:
-            if p.club_id and p.club_id in user_memberships:
-                score *= 1.5
-            if p.author_id in interacted_authors:
-                score *= 1.2
-                
-=======
->>>>>>> main
         decay = (age_hours + 2) ** 1.5
         return score / decay
 
@@ -176,8 +142,6 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
             content=p.content,
             image_url=p.image_url,
             banner_url=p.banner_url,
-            imageUrl=p.image_url,
-            bannerUrl=p.banner_url,
             likes=p.likes,
             is_liked=(p.id in liked_post_ids),
             created_at=p.created_at,
@@ -233,11 +197,6 @@ def update_post(post_id: int, post_data: FeedPostUpdate, db: Session = Depends(g
         content=post.content,
         image_url=post.image_url,
         banner_url=post.banner_url,
-<<<<<<< HEAD
-        imageUrl=post.image_url,
-        bannerUrl=post.banner_url,
-=======
->>>>>>> main
         likes=post.likes,
         is_liked=False,
         created_at=post.created_at
@@ -281,17 +240,6 @@ def create_comment(post_id: int, comment_data: FeedCommentCreate, db: Session = 
     db.commit()
     db.refresh(new_comment)
 
-<<<<<<< HEAD
-    if post.author_id != current_user.id:
-        from app.fcm import create_notification_helper, NEW_COMMENT
-        create_notification_helper(
-            db=db,
-            user_id=post.author_id,
-            title="New Comment",
-            body=f"{current_user.name or current_user.display_name or 'Someone'} commented on your post.",
-            type=NEW_COMMENT,
-            data={"post_id": str(post_id)}
-=======
     from ..fcm import send_fcm_notification, NEW_COMMENT
     if post.author_id != current_user.id and post.author.fcm_token:
         send_fcm_notification(
@@ -299,7 +247,6 @@ def create_comment(post_id: int, comment_data: FeedCommentCreate, db: Session = 
             title="New Comment",
             body=f"{current_user.name or current_user.display_name or 'Someone'} commented on your post.",
             data={"type": NEW_COMMENT, "post_id": str(post_id)}
->>>>>>> main
         )
 
     return FeedCommentResponse(
