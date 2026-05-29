@@ -55,6 +55,7 @@ class ApiService {
   static Future<void> registerFcmToken(String token) async {
     try {
       await loadToken();
+      if (!hasToken) return;
       await http.post(
         Uri.parse("$baseUrl/notifications/fcm-token"),
         headers: await _headers,
@@ -185,6 +186,7 @@ class ApiService {
     if (!force && _cachedUser != null) return _cachedUser;
     try {
       await loadToken();
+      if (!hasToken) return null;
       final res = await http.get(
         Uri.parse("$baseUrl/users/me"),
         headers: await _headers,
@@ -420,6 +422,7 @@ class ApiService {
   static Future<List<dynamic>> getMyRegistrations() async {
     try {
       await loadToken();
+      if (!hasToken) return [];
       final res = await http.get(
         Uri.parse("$baseUrl/users/my-registrations"),
         headers: await _headers,
@@ -434,6 +437,7 @@ class ApiService {
   static Future<List<dynamic>> getMyEvents() async {
     try {
       await loadToken();
+      if (!hasToken) return [];
       final res = await http.get(
         Uri.parse("$baseUrl/users/my-events"),
         headers: await _headers,
@@ -533,6 +537,7 @@ class ApiService {
   static Future<Map<String, dynamic>?> getPersonalAnalytics() async {
     try {
       await loadToken();
+      if (!hasToken) return null;
       final res = await http.get(
         Uri.parse("$baseUrl/analytics/me"),
         headers: await _headers,
@@ -551,6 +556,7 @@ class ApiService {
   static Future<Map<String, int>> getHeatmapData() async {
     try {
       await loadToken();
+      if (!hasToken) return {};
       final res = await http.get(
         Uri.parse("$baseUrl/analytics/heatmap"),
         headers: await _headers,
