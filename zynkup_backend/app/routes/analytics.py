@@ -20,10 +20,20 @@ def personal_analytics(
     category_counts: dict[str, int] = {}
     for event in created:
         category_counts[event.category or "other"] = category_counts.get(event.category or "other", 0) + 1
+        
+    # Calculate feed engagements
+    from app.models import FeedPost, FeedComment
+    user_posts = db.query(FeedPost).filter(FeedPost.author_id == current_user.id).all()
+    total_likes_received = sum(p.likes for p in user_posts)
+    post_ids = [p.id for p in user_posts]
+    total_comments_received = db.query(FeedComment).filter(FeedComment.post_id.in_(post_ids)).count() if post_ids else 0
+
     stats = get_user_stats(db, current_user)
     return {
         **stats,
         "category_breakdown": category_counts,
+        "total_likes_received": total_likes_received,
+        "total_comments_received": total_comments_received,
     }
 
 @router.get("/heatmap")

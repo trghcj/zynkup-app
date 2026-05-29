@@ -107,6 +107,20 @@ def add_xp(db: Session, user: models.User, action: str, amount: int = None):
         
         log_activity(db, user, action, amount)
         db.commit()
+
+        if amount > 0:
+            try:
+                from app.fcm import create_notification_helper, XP_GAINED
+                create_notification_helper(
+                    db=db,
+                    user_id=user.id,
+                    title="XP Gained!",
+                    body=f"You gained {amount} XP from {action.replace('_', ' ')}.",
+                    type=XP_GAINED,
+                    data={"xp_gained": str(amount), "action": action}
+                )
+            except Exception as e_xp:
+                print(f"Failed to create XP notification: {e_xp}")
     except Exception as e:
         db.rollback()
         # We don't raise here — gamification should not break the core app
@@ -186,7 +200,28 @@ def get_user_stats(db: Session, user: models.User):
     badges = get_profile_badges(user, stats)
     unlocked_badges = [badge["id"] for badge in badges if badge["unlocked"]]
     try:
-        if json.loads(user.achievements or "[]") != unlocked_badges:
+        old_badges = set(json.loads(user.achievements or "[]"))
+        new_badges = set(unlocked_badges)
+        unlocked_new = new_badges - old_badges
+        if unlocked_new:
+            user.achievements = json.dumps(unlocked_badges)
+            db.commit()
+            for b_id in unlocked_new:
+                badge_def = next((b for b in BADGE_DEFINITIONS if b["id"] == b_id), None)
+                badge_name = badge_def["name"] if badge_def else b_id
+                try:
+                    from app.fcm import create_notification_helper, BADGE_UNLOCKED
+                    create_notification_helper(
+                        db=db,
+                        user_id=user.id,
+                        title="Badge Unlocked!",
+                        body=f"Congratulations! You unlocked the '{badge_name}' badge.",
+                        type=BADGE_UNLOCKED,
+                        data={"badge_id": b_id}
+                    )
+                except Exception as e_bd:
+                    print(f"Failed to create badge notification: {e_bd}")
+        elif json.loads(user.achievements or "[]") != unlocked_badges:
             user.achievements = json.dumps(unlocked_badges)
             db.commit()
     except Exception:

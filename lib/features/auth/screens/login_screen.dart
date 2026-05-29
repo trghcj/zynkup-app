@@ -142,13 +142,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                 isLoading: _loading,
                 onTap: _googleLogin,
               ),
-              const SizedBox(height: 12),
-              ZynkButton(
-                label: 'Continue as Guest',
-                outlined: true,
-                icon: Icons.visibility_rounded,
-                onTap: () => Navigator.pop(context),
-              ),
+
             ],
           ),
         ),

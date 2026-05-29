@@ -14,6 +14,7 @@ from app import models
 from app.database import get_db
 from app.auth import get_current_user, get_optional_current_user
 from app.gamification import add_xp
+from app.fcm import send_fcm_notification, EVENT_JOINED, ATTENDANCE_MARKED
 
 router = APIRouter(prefix="/events", tags=["Events"])
 logger = logging.getLogger(__name__)
@@ -139,6 +140,8 @@ def create_event(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    if current_user.role not in ("ROLE_ORGANIZER", "ROLE_ADMIN", "organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers or admins can create events")
     try:
         # Robust date parsing
         date_str = payload.date
@@ -256,7 +259,7 @@ def delete_event(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id:
+    if event.creator_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only the creator can delete this event")
     db.delete(event)
     db.commit()
@@ -286,6 +289,16 @@ def register_event(
     # Award XP for registering
     add_xp(db, current_user, "register_event")
 
+    from app.fcm import create_notification_helper, EVENT_JOINED
+    create_notification_helper(
+        db=db,
+        user_id=current_user.id,
+        title="Event Registered",
+        body=f"You successfully registered for {event.title}.",
+        type=EVENT_JOINED,
+        data={"event_id": str(event_id)}
+    )
+
     return {"message": "Registered successfully", "qr_code": registration.qr_code}
 
 
@@ -300,6 +313,8 @@ def mark_attendance(
         raise HTTPException(status_code=404, detail="QR pass not found")
     if registration.event.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the event creator can scan this QR")
+    if current_user.role not in ("ROLE_ORGANIZER", "ROLE_ADMIN", "organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers or admins can scan QR passes")
     if not registration.attended:
         registration.attended = True
         registration.attended_at = datetime.utcnow()
@@ -307,6 +322,16 @@ def mark_attendance(
         
         # Award XP to the ATTEENDEE (registration.user)
         add_xp(db, registration.user, "attend_event")
+
+        from app.fcm import create_notification_helper, ATTENDANCE_MARKED
+        create_notification_helper(
+            db=db,
+            user_id=registration.user_id,
+            title="Attendance Marked",
+            body=f"You have been marked present for {registration.event.title}!",
+            type=ATTENDANCE_MARKED,
+            data={"event_id": str(registration.event_id)}
+        )
 
     return {
         "message": "Attendance marked",

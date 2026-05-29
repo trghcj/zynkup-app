@@ -3,10 +3,11 @@ import uuid
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, Request, UploadFile, File, Depends, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from typing import Dict, Any
 from dotenv import load_dotenv  # type: ignore
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
@@ -18,6 +19,16 @@ from app.routes import users, events, analytics, admin, clubs, notifications, fe
 from app.auth import get_current_user
 from app import models
 
+import cloudinary
+import cloudinary.uploader
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
+
 ENV = os.getenv("ENV", "development")
 logging.basicConfig(
     level=logging.DEBUG if ENV == "development" else logging.WARNING,
@@ -26,6 +37,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Zynkup API", version="2.0.0")
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[int, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: int):
+        await websocket.accept()
+        self.active_connections[user_id] = websocket
+
+    def disconnect(self, user_id: int):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+
+    async def send_personal_message(self, message: dict, user_id: int):
+        if user_id in self.active_connections:
+            try:
+                await self.active_connections[user_id].send_json(message)
+            except Exception as e:
+                logger.error(f"WebSocket send error: {e}")
+
+ws_manager = ConnectionManager()
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -81,9 +113,12 @@ def repair_event_schema() -> None:
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()",
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS banner_url TEXT",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS club_id INTEGER REFERENCES clubs(id)",
+            "ALTER TABLE club_members ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'member'",
             "ALTER TABLE clubs ADD COLUMN IF NOT EXISTS gallery_files TEXT DEFAULT ''",
             """
             DO $$
@@ -138,10 +173,13 @@ def repair_event_schema() -> None:
             logger.error(f"EVENT SCHEMA REPAIR FAILED: {exc}", exc_info=True)
     elif engine.dialect.name == "sqlite":
         statements = [
+            "ALTER TABLE users ADD COLUMN fcm_token VARCHAR",
             "ALTER TABLE events ADD COLUMN club_id INTEGER",
             "ALTER TABLE clubs ADD COLUMN gallery_files TEXT",
             "ALTER TABLE feed_posts ADD COLUMN is_reported BOOLEAN DEFAULT 0 NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE feed_posts ADD COLUMN club_id INTEGER",
+            "ALTER TABLE club_members ADD COLUMN role VARCHAR DEFAULT 'member'",
         ]
         with engine.begin() as conn:
             for statement in statements:
@@ -178,10 +216,19 @@ async def upload_file(
     if len(contents) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Max 15MB")
 
-    filename = f"{uuid.uuid4().hex}{ext}"
-    file_path = Path(UPLOAD_DIR) / filename
-    file_path.write_bytes(contents)
-    public_url = _public_upload_url(request, filename)
+    try:
+        if os.getenv("CLOUDINARY_CLOUD_NAME"):
+            upload_result = cloudinary.uploader.upload(contents, folder="zynkup")
+            public_url = upload_result.get("secure_url")
+            filename = upload_result.get("public_id")
+        else:
+            filename = f"{uuid.uuid4().hex}{ext}"
+            file_path = Path(UPLOAD_DIR) / filename
+            file_path.write_bytes(contents)
+            public_url = _public_upload_url(request, filename)
+    except Exception as e:
+        logger.error(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Upload failed")
 
     logger.info(f"Uploaded {filename} by user {current_user.id}")
     return {"url": public_url, "filename": filename}
@@ -199,3 +246,22 @@ app.include_router(feed.router)
 @app.get("/", tags=["Health"])
 def home():
     return {"message": "Zynkup API is live! "}
+
+@app.websocket("/ws/notifications")
+async def websocket_notifications(websocket: WebSocket, token: str):
+    from app.auth import SECRET_KEY, ALGORITHM
+    from jose import jwt, JWTError
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except (JWTError, ValueError, TypeError):
+        await websocket.close(code=1008)
+        return
+
+    await ws_manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Keep connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(user_id)

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
-import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
+import 'package:zynkup/features/home/screens/home_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 
 class EventGalleryScreen extends StatefulWidget {
@@ -139,7 +139,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
               Navigator.pushAndRemoveUntil(
                 // ignore: use_build_context_synchronously
                 context,
-                MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
                 (_) => false,
               );
             },

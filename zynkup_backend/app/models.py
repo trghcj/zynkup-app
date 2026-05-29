@@ -14,7 +14,8 @@ class User(Base):
     google_id    = Column(String, unique=True, nullable=True, index=True)
     name         = Column(String, nullable=True)
     avatar_url   = Column(Text, nullable=True)
-    role         = Column(String, nullable=False, default="user")
+    role         = Column(String, nullable=False, default="ROLE_USER")
+    fcm_token    = Column(String, nullable=True)
     created_at   = Column(DateTime, server_default=func.now())
 
     # Profile extras
@@ -131,7 +132,7 @@ class ClubMember(Base):
     id         = Column(Integer, primary_key=True, index=True)
     club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=False)
     user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
-    role       = Column(String, default="member", nullable=False) # admin, member
+    role       = Column(String, default="member", nullable=False) # owner, moderator, member
     joined_at  = Column(DateTime, server_default=func.now())
 
     club = relationship("Club", back_populates="members")
@@ -163,9 +164,14 @@ class FeedPost(Base):
     likes      = Column(Integer, default=0)
     is_reported = Column(Boolean, default=False, nullable=False)
     report_count = Column(Integer, default=0, nullable=False)
+    club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     author = relationship("User")
+    comments = relationship("FeedComment", back_populates="post", cascade="all, delete-orphan")
+    like_records = relationship("FeedLike", back_populates="post", cascade="all, delete-orphan")
+    reactions = relationship("FeedReaction", back_populates="post", cascade="all, delete-orphan")
+    poll = relationship("FeedPoll", back_populates="post", uselist=False, cascade="all, delete-orphan")
 
 
 class FeedComment(Base):
@@ -177,7 +183,7 @@ class FeedComment(Base):
     content    = Column(Text, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
-    post   = relationship("FeedPost")
+    post   = relationship("FeedPost", back_populates="comments")
     author = relationship("User")
 
 
@@ -189,5 +195,31 @@ class FeedLike(Base):
     user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
-    post   = relationship("FeedPost")
-    user   = relationship("User")
+    post   = relationship("FeedPost", back_populates="like_records")
+    user   = relationship("User")
+
+
+class FeedReaction(Base):
+    __tablename__ = "feed_reactions"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    post_id    = Column(Integer, ForeignKey("feed_posts.id"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    emoji      = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    post = relationship("FeedPost", back_populates="reactions")
+    user = relationship("User")
+
+
+class FeedPoll(Base):
+    __tablename__ = "feed_polls"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    post_id    = Column(Integer, ForeignKey("feed_posts.id"), nullable=False, unique=True)
+    question   = Column(Text, nullable=False)
+    options    = Column(Text, nullable=False, default="[]")
+    votes      = Column(Text, nullable=False, default="{}")
+    created_at = Column(DateTime, server_default=func.now())
+
+    post = relationship("FeedPost", back_populates="poll")

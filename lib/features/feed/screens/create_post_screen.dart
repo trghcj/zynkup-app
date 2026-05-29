@@ -6,7 +6,8 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  final int? clubId;
+  const CreatePostScreen({super.key, this.clubId});
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -73,6 +74,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         content: _contentController.text.trim(),
         imageUrl: photoUrl,
         bannerUrl: bannerUrl,
+        clubId: widget.clubId,
       );
 
       if (!mounted) return;
@@ -117,7 +119,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               padding: const EdgeInsets.all(24),
               children: [
                 const Text(
-                  'What\'s happening?',
+                  'What\'s buzzing on campus?',
                   style: TextStyle(
                     color: ZynkColors.offWhite,
                     fontSize: 32,
