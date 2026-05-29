@@ -550,13 +550,8 @@ class FeedPostCard extends StatelessWidget {
           ),
 
           if (post['poll'] != null)
-<<<<<<< HEAD
             PollWidget(poll: post['poll'] as Map<String, dynamic>, onVote: onVote),
           ReactionStrip(
-=======
-            _PollWidget(poll: post['poll'] as Map<String, dynamic>, onVote: onVote),
-          _ReactionStrip(
->>>>>>> main
             reactions: post['reactions'] as Map<String, dynamic>? ?? {},
             onReact: onReact,
           ),
@@ -566,19 +561,11 @@ class FeedPostCard extends StatelessWidget {
   }
 }
 
-<<<<<<< HEAD
 class PollWidget extends StatelessWidget {
   final Map<String, dynamic> poll;
   final Function(int) onVote;
 
   const PollWidget({super.key, required this.poll, required this.onVote});
-=======
-class _PollWidget extends StatelessWidget {
-  final Map<String, dynamic> poll;
-  final Function(int) onVote;
-
-  const _PollWidget({required this.poll, required this.onVote});
->>>>>>> main
 
   @override
   Widget build(BuildContext context) {
@@ -652,19 +639,11 @@ class _PollWidget extends StatelessWidget {
   }
 }
 
-<<<<<<< HEAD
 class ReactionStrip extends StatelessWidget {
   final Map<String, dynamic> reactions;
   final Function(String) onReact;
 
   const ReactionStrip({super.key, required this.reactions, required this.onReact});
-=======
-class _ReactionStrip extends StatelessWidget {
-  final Map<String, dynamic> reactions;
-  final Function(String) onReact;
-
-  const _ReactionStrip({required this.reactions, required this.onReact});
->>>>>>> main
 
   @override
   Widget build(BuildContext context) {
@@ -701,11 +680,7 @@ class _ReactionStrip extends StatelessWidget {
   }
 }
 
-<<<<<<< HEAD
 class ActionIcon extends StatelessWidget {
-=======
-class _ActionIcon extends StatelessWidget {
->>>>>>> main
   final IconData icon;
   final String label;
   final Color? iconColor;
