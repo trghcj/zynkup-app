@@ -41,6 +41,9 @@ dependencies:
   flutter_svg: ^2.3.0
   http_parser: ^4.1.2
 
+  # 📤 Sharing
+  share_plus: ^10.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

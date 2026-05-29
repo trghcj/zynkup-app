@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
@@ -95,10 +96,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _share() async {
-    final text =
-        'Join ${_event.title} on Zynkup: https://zynkup.app/events/${_event.id}';
-    await Clipboard.setData(ClipboardData(text: text));
-    _snack('Event link copied.');
+    final text = 'Join ${_event.title} on Zynkup: https://zynkup.app/events/${_event.id}';
+    try {
+      await Share.share(text);
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: text));
+      _snack('Event link copied.');
+    }
   }
 
   Future<void> _deleteEvent() async {

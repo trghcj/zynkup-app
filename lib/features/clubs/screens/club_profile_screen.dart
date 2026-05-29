@@ -6,9 +6,12 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
 import 'package:zynkup/features/feed/screens/feed_tab.dart';
 import 'package:zynkup/features/feed/screens/create_post_screen.dart';
+import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 
 class ClubProfileScreen extends StatefulWidget {
   final String clubId;
@@ -160,6 +163,10 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   }
 
   Future<void> _toggleMembership() async {
+    if (!ApiService.hasToken) {
+      showLoginPrompt(context, message: 'Sign in to join this club.');
+      return;
+    }
     final success = await ApiService.joinClub(int.parse(widget.clubId));
     if (success) {
       // Reload club details to get fresh member count and is_member status
@@ -652,8 +659,32 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       onReply: () {
                         // TODO: Implement comments sheet for club profile
                       },
-                      onShare: () {
-                        // Share logic
+                      onShare: () async {
+                        final text = post['content'] ?? '';
+                        if (text.isEmpty) return;
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          await Share.share(text);
+                        } catch (_) {
+                          await Clipboard.setData(ClipboardData(text: text));
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(Icons.check_circle_outline_rounded, color: ZynkColors.gold),
+                                  SizedBox(width: 12),
+                                  Text('Copied post text to clipboard!'),
+                                ],
+                              ),
+                              backgroundColor: ZynkColors.darkSurface2,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.3)),
+                              ),
+                            ),
+                          );
+                        }
                       },
                       onMore: () {
                         // More logic

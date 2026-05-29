@@ -4,7 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'core/api/api_service.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/theme_provider.dart';
+
 import 'features/auth/screens/splash_screen.dart';
 import 'firebase_options.dart';
 
@@ -60,9 +60,6 @@ class _ZynkupAppState extends State<ZynkupApp> {
   @override
   void initState() {
     super.initState();
-    themeProvider.addListener(() {
-      setState(() {});
-    });
     
     ApiService.latestNotification.addListener(() {
       final notif = ApiService.latestNotification.value;
@@ -87,7 +84,7 @@ class _ZynkupAppState extends State<ZynkupApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: themeProvider.themeMode,
+      themeMode: ThemeMode.dark,
       home: const SplashScreen(),
     );
   }
