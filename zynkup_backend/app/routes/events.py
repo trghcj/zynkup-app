@@ -287,13 +287,15 @@ def register_event(
     # Award XP for registering
     add_xp(db, current_user, "register_event")
 
-    if current_user.fcm_token:
-        send_fcm_notification(
-            token=current_user.fcm_token,
-            title="Event Registered",
-            body=f"You successfully registered for {event.title}.",
-            data={"type": EVENT_JOINED, "event_id": str(event_id)}
-        )
+    from app.fcm import create_notification_helper, EVENT_JOINED
+    create_notification_helper(
+        db=db,
+        user_id=current_user.id,
+        title="Event Registered",
+        body=f"You successfully registered for {event.title}.",
+        type=EVENT_JOINED,
+        data={"event_id": str(event_id)}
+    )
 
     return {"message": "Registered successfully", "qr_code": registration.qr_code}
 
@@ -317,13 +319,15 @@ def mark_attendance(
         # Award XP to the ATTEENDEE (registration.user)
         add_xp(db, registration.user, "attend_event")
 
-        if registration.user.fcm_token:
-            send_fcm_notification(
-                token=registration.user.fcm_token,
-                title="Attendance Marked",
-                body=f"You have been marked present for {registration.event.title}!",
-                data={"type": ATTENDANCE_MARKED, "event_id": str(registration.event_id)}
-            )
+        from app.fcm import create_notification_helper, ATTENDANCE_MARKED
+        create_notification_helper(
+            db=db,
+            user_id=registration.user_id,
+            title="Attendance Marked",
+            body=f"You have been marked present for {registration.event.title}!",
+            type=ATTENDANCE_MARKED,
+            data={"event_id": str(registration.event_id)}
+        )
 
     return {
         "message": "Attendance marked",

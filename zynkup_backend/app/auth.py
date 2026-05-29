@@ -107,9 +107,6 @@ def require_role(allowed_roles: list[str]):
             normalized_allowed.append(nr)
             
         if user_role not in normalized_allowed:
-            
-        if current_user.role not in allowed_roles:
-
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return current_user
     return role_checker

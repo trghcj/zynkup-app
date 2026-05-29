@@ -95,6 +95,7 @@ def repair_event_schema() -> None:
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS banner_url TEXT",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS club_id INTEGER REFERENCES clubs(id)",
             "ALTER TABLE club_members ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'member'",
             "ALTER TABLE clubs ADD COLUMN IF NOT EXISTS gallery_files TEXT DEFAULT ''",
             """
@@ -155,6 +156,7 @@ def repair_event_schema() -> None:
             "ALTER TABLE clubs ADD COLUMN gallery_files TEXT",
             "ALTER TABLE feed_posts ADD COLUMN is_reported BOOLEAN DEFAULT 0 NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN report_count INTEGER DEFAULT 0 NOT NULL",
+            "ALTER TABLE feed_posts ADD COLUMN club_id INTEGER",
             "ALTER TABLE club_members ADD COLUMN role VARCHAR DEFAULT 'member'",
         ]
         with engine.begin() as conn:
