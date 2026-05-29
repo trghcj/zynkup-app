@@ -32,3 +32,23 @@ def mark_read(notif_id: int, db: Session = Depends(get_db), current_user: User =
         notif.is_read = True
         db.commit()
     return {"message": "Marked as read"}
+
+class FcmTokenUpdate(BaseModel):
+    token: str
+
+@router.post("/fcm-token")
+def register_fcm_token(data: FcmTokenUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    current_user.fcm_token = data.token
+    db.commit()
+    return {"message": "Token registered"}
+
+@router.post("/mark-all-read")
+def mark_all_read(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db.query(Notification).filter(Notification.user_id == current_user.id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
+    return {"message": "All marked as read"}
+
+@router.get("/unread-count")
+def get_unread_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    count = db.query(Notification).filter(Notification.user_id == current_user.id, Notification.is_read == False).count()
+    return {"count": count}
