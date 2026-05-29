@@ -95,7 +95,6 @@ def get_optional_current_user(
 
 def require_role(allowed_roles: list[str]):
     def role_checker(current_user: models.User = Depends(get_current_user)):
-<<<<<<< HEAD
         user_role = current_user.role.upper()
         if not user_role.startswith("ROLE_"):
             user_role = f"ROLE_{user_role}"
@@ -108,9 +107,6 @@ def require_role(allowed_roles: list[str]):
             normalized_allowed.append(nr)
             
         if user_role not in normalized_allowed:
-=======
-        if current_user.role not in allowed_roles:
->>>>>>> main
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return current_user
     return role_checker
