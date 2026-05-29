@@ -51,6 +51,21 @@ class ApiService {
     _token = await _storage.read(key: "token");
   }
 
+  /// Register FCM token with backend.
+  static Future<void> registerFcmToken(String token) async {
+    try {
+      await loadToken();
+      await http.post(
+        Uri.parse("$baseUrl/notifications/fcm-token"),
+        headers: await _headers,
+        body: jsonEncode({"token": token}),
+      );
+      // ignore response; backend stores token.
+    } catch (_) {
+      // silently ignore failures – token registration is best‑effort.
+    }
+  }
+
   static bool get hasToken => _token != null;
 
   static Future<void> setToken(String token) async {
@@ -757,7 +772,6 @@ class ApiService {
     }
   }
 
-  // ── Extended Feed ──────────────────────────────────────────────────────────
   static Future<bool> reportFeedPost(int postId) async {
     try {
       await loadToken();
@@ -768,6 +782,110 @@ class ApiService {
       return res.statusCode == 200;
     } catch (_) {
       return false;
+    }
+  }
+
+  static Future<bool> deleteFeedPost(int postId) async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("$baseUrl/feed/$postId"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> editFeedPost(int postId, {String? content, String? imageUrl}) async {
+    try {
+      await loadToken();
+      final res = await http.patch(
+        Uri.parse("$baseUrl/feed/$postId"),
+        headers: await _headers,
+        body: jsonEncode({
+          if (content != null) "content": content,
+          if (imageUrl != null) "image_url": imageUrl,
+        }),
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Notifications ──────────────────────────────────────────────────────────
+  static Future<List<dynamic>> getNotifications() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/notifications/"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+  // ── Timeline ────────────────────────────────────────────────────────────────
+
+
+
+  // ── Mark all notifications read ──────────────────────────────────────────────
+
+  /// Mark all notifications as read.
+  static Future<bool> markAllRead() async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/notifications/mark-all-read"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+
+
+
+  static Future<bool> markNotificationRead(int notifId) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/notifications/$notifId/read"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+
+
+  static Future<int> getUnreadNotificationCount() async {
+    try {
+      await loadToken();
+      if (!hasToken) return 0;
+      final res = await http.get(
+        Uri.parse("$baseUrl/notifications/unread-count"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return (jsonDecode(res.body) as Map<String, dynamic>)['count'] as int? ?? 0;
+      }
+      return 0;
+    } catch (_) {
+      return 0;
     }
   }
 
@@ -863,12 +981,12 @@ class ApiService {
         Uri.parse("$baseUrl/clubs/$clubId/gallery"),
       );
       if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
-      
+
       final ext = filename.split('.').last.toLowerCase();
       String mime = 'image/jpeg';
       if (ext == 'png') mime = 'image/png';
       if (ext == 'webp') mime = 'image/webp';
-      
+
       req.files.add(
         http.MultipartFile.fromBytes(
           'files',
@@ -877,7 +995,7 @@ class ApiService {
           contentType: MediaType.parse(mime),
         ),
       );
-      
+
       final res = await http.Response.fromStream(await req.send());
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
@@ -887,6 +1005,50 @@ class ApiService {
       rethrow;
     } catch (_) {
       throw const ApiException("Club gallery upload failed.");
+    }
+  }
+
+  static Future<List<dynamic>> getTimeline() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/users/me/timeline"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+
+
+  static Future<bool> reactToFeedPost(int postId, String emoji) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/feed/$postId/react"),
+        headers: await _headers,
+        body: jsonEncode({"emoji": emoji}),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> votePoll(int postId, int optionIndex) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/feed/$postId/poll/vote"),
+        headers: await _headers,
+        body: jsonEncode({"option_index": optionIndex}),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 }
