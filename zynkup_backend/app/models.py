@@ -14,11 +14,7 @@ class User(Base):
     google_id    = Column(String, unique=True, nullable=True, index=True)
     name         = Column(String, nullable=True)
     avatar_url   = Column(Text, nullable=True)
-<<<<<<< HEAD
     role         = Column(String, nullable=False, default="ROLE_USER")
-=======
-    role         = Column(String, nullable=False, default="user")
->>>>>>> main
     fcm_token    = Column(String, nullable=True)
     created_at   = Column(DateTime, server_default=func.now())
 
@@ -168,10 +164,7 @@ class FeedPost(Base):
     likes      = Column(Integer, default=0)
     is_reported = Column(Boolean, default=False, nullable=False)
     report_count = Column(Integer, default=0, nullable=False)
-<<<<<<< HEAD
     club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=True)
-=======
->>>>>>> main
     created_at = Column(DateTime, server_default=func.now())
 
     author = relationship("User")

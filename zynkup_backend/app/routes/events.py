@@ -140,8 +140,6 @@ def create_event(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    if current_user.role not in ("ROLE_ORGANIZER", "ROLE_ADMIN", "organizer", "admin"):
-        raise HTTPException(status_code=403, detail="Only organizers or admins can create events")
     try:
         # Robust date parsing
         date_str = payload.date
@@ -313,8 +311,6 @@ def mark_attendance(
         raise HTTPException(status_code=404, detail="QR pass not found")
     if registration.event.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the event creator can scan this QR")
-    if current_user.role not in ("ROLE_ORGANIZER", "ROLE_ADMIN", "organizer", "admin"):
-        raise HTTPException(status_code=403, detail="Only organizers or admins can scan QR passes")
     if not registration.attended:
         registration.attended = True
         registration.attended_at = datetime.utcnow()

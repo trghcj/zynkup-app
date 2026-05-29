@@ -32,8 +32,6 @@ class FeedPostResponse(BaseModel):
     content: str
     image_url: Optional[str]
     banner_url: Optional[str]
-    imageUrl: Optional[str] = None
-    bannerUrl: Optional[str] = None
     likes: int
     is_liked: bool = False
     created_at: datetime
@@ -64,8 +62,7 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         author_id=current_user.id,
         content=post_data.content,
         image_url=post_data.image_url,
-        banner_url=post_data.banner_url,
-        club_id=post_data.club_id
+        banner_url=post_data.banner_url
     )
     db.add(new_post)
     db.commit()
@@ -98,8 +95,6 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         content=new_post.content,
         image_url=new_post.image_url,
         banner_url=new_post.banner_url,
-        imageUrl=new_post.image_url,
-        bannerUrl=new_post.banner_url,
         likes=new_post.likes,
         is_liked=False,
         created_at=new_post.created_at,
@@ -164,8 +159,6 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
             content=p.content,
             image_url=p.image_url,
             banner_url=p.banner_url,
-            imageUrl=p.image_url,
-            bannerUrl=p.banner_url,
             likes=p.likes,
             is_liked=(p.id in liked_post_ids),
             created_at=p.created_at,

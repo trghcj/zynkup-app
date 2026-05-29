@@ -3,11 +3,10 @@ import uuid
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, Request, UploadFile, File, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from typing import Dict, Any
 from dotenv import load_dotenv  # type: ignore
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
@@ -37,27 +36,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Zynkup API", version="2.0.0")
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[int, WebSocket] = {}
-
-    async def connect(self, websocket: WebSocket, user_id: int):
-        await websocket.accept()
-        self.active_connections[user_id] = websocket
-
-    def disconnect(self, user_id: int):
-        if user_id in self.active_connections:
-            del self.active_connections[user_id]
-
-    async def send_personal_message(self, message: dict, user_id: int):
-        if user_id in self.active_connections:
-            try:
-                await self.active_connections[user_id].send_json(message)
-            except Exception as e:
-                logger.error(f"WebSocket send error: {e}")
-
-ws_manager = ConnectionManager()
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -246,22 +224,3 @@ app.include_router(feed.router)
 @app.get("/", tags=["Health"])
 def home():
     return {"message": "Zynkup API is live! "}
-
-@app.websocket("/ws/notifications")
-async def websocket_notifications(websocket: WebSocket, token: str):
-    from app.auth import SECRET_KEY, ALGORITHM
-    from jose import jwt, JWTError
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = int(payload.get("sub"))
-    except (JWTError, ValueError, TypeError):
-        await websocket.close(code=1008)
-        return
-
-    await ws_manager.connect(websocket, user_id)
-    try:
-        while True:
-            # Keep connection alive
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        ws_manager.disconnect(user_id)
