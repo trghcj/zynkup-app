@@ -49,11 +49,20 @@ def cleanup_broken_images(setup_key: str, db: Session = Depends(get_db)):
     event_cleans = 0
     user_cleans = 0
     
-    # 1. Clean Club Galleries
+    # 1. Clean Club Galleries and Logos
     clubs = db.query(models.Club).all()
     for c in clubs:
+        modified = False
         if c.gallery_files and "/uploads/" in c.gallery_files:
             c.gallery_files = "" # Wipe corrupted gallery
+            modified = True
+        if c.banner_url and "/uploads/" in c.banner_url:
+            c.banner_url = None
+            modified = True
+        if c.logo_url and "/uploads/" in c.logo_url:
+            c.logo_url = None
+            modified = True
+        if modified:
             club_cleans += 1
             
     # 2. Clean Feed Posts
