@@ -303,7 +303,7 @@ class _FeedTabState extends State<FeedTab> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final post = _posts[index] as Map<String, dynamic>;
-                        return _FeedPostCard(
+                        return FeedPostCard(
                           post: post,
                           onLike: () async {
                             if (!ApiService.hasToken) {
@@ -385,7 +385,7 @@ class _FeedTabState extends State<FeedTab> {
   }
 }
 
-class _FeedPostCard extends StatelessWidget {
+class FeedPostCard extends StatelessWidget {
   final Map<String, dynamic> post;
   final VoidCallback onLike;
   final VoidCallback onReply;
@@ -394,7 +394,8 @@ class _FeedPostCard extends StatelessWidget {
   final Function(String) onReact;
   final Function(int) onVote;
 
-  const _FeedPostCard({
+  const FeedPostCard({
+    super.key,
     required this.post,
     required this.onLike,
     required this.onReply,
@@ -489,7 +490,7 @@ class _FeedPostCard extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.more_horiz_rounded, color: ZynkColors.darkMuted),
+                  icon: const Icon(Icons.more_vert_rounded, color: ZynkColors.darkMuted),
                   onPressed: onMore,
                 ),
               ],
@@ -525,7 +526,7 @@ class _FeedPostCard extends StatelessWidget {
               children: [
                 GestureDetector(
                   onTap: onLike,
-                  child: _ActionIcon(
+                  child: ActionIcon(
                     icon: isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                     iconColor: isLiked ? ZynkColors.orange : ZynkColors.darkMuted,
                     label: '$likes',
@@ -534,7 +535,7 @@ class _FeedPostCard extends StatelessWidget {
                 const SizedBox(width: 24),
                 GestureDetector(
                   onTap: onReply,
-                  child: const _ActionIcon(
+                  child: const ActionIcon(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'Reply',
                   ),
@@ -542,15 +543,15 @@ class _FeedPostCard extends StatelessWidget {
                 const Spacer(),
                 GestureDetector(
                   onTap: onShare,
-                  child: const _ActionIcon(icon: Icons.share_rounded, label: 'Share'),
+                  child: const ActionIcon(icon: Icons.share_rounded, label: 'Share'),
                 ),
               ],
             ),
           ),
 
           if (post['poll'] != null)
-            _PollWidget(poll: post['poll'] as Map<String, dynamic>, onVote: onVote),
-          _ReactionStrip(
+            PollWidget(poll: post['poll'] as Map<String, dynamic>, onVote: onVote),
+          ReactionStrip(
             reactions: post['reactions'] as Map<String, dynamic>? ?? {},
             onReact: onReact,
           ),
@@ -560,11 +561,11 @@ class _FeedPostCard extends StatelessWidget {
   }
 }
 
-class _PollWidget extends StatelessWidget {
+class PollWidget extends StatelessWidget {
   final Map<String, dynamic> poll;
   final Function(int) onVote;
 
-  const _PollWidget({required this.poll, required this.onVote});
+  const PollWidget({super.key, required this.poll, required this.onVote});
 
   @override
   Widget build(BuildContext context) {
@@ -638,11 +639,11 @@ class _PollWidget extends StatelessWidget {
   }
 }
 
-class _ReactionStrip extends StatelessWidget {
+class ReactionStrip extends StatelessWidget {
   final Map<String, dynamic> reactions;
   final Function(String) onReact;
 
-  const _ReactionStrip({required this.reactions, required this.onReact});
+  const ReactionStrip({super.key, required this.reactions, required this.onReact});
 
   @override
   Widget build(BuildContext context) {
@@ -679,12 +680,13 @@ class _ReactionStrip extends StatelessWidget {
   }
 }
 
-class _ActionIcon extends StatelessWidget {
+class ActionIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color? iconColor;
 
-  const _ActionIcon({
+  const ActionIcon({
+    super.key,
     required this.icon,
     required this.label,
     this.iconColor,

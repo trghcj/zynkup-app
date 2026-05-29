@@ -53,3 +53,55 @@ def send_fcm_notification(token: str, title: str, body: str, data: dict = None):
     except Exception as e:
         logger.error(f"Error sending FCM message: {e}")
         return False
+<<<<<<< HEAD
+
+def create_notification_helper(db, user_id: int, title: str, body: str, type: str, data: dict = None):
+    """
+    Creates a persistent Notification record in the DB and attempts to deliver an FCM push notification.
+    """
+    from app import models
+    try:
+        notif = models.Notification(
+            user_id=user_id,
+            title=title,
+            body=body,
+            type=type,
+            is_read=False
+        )
+        db.add(notif)
+        db.commit()
+        db.refresh(notif)
+
+        recipient = db.query(models.User).filter(models.User.id == user_id).first()
+        if recipient and recipient.fcm_token:
+            payload = data or {}
+            payload["notification_id"] = str(notif.id)
+            payload["type"] = type
+            send_fcm_notification(
+                token=recipient.fcm_token,
+                title=title,
+                body=body,
+                data=payload
+            )
+
+        import asyncio
+        from app.main import ws_manager
+        ws_payload = {
+            "title": title,
+            "body": body,
+            "type": type,
+            "data": data or {}
+        }
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(ws_manager.send_personal_message(ws_payload, user_id))
+        except Exception as e:
+            logger.debug(f"Could not send websocket message: {e}")
+
+        return notif
+    except Exception as e:
+        logger.error(f"Error in create_notification_helper: {e}")
+        db.rollback()
+        return None
+=======
+>>>>>>> main

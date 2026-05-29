@@ -54,6 +54,8 @@ class ZynkupApp extends StatefulWidget {
   State<ZynkupApp> createState() => _ZynkupAppState();
 }
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 class _ZynkupAppState extends State<ZynkupApp> {
   @override
   void initState() {
@@ -61,12 +63,27 @@ class _ZynkupAppState extends State<ZynkupApp> {
     themeProvider.addListener(() {
       setState(() {});
     });
+    
+    ApiService.latestNotification.addListener(() {
+      final notif = ApiService.latestNotification.value;
+      if (notif != null) {
+        scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text("${notif['title'] ?? 'Notification'}: ${notif['body'] ?? ''}"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: ZynkColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Zynkup',
+      scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

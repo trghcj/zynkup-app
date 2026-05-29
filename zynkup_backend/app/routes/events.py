@@ -140,6 +140,8 @@ def create_event(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    if current_user.role not in ("ROLE_ORGANIZER", "ROLE_ADMIN", "organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers or admins can create events")
     try:
         # Robust date parsing
         date_str = payload.date
@@ -287,6 +289,17 @@ def register_event(
     # Award XP for registering
     add_xp(db, current_user, "register_event")
 
+<<<<<<< HEAD
+    from app.fcm import create_notification_helper, EVENT_JOINED
+    create_notification_helper(
+        db=db,
+        user_id=current_user.id,
+        title="Event Registered",
+        body=f"You successfully registered for {event.title}.",
+        type=EVENT_JOINED,
+        data={"event_id": str(event_id)}
+    )
+=======
     if current_user.fcm_token:
         send_fcm_notification(
             token=current_user.fcm_token,
@@ -294,6 +307,7 @@ def register_event(
             body=f"You successfully registered for {event.title}.",
             data={"type": EVENT_JOINED, "event_id": str(event_id)}
         )
+>>>>>>> main
 
     return {"message": "Registered successfully", "qr_code": registration.qr_code}
 
@@ -309,6 +323,8 @@ def mark_attendance(
         raise HTTPException(status_code=404, detail="QR pass not found")
     if registration.event.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the event creator can scan this QR")
+    if current_user.role not in ("ROLE_ORGANIZER", "ROLE_ADMIN", "organizer", "admin"):
+        raise HTTPException(status_code=403, detail="Only organizers or admins can scan QR passes")
     if not registration.attended:
         registration.attended = True
         registration.attended_at = datetime.utcnow()
@@ -317,6 +333,17 @@ def mark_attendance(
         # Award XP to the ATTEENDEE (registration.user)
         add_xp(db, registration.user, "attend_event")
 
+<<<<<<< HEAD
+        from app.fcm import create_notification_helper, ATTENDANCE_MARKED
+        create_notification_helper(
+            db=db,
+            user_id=registration.user_id,
+            title="Attendance Marked",
+            body=f"You have been marked present for {registration.event.title}!",
+            type=ATTENDANCE_MARKED,
+            data={"event_id": str(registration.event_id)}
+        )
+=======
         if registration.user.fcm_token:
             send_fcm_notification(
                 token=registration.user.fcm_token,
@@ -324,6 +351,7 @@ def mark_attendance(
                 body=f"You have been marked present for {registration.event.title}!",
                 data={"type": ATTENDANCE_MARKED, "event_id": str(registration.event_id)}
             )
+>>>>>>> main
 
     return {
         "message": "Attendance marked",

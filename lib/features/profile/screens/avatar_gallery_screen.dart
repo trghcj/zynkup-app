@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
-import 'package:zynkup/features/auth/screens/guest_home_screen.dart';
+import 'package:zynkup/features/home/screens/home_screen.dart';
 import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 
 class AvatarGalleryScreen extends StatelessWidget {
@@ -32,7 +32,7 @@ class AvatarGalleryScreen extends StatelessWidget {
               if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const GuestHomeScreen()),
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
                 (_) => false,
               );
             },

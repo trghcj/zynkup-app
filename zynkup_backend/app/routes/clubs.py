@@ -43,6 +43,7 @@ class ClubResponse(BaseModel):
     category: Optional[str]
     banner_url: Optional[str]
     logo_url: Optional[str]
+    clubProfileUrl: Optional[str] = None
     member_count: int
     created_at: datetime
     is_member: bool = False
@@ -135,6 +136,7 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
         category=new_club.category,
         banner_url=new_club.banner_url,
         logo_url=new_club.logo_url,
+        clubProfileUrl=new_club.logo_url,
         member_count=1,
         created_at=new_club.created_at,
         is_member=True,
@@ -158,6 +160,7 @@ def get_clubs(db: Session = Depends(get_db), current_user: Optional[User] = Depe
             category=c.category,
             banner_url=c.banner_url,
             logo_url=c.logo_url,
+            clubProfileUrl=c.logo_url,
             member_count=count,
             created_at=c.created_at,
             is_member=(c.id in user_memberships),
@@ -183,6 +186,7 @@ def get_club(club_id: int, db: Session = Depends(get_db), current_user: Optional
         category=club.category,
         banner_url=club.banner_url,
         logo_url=club.logo_url,
+        clubProfileUrl=club.logo_url,
         member_count=count,
         created_at=club.created_at,
         is_member=is_member,
@@ -353,3 +357,49 @@ async def upload_club_gallery(
         "files": additions,
         "total": len(existing) + len(additions),
     }
+
+@router.get("/{club_id}/feed")
+def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+    from ..models import FeedPost, FeedLike
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    posts = db.query(FeedPost).filter(FeedPost.club_id == club_id, FeedPost.report_count < 10).order_by(FeedPost.created_at.desc()).limit(100).all()
+
+    liked_post_ids = set()
+    if current_user:
+        liked_post_ids = {like.post_id for like in db.query(FeedLike).filter(FeedLike.user_id == current_user.id).all()}
+
+    from .feed import FeedPostResponse
+    result = []
+    for p in posts:
+        react_counts = {}
+        for r in p.reactions:
+            react_counts[r.emoji] = react_counts.get(r.emoji, 0) + 1
+
+        poll_dict = None
+        if p.poll:
+            poll_dict = {
+                "question": p.poll.question,
+                "options": json.loads(p.poll.options),
+                "votes": json.loads(p.poll.votes) if p.poll.votes else {}
+            }
+
+        result.append(FeedPostResponse(
+            id=p.id,
+            author_id=p.author_id,
+            author_name=p.author.name or p.author.display_name,
+            author_avatar=p.author.avatar_url,
+            content=p.content,
+            image_url=p.image_url,
+            banner_url=p.banner_url,
+            imageUrl=p.image_url,
+            bannerUrl=p.banner_url,
+            likes=p.likes,
+            is_liked=(p.id in liked_post_ids),
+            created_at=p.created_at,
+            reactions=react_counts,
+            poll=poll_dict
+        ))
+    return result

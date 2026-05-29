@@ -82,10 +82,10 @@ class _ZynkBackgroundState extends State<ZynkBackground>
           },
         ),
 
-        // 3. Subtle Technical Canvas Grid Pattern Overlay
+        // 3. Subtle Film Grain Noise Texture Overlay
         Positioned.fill(
           child: CustomPaint(
-            painter: _GridPainter(),
+            painter: _NoisePainter(),
           ),
         ),
 
@@ -119,19 +119,18 @@ class _Orb extends StatelessWidget {
   }
 }
 
-class _GridPainter extends CustomPainter {
+class _NoisePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    final rand = math.Random(42);
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.012)
+      ..color = Colors.white.withValues(alpha: 0.007)
       ..strokeWidth = 1.0;
 
-    const spacing = 45.0;
-    for (double x = 0; x < size.width; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    for (int i = 0; i < 3000; i++) {
+      final x = rand.nextDouble() * size.width;
+      final y = rand.nextDouble() * size.height;
+      canvas.drawCircle(Offset(x, y), 0.8, paint);
     }
   }
 

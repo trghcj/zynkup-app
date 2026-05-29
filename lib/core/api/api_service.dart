@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -21,6 +22,30 @@ class ApiService {
   static String? _token;
   static Map<String, dynamic>? _cachedUser;
   static List<dynamic>? _cachedEvents;
+  static WebSocketChannel? _wsChannel;
+  static final ValueNotifier<Map<String, dynamic>?> latestNotification = ValueNotifier(null);
+
+  static Future<void> initWebSocket() async {
+    await loadToken();
+    if (_token == null) return;
+    final wsUrl = baseUrl.replaceAll('https://', 'wss://').replaceAll('http://', 'ws://');
+    final url = Uri.parse("$wsUrl/ws/notifications?token=$_token");
+    try {
+      _wsChannel?.sink.close();
+      _wsChannel = WebSocketChannel.connect(url);
+      _wsChannel!.stream.listen((message) {
+        try {
+          final data = jsonDecode(message);
+          latestNotification.value = data;
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  static void disposeWebSocket() {
+    _wsChannel?.sink.close();
+    _wsChannel = null;
+  }
 
   static Future<void> loadToken() async {
     _token = await _storage.read(key: "token");
@@ -46,12 +71,14 @@ class ApiService {
   static Future<void> setToken(String token) async {
     _token = token;
     await _storage.write(key: "token", value: token);
+    initWebSocket();
   }
 
   static Future<void> logout() async {
     _token = null;
     _cachedUser = null;
     _cachedEvents = null;
+    disposeWebSocket();
     await _storage.delete(key: "token");
   }
 
@@ -605,10 +632,27 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getClubFeed(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/$clubId/feed"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<Map<String, dynamic>> createFeedPost({
     required String content,
     String? imageUrl,
     String? bannerUrl,
+    int? clubId,
   }) async {
     await loadToken();
     try {
@@ -619,6 +663,7 @@ class ApiService {
           "content": content,
           if (imageUrl != null) "image_url": imageUrl,
           if (bannerUrl != null) "banner_url": bannerUrl,
+          if (clubId != null) "club_id": clubId,
         }),
       );
       if (res.statusCode == 200 || res.statusCode == 201) {

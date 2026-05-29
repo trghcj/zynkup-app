@@ -7,6 +7,8 @@ import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
+import 'package:zynkup/features/feed/screens/feed_tab.dart';
+import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 
 class ClubProfileScreen extends StatefulWidget {
   final String clubId;
@@ -40,10 +42,13 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   List<dynamic> _clubGallery = [];
   bool _loadingGallery = false;
   
+  List<dynamic> _clubFeed = [];
+  bool _loadingFeed = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadCurrentUser();
     if (widget.clubData != null) {
       _club = widget.clubData;
@@ -63,9 +68,25 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   }
 
   void _loadAllTabDetails() {
+    _loadFeed();
     _loadEvents();
     _loadMembers();
     _loadGallery();
+  }
+
+  Future<void> _loadFeed() async {
+    setState(() => _loadingFeed = true);
+    try {
+      final feed = await ApiService.getClubFeed(int.parse(widget.clubId));
+      if (mounted) {
+        setState(() {
+          _clubFeed = feed;
+          _loadingFeed = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingFeed = false);
+    }
   }
 
   Future<void> _loadCurrentUser() async {
@@ -523,7 +544,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           labelColor: ZynkColors.gold,
                           unselectedLabelColor: ZynkColors.darkMuted,
                           dividerColor: Colors.transparent,
+                          isScrollable: true,
                           tabs: const [
+                            Tab(text: 'Feed'),
                             Tab(text: 'Events'),
                             Tab(text: 'Members'),
                             Tab(text: 'Gallery'),
@@ -536,6 +559,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 body: TabBarView(
                   controller: _tabController,
                   children: [
+                    _buildFeedTab(),
                     _buildEventsTab(),
                     _buildMembersTab(),
                     _buildGalleryTab(),
@@ -546,6 +570,118 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           ),
         ),
       );
+  }
+
+  Widget _buildFeedTab() {
+    if (_loadingFeed) {
+      return const Center(child: CircularProgressIndicator(color: ZynkColors.gold));
+    }
+    
+    return RefreshIndicator(
+      color: ZynkColors.gold,
+      onRefresh: _loadFeed,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (_isMember)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CreatePostScreen(
+                          clubId: int.parse(widget.clubId),
+                        ),
+                      ),
+                    );
+                    if (result == true) {
+                      _loadFeed();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: ZynkColors.darkSurface2,
+                      borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                      border: Border.all(color: ZynkColors.darkBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundImage: NetworkImage(_currentUser?['avatar_url'] ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=User'),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Share something with the club...', style: TextStyle(color: ZynkColors.darkMuted)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_clubFeed.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text('No posts yet.', style: TextStyle(color: ZynkColors.darkMuted)),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final post = _clubFeed[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: FeedPostCard(
+                      post: post,
+                      onLike: () async {
+                        final postId = post['id'] as int?;
+                        if (postId != null) {
+                          final isLiked = post['is_liked'] == true;
+                          setState(() {
+                            post['is_liked'] = !isLiked;
+                            post['likes'] = (post['likes'] ?? 0) + (isLiked ? -1 : 1);
+                          });
+                          await ApiService.likeFeedPost(postId);
+                        }
+                      },
+                      onReply: () {
+                        // TODO: Implement comments sheet for club profile
+                      },
+                      onShare: () {
+                        // Share logic
+                      },
+                      onMore: () {
+                        // More logic
+                      },
+                      onReact: (emoji) async {
+                        final postId = post['id'] as int?;
+                        if (postId != null) {
+                          await ApiService.reactToFeedPost(postId, emoji);
+                          _loadFeed();
+                        }
+                      },
+                      onVote: (optionIndex) async {
+                        final postId = post['id'] as int?;
+                        if (postId != null) {
+                          await ApiService.votePoll(postId, optionIndex);
+                          _loadFeed();
+                        }
+                      },
+                    ),
+                  );
+                },
+                childCount: _clubFeed.length,
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
+    );
   }
 
   Widget _buildEventsTab() {
@@ -592,7 +728,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       Icon(Icons.event_busy_rounded, size: 48, color: ZynkColors.darkMuted.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       const Text(
-                        'No events hosted yet.',
+                        'Your next campus moment starts here',
                         style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ],
