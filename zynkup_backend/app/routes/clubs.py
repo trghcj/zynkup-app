@@ -193,6 +193,18 @@ def get_club(club_id: int, db: Session = Depends(get_db), current_user: Optional
         creator_id=club.creator_id
     )
 
+@router.delete("/{club_id}")
+def delete_club(club_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+    if club.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the club creator can delete this club")
+    
+    db.delete(club)
+    db.commit()
+    return {"message": "Club deleted successfully"}
+
 @router.post("/{club_id}/join")
 def join_club(club_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     club = db.query(Club).filter(Club.id == club_id).first()
