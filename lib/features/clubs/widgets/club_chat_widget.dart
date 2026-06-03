@@ -97,6 +97,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
               final avatar = msg['user_avatar'] ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=$name';
               final content = msg['content'] ?? '';
               
+              final role = msg['user_role'] ?? 'member';
+              
               DateTime? dt;
               try { dt = DateTime.parse(msg['created_at']).toLocal(); } catch(_) {}
               final timeStr = dt != null ? DateFormat('h:mm a').format(dt) : '';
@@ -126,11 +128,24 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                         child: Column(
                           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                           children: [
-                            if (!isMe)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Text(name, style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(name, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: role == 'admin' ? (isMe ? Colors.black12 : ZynkColors.gold.withValues(alpha: 0.2)) : Colors.white10,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(role.toUpperCase(), style: TextStyle(color: role == 'admin' ? (isMe ? Colors.black87 : ZynkColors.gold) : (isMe ? Colors.black54 : Colors.white70), fontSize: 8, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
                               ),
+                            ),
                             Text(content, style: TextStyle(color: isMe ? Colors.black87 : ZynkColors.offWhite)),
                             const SizedBox(height: 4),
                             Text(timeStr, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 10)),
@@ -138,7 +153,10 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                         ),
                       ),
                     ),
-                    if (isMe) const SizedBox(width: 22), 
+                    if (isMe) ...[
+                      const SizedBox(width: 8),
+                      CircleAvatar(radius: 14, backgroundImage: NetworkImage(avatar)),
+                    ],
                   ],
                 ),
               );
