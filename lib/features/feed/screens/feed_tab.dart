@@ -7,6 +7,7 @@ import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
 import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
+import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
 
 class FeedTab extends StatefulWidget {
@@ -71,6 +72,7 @@ class _FeedTabState extends State<FeedTab> {
         authorName: post['author_name'] ?? 'Anonymous',
         authorAvatar: post['author_avatar'],
         postContent: post['content'] ?? '',
+        authorId: post['author_id'],
       ),
     );
   }
@@ -470,10 +472,23 @@ class FeedPostCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundImage: NetworkImage(avatarUrl),
-                  backgroundColor: ZynkColors.darkSurface2,
+                GestureDetector(
+                  onTap: () {
+                    final uid = post['author_id'];
+                    if (uid != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProfileScreen(userId: uid as int),
+                        ),
+                      );
+                    }
+                  },
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundImage: NetworkImage(avatarUrl),
+                    backgroundColor: ZynkColors.darkSurface2,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

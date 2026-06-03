@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/features/profile/screens/profile_screen.dart';
 
 class PostCommentsSheet extends StatefulWidget {
   final int postId;
   final String authorName;
   final String? authorAvatar;
   final String postContent;
+  final int? authorId;
 
   const PostCommentsSheet({
     super.key,
@@ -14,6 +16,7 @@ class PostCommentsSheet extends StatefulWidget {
     required this.authorName,
     this.authorAvatar,
     required this.postContent,
+    this.authorId,
   });
 
   @override
@@ -167,10 +170,22 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage(primaryAvatar),
-                    backgroundColor: ZynkColors.darkSurface2,
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.authorId != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProfileScreen(userId: widget.authorId),
+                          ),
+                        );
+                      }
+                    },
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundImage: NetworkImage(primaryAvatar),
+                      backgroundColor: ZynkColors.darkSurface2,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -258,10 +273,23 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundImage: NetworkImage(avatarUrl),
-                                    backgroundColor: ZynkColors.darkSurface2,
+                                  GestureDetector(
+                                    onTap: () {
+                                      final uid = c['author_id'];
+                                      if (uid != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ProfileScreen(userId: uid as int),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: CircleAvatar(
+                                      radius: 16,
+                                      backgroundImage: NetworkImage(avatarUrl),
+                                      backgroundColor: ZynkColors.darkSurface2,
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
