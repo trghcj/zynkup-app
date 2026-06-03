@@ -232,55 +232,6 @@ def get_gamification_details(
 ):
     return get_user_stats(db, current_user)
 
-@router.get("/{user_id}")
-def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    stats = get_user_stats(db, user)
-    
-    # check friendship status
-    friendship = db.query(models.FriendRequest).filter(
-        ((models.FriendRequest.sender_id == current_user.id) & (models.FriendRequest.receiver_id == user.id)) |
-        ((models.FriendRequest.sender_id == user.id) & (models.FriendRequest.receiver_id == current_user.id))
-    ).first()
-    
-    friend_status = "none"
-    request_id = None
-    if friendship:
-        request_id = friendship.id
-        if friendship.status == "accepted":
-            friend_status = "friends"
-        elif friendship.status == "pending":
-            if friendship.sender_id == current_user.id:
-                friend_status = "pending_sent"
-            else:
-                friend_status = "pending_received"
-    
-    return {
-        "id":           user.id,
-        "email":        user.email,
-        "name":         user.name,
-        "avatar_url":   user.avatar_url,
-        "role":         user.role,
-        "college":      user.college,
-        "branch":       user.branch,
-        "year":         user.year,
-        "enrollment":   user.enrollment,
-        "display_name": user.display_name,
-        "phone":        user.phone,
-        "bio":          user.bio,
-        "xp":           user.xp,
-        "level":        user.level,
-        "streak":       user.streak,
-        "avatar_seed":  user.avatar_seed or user.email,
-        "avatar_type":  user.avatar_type,
-        "theme":        user.theme,
-        "friend_status": friend_status,
-        "friend_request_id": request_id,
-        **stats,
-    }
 
 
 # ── Update profile ────────────────────────────────────────────────────────────
@@ -418,3 +369,52 @@ def set_role(
     user.role = role
     db.commit()
     return {"message": f"{email} → {role}"}
+@router.get("/{user_id}")
+def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    stats = get_user_stats(db, user)
+    
+    # check friendship status
+    friendship = db.query(models.FriendRequest).filter(
+        ((models.FriendRequest.sender_id == current_user.id) & (models.FriendRequest.receiver_id == user.id)) |
+        ((models.FriendRequest.sender_id == user.id) & (models.FriendRequest.receiver_id == current_user.id))
+    ).first()
+    
+    friend_status = "none"
+    request_id = None
+    if friendship:
+        request_id = friendship.id
+        if friendship.status == "accepted":
+            friend_status = "friends"
+        elif friendship.status == "pending":
+            if friendship.sender_id == current_user.id:
+                friend_status = "pending_sent"
+            else:
+                friend_status = "pending_received"
+    
+    return {
+        "id":           user.id,
+        "email":        user.email,
+        "name":         user.name,
+        "avatar_url":   user.avatar_url,
+        "role":         user.role,
+        "college":      user.college,
+        "branch":       user.branch,
+        "year":         user.year,
+        "enrollment":   user.enrollment,
+        "display_name": user.display_name,
+        "phone":        user.phone,
+        "bio":          user.bio,
+        "xp":           user.xp,
+        "level":        user.level,
+        "streak":       user.streak,
+        "avatar_seed":  user.avatar_seed or user.email,
+        "avatar_type":  user.avatar_type,
+        "theme":        user.theme,
+        "friend_status": friend_status,
+        "friend_request_id": request_id,
+        **stats,
+    }

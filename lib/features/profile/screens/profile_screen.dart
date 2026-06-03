@@ -200,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         slivers: [
           // ── Hero Profile Header ──────────────────────────────────────────
           SliverAppBar(
-            expandedHeight: 340,
+            expandedHeight: 390,
             pinned: true,
             backgroundColor: ZynkColors.darkBg,
             flexibleSpace: FlexibleSpaceBar(
