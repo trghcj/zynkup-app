@@ -3,7 +3,8 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request, WebSocket, WebSocketDisconnect
+from sqlalchemy.orm import Session
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -278,7 +279,7 @@ def remove_member(club_id: int, user_id: int, db: Session = Depends(get_db), cur
         raise HTTPException(status_code=404, detail="Club not found")
 
     actor = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
-    has_permission = club.creator_id == current_user.id or (actor and actor.role in ("owner", "moderator")) or current_user.role == "admin"
+    has_permission = club.creator_id == current_user.id or current_user.role == "admin"
 
     if not has_permission:
         raise HTTPException(status_code=403, detail="Not authorized to remove members")
@@ -417,3 +418,105 @@ def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Opt
             poll=poll_dict
         ))
     return result
+
+
+# ── Club Chat ─────────────────────────────────────────────────────────────────
+
+from typing import Dict, List
+import asyncio
+
+class ClubConnectionManager:
+    def __init__(self):
+        # club_id -> list of websockets
+        self.active_connections: Dict[int, List[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, club_id: int):
+        await websocket.accept()
+        if club_id not in self.active_connections:
+            self.active_connections[club_id] = []
+        self.active_connections[club_id].append(websocket)
+
+    def disconnect(self, websocket: WebSocket, club_id: int):
+        if club_id in self.active_connections:
+            if websocket in self.active_connections[club_id]:
+                self.active_connections[club_id].remove(websocket)
+
+    async def broadcast(self, message: dict, club_id: int):
+        if club_id in self.active_connections:
+            for connection in self.active_connections[club_id]:
+                try:
+                    await connection.send_json(message)
+                except Exception:
+                    pass
+
+manager = ClubConnectionManager()
+
+@router.get("/{club_id}/chat")
+def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from ..models import ClubMessage
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+        
+    messages = db.query(ClubMessage).filter(ClubMessage.club_id == club_id).order_by(ClubMessage.created_at.desc()).limit(50).all()
+    
+    result = []
+    for msg in reversed(messages):
+        result.append({
+            "id": msg.id,
+            "content": msg.content,
+            "created_at": msg.created_at.isoformat(),
+            "user_id": msg.user_id,
+            "user_name": msg.user.name or msg.user.display_name or "User",
+            "user_avatar": msg.user.avatar_url
+        })
+    return result
+
+@router.websocket("/{club_id}/chat/ws")
+async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db: Session = Depends(get_db)):
+    # Very basic token validation for ws
+    from ..auth import verify_access_token
+    payload = verify_access_token(token)
+    if not payload:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+        
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+        
+    user_id = int(user_id_str)
+    
+    # check membership
+    member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == user_id).first()
+    if not member:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+        
+    user = member.user
+
+    await manager.connect(websocket, club_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            
+            # Save to db
+            from ..models import ClubMessage
+            new_msg = ClubMessage(club_id=club_id, user_id=user_id, content=data)
+            db.add(new_msg)
+            db.commit()
+            db.refresh(new_msg)
+            
+            # Broadcast
+            msg_dict = {
+                "id": new_msg.id,
+                "content": new_msg.content,
+                "created_at": new_msg.created_at.isoformat(),
+                "user_id": user_id,
+                "user_name": user.name or user.display_name or "User",
+                "user_avatar": user.avatar_url
+            }
+            await manager.broadcast(msg_dict, club_id)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, club_id)

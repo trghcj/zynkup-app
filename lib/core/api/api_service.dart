@@ -18,7 +18,7 @@ class ApiService {
     "API_BASE_URL",
     defaultValue: "https://zynkup-app.onrender.com",
   );
-  static const _storage = FlutterSecureStorage();
+  static final _storage = const FlutterSecureStorage();
   static String? _token;
   static Map<String, dynamic>? _cachedUser;
   static List<dynamic>? _cachedEvents;
@@ -1096,5 +1096,118 @@ class ApiService {
     } catch (_) {
       return false;
     }
+  }
+  
+  // ── Friends & Other Users ──────────────────────────────────────────────────
+  
+  static Future<Map<String, dynamic>?> getUserProfile(int userId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/users/$userId"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> sendFriendRequest(int userId) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/friends/request/$userId"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> acceptFriendRequest(int requestId) async {
+    try {
+      await loadToken();
+      final res = await http.put(
+        Uri.parse("$baseUrl/friends/request/$requestId/accept"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> declineFriendRequest(int requestId) async {
+    try {
+      await loadToken();
+      final res = await http.put(
+        Uri.parse("$baseUrl/friends/request/$requestId/decline"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<List<dynamic>> getPendingFriendRequests() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/friends/pending"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<List<dynamic>> getFriends() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/friends/"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+  
+  // ── Club Chat ──────────────────────────────────────────────────────────────
+  
+  static Future<List<dynamic>> getClubChatHistory(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/$clubId/chat"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+  
+  static String getClubChatWebSocketUrl(int clubId) {
+    final wsUrl = baseUrl.replaceAll('https://', 'wss://').replaceAll('http://', 'ws://');
+    final token = _token ?? "";
+    return "$wsUrl/clubs/$clubId/chat/ws?token=$token";
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
@@ -12,6 +14,8 @@ import 'package:zynkup/features/events/screens/create_event_screen.dart';
 import 'package:zynkup/features/feed/screens/feed_tab.dart';
 import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
+import 'package:zynkup/features/profile/screens/profile_screen.dart';
+import 'package:zynkup/features/clubs/widgets/club_chat_widget.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 
 class ClubProfileScreen extends StatefulWidget {
@@ -52,7 +56,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadCurrentUser();
     if (widget.clubData != null) {
       _club = widget.clubData;
@@ -428,6 +432,53 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     );
   }
 
+  Future<void> _removeMember(int userId, String name) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ZynkColors.darkSurface2,
+        title: const Text('Remove Member'),
+        content: Text('Are you sure you want to remove $name from the club?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: ZynkColors.darkMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove', style: TextStyle(color: ZynkColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ApiService.loadToken();
+        final res = await http.delete(
+          Uri.parse("${ApiService.baseUrl}/clubs/${widget.clubId}/members/$userId"),
+          headers: {
+            "Authorization": "Bearer ${await FlutterSecureStorage().read(key: 'token')}",
+          },
+        );
+        if (res.statusCode == 200) {
+          _loadMembers();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$name removed from club'), backgroundColor: ZynkColors.success),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to remove member'), backgroundColor: ZynkColors.error),
+            );
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bannerImage = (_club != null && _club!['banner_url'] != null && _club!['banner_url'].isNotEmpty)
@@ -605,6 +656,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           isScrollable: true,
                           tabs: const [
                             Tab(text: 'Feed'),
+                            Tab(text: 'Chat'),
                             Tab(text: 'Events'),
                             Tab(text: 'Members'),
                             Tab(text: 'Gallery'),
@@ -618,6 +670,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   controller: _tabController,
                   children: [
                     _buildFeedTab(),
+                    ClubChatWidget(clubId: int.parse(widget.clubId)),
                     _buildEventsTab(),
                     _buildMembersTab(),
                     _buildGalleryTab(),
@@ -723,6 +776,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             authorName: post['author_name'] ?? 'Anonymous',
                             authorAvatar: post['author_avatar'],
                             postContent: post['content'] ?? '',
+                            authorId: post['author_id'],
                           ),
                         );
                       },
@@ -890,6 +944,14 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 final isSelfCreator = userId.toString() == _club!['creator_id']?.toString();
 
                 return ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfileScreen(userId: userId),
+                      ),
+                    );
+                  },
                   leading: CircleAvatar(
                     backgroundImage: NetworkImage(avatarUrl),
                     backgroundColor: ZynkColors.darkSurface2,
@@ -904,10 +966,20 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     ),
                   ),
                   trailing: isCreator && !isSelfCreator
-                      ? IconButton(
-                          icon: const Icon(Icons.shield_outlined, color: ZynkColors.gold),
-                          tooltip: 'Assign custom role',
-                          onPressed: () => _showRoleAssignmentDialog(userId, name, m['role'] ?? 'member'),
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.shield_outlined, color: ZynkColors.gold),
+                              tooltip: 'Assign custom role',
+                              onPressed: () => _showRoleAssignmentDialog(userId, name, m['role'] ?? 'member'),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.person_remove_rounded, color: ZynkColors.error),
+                              tooltip: 'Remove from club',
+                              onPressed: () => _removeMember(userId, name),
+                            ),
+                          ],
                         )
                       : isSelfCreator
                           ? const Icon(Icons.workspace_premium_rounded, color: ZynkColors.gold)

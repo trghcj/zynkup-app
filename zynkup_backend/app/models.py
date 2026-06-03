@@ -223,3 +223,29 @@ class FeedPoll(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     post = relationship("FeedPost", back_populates="poll")
+
+
+class FriendRequest(Base):
+    __tablename__ = "friend_requests"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    sender_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status      = Column(String, default="pending", nullable=False) # pending, accepted, declined
+    created_at  = Column(DateTime, server_default=func.now())
+
+    sender   = relationship("User", foreign_keys=[sender_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
+
+
+class ClubMessage(Base):
+    __tablename__ = "club_messages"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content    = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    club = relationship("Club")
+    user = relationship("User")

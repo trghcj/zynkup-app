@@ -11,7 +11,8 @@ import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int? userId;
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -48,8 +49,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   Future<void> _load() async {
     setState(() => _loading = true);
     // Each call is independent — one failure shouldn't kill the others
+    final isMe = widget.userId == null;
+    final userFuture = isMe 
+      ? ApiService.getCurrentUser(force: true).catchError((_) => null)
+      : ApiService.getUserProfile(widget.userId!).catchError((_) => null);
+      
     final results = await Future.wait([
-      ApiService.getCurrentUser(force: true).catchError((_) => null),
+      userFuture,
       ApiService.getHeatmapData().catchError((_) => <String, int>{}),
       ApiService.getMyEvents().catchError((_) => <dynamic>[]),
       ApiService.getMyRegistrations().catchError((_) => <dynamic>[]),
@@ -90,6 +96,76 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final newSeed = DateTime.now().millisecondsSinceEpoch.toString();
     await ApiService.updateProfile(avatarSeed: newSeed);
     _load();
+  }
+
+  Widget _buildFriendActionButton(Map<String, dynamic> user) {
+    final status = user['friend_status'] ?? 'none';
+    final requestId = user['friend_request_id'];
+
+    if (status == 'friends') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: ZynkColors.success.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: ZynkColors.success),
+        ),
+        child: const Text('Friends', style: TextStyle(color: ZynkColors.success, fontWeight: FontWeight.bold)),
+      );
+    } else if (status == 'pending_sent') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey),
+        ),
+        child: const Text('Request Sent', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      );
+    } else if (status == 'pending_received') {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ElevatedButton(
+            onPressed: () async {
+              if (requestId != null) {
+                final success = await ApiService.acceptFriendRequest(requestId);
+                if (success) _load();
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: ZynkColors.success),
+            child: const Text('Accept', style: TextStyle(color: Colors.white)),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () async {
+              if (requestId != null) {
+                final success = await ApiService.declineFriendRequest(requestId);
+                if (success) _load();
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: ZynkColors.error),
+            child: const Text('Decline', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      );
+    } else {
+      return ElevatedButton.icon(
+        onPressed: () async {
+          if (widget.userId != null) {
+            final success = await ApiService.sendFriendRequest(widget.userId!);
+            if (success) _load();
+          }
+        },
+        icon: const Icon(Icons.person_add, size: 18),
+        label: const Text('Add Friend'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: ZynkColors.gold,
+          foregroundColor: Colors.black87,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+      );
+    }
   }
 
   @override
@@ -258,6 +334,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             ),
                           ],
                         ),
+                        if (widget.userId != null) ...[
+                          const SizedBox(height: 16),
+                          _buildFriendActionButton(user),
+                        ],
                       ],
                     ),
                   ),
@@ -380,7 +460,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             padding: const EdgeInsets.only(bottom: 100),
             sliver: SliverToBoxAdapter(
               child: [
-                _OverviewTab(user: user, heatmapData: _heatmapData, onBioUpdated: _load),
+                _OverviewTab(user: user, heatmapData: _heatmapData, onBioUpdated: _load, isMe: widget.userId == null),
                 _TimelineTab(timeline: _timeline),
                 _EventsTab(
                   createdEvents: _createdEvents,
@@ -484,7 +564,8 @@ class _OverviewTab extends StatelessWidget {
   final Map<String, dynamic> user;
   final Map<String, int> heatmapData;
   final VoidCallback onBioUpdated;
-  const _OverviewTab({required this.user, required this.heatmapData, required this.onBioUpdated});
+  final bool isMe;
+  const _OverviewTab({required this.user, required this.heatmapData, required this.onBioUpdated, required this.isMe});
 
   Future<void> _editBio(BuildContext context) async {
     final controller = TextEditingController(text: user['bio'] ?? '');
@@ -547,12 +628,13 @@ class _OverviewTab extends StatelessWidget {
                 'Bio',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
-              IconButton(
-                icon: const Icon(Icons.edit, size: 16, color: ZynkColors.gold),
-                onPressed: () => _editBio(context),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
+              if (isMe)
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 16, color: ZynkColors.gold),
+                  onPressed: () => _editBio(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -593,9 +675,94 @@ class _OverviewTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 160,
+            height: 120,
             child: ActivityHeatmap(data: heatmapData),
           ),
+          if (isMe) ...[
+            const SizedBox(height: 24),
+            const Text(
+              'Friends & Requests',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<List<dynamic>>(
+              future: Future.wait([
+                ApiService.getPendingFriendRequests(),
+                ApiService.getFriends()
+              ]),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: ZynkColors.gold));
+                }
+                if (!snapshot.hasData) return const SizedBox();
+                final pending = snapshot.data![0] as List<dynamic>;
+                final friends = snapshot.data![1] as List<dynamic>;
+
+                if (pending.isEmpty && friends.isEmpty) {
+                  return const Text('No friends or pending requests.', style: TextStyle(color: ZynkColors.darkMuted));
+                }
+
+                return Column(
+                  children: [
+                    if (pending.isNotEmpty) ...[
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Pending Requests', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                      ),
+                      const SizedBox(height: 8),
+                      ...pending.map((r) {
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(backgroundImage: NetworkImage(r['sender_avatar'] ?? '')),
+                          title: Text(r['sender_name'] ?? 'User', style: const TextStyle(color: Colors.white)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.check_circle, color: ZynkColors.success),
+                                onPressed: () async {
+                                  await ApiService.acceptFriendRequest(r['id']);
+                                  onBioUpdated(); // trigger reload
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.cancel, color: ZynkColors.error),
+                                onPressed: () async {
+                                  await ApiService.declineFriendRequest(r['id']);
+                                  onBioUpdated(); // trigger reload
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                    ],
+                    if (friends.isNotEmpty) ...[
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('My Friends', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                      ),
+                      const SizedBox(height: 8),
+                      ...friends.map((f) {
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => ProfileScreen(userId: f['user_id'])),
+                            );
+                          },
+                          leading: CircleAvatar(backgroundImage: NetworkImage(f['avatar_url'] ?? '')),
+                          title: Text(f['name'] ?? 'User', style: const TextStyle(color: Colors.white)),
+                        );
+                      }),
+                    ]
+                  ],
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
