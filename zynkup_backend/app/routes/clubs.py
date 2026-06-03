@@ -460,6 +460,9 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
         
     messages = db.query(ClubMessage).filter(ClubMessage.club_id == club_id).order_by(ClubMessage.created_at.desc()).limit(50).all()
     
+    from ..models import ClubMember
+    memberships = {m.user_id: m.role for m in db.query(ClubMember).filter(ClubMember.club_id == club_id).all()}
+    
     result = []
     for msg in reversed(messages):
         result.append({
@@ -468,7 +471,8 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
             "created_at": msg.created_at.isoformat(),
             "user_id": msg.user_id,
             "user_name": msg.user.name or msg.user.display_name or "User",
-            "user_avatar": msg.user.avatar_url
+            "user_avatar": msg.user.avatar_url,
+            "user_role": memberships.get(msg.user_id, "member")
         })
     return result
 
@@ -515,7 +519,8 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
                 "created_at": new_msg.created_at.isoformat(),
                 "user_id": user_id,
                 "user_name": user.name or user.display_name or "User",
-                "user_avatar": user.avatar_url
+                "user_avatar": user.avatar_url,
+                "user_role": member.role
             }
             await manager.broadcast(msg_dict, club_id)
     except WebSocketDisconnect:
