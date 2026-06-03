@@ -108,5 +108,15 @@ def require_role(allowed_roles: list[str]):
             
         if user_role not in normalized_allowed:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
+            
         return current_user
+        
     return role_checker
+
+def verify_access_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        logger.warning(f"JWT decode failed: {e}")
+        return None

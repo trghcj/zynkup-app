@@ -83,19 +83,8 @@ def create_notification_helper(db, user_id: int, title: str, body: str, type: st
                 data=payload
             )
 
-        import asyncio
-        from app.main import ws_manager
-        ws_payload = {
-            "title": title,
-            "body": body,
-            "type": type,
-            "data": data or {}
-        }
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(ws_manager.send_personal_message(ws_payload, user_id))
-        except Exception as e:
-            logger.debug(f"Could not send websocket message: {e}")
+        # WebSocket notifications temporarily disabled due to missing ws_manager
+        # (Remove this comment and restore when ws_manager is implemented)
 
         return notif
     except Exception as e:
