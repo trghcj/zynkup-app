@@ -69,6 +69,12 @@ def accept_friend_request(request_id: int, db: Session = Depends(get_db), curren
         raise HTTPException(status_code=400, detail="Request is not pending")
         
     freq.status = "accepted"
+    
+    sender = db.query(models.User).filter(models.User.id == freq.sender_id).first()
+    if sender:
+        sender.xp = (sender.xp or 0) + 5
+    current_user.xp = (current_user.xp or 0) + 5
+    
     db.commit()
     return {"message": "Friend request accepted"}
 

@@ -128,6 +128,10 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
     # Creator is automatically an admin member
     member = ClubMember(club_id=new_club.id, user_id=current_user.id, role="admin")
     db.add(member)
+    
+    # Increase XP by 40 for creating a club
+    current_user.xp = (current_user.xp or 0) + 40
+    
     db.commit()
 
     return ClubResponse(
@@ -464,7 +468,7 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
     memberships = {m.user_id: m.role for m in db.query(ClubMember).filter(ClubMember.club_id == club_id).all()}
     
     result = []
-    for msg in reversed(messages):
+    for msg in messages:
         result.append({
             "id": msg.id,
             "content": msg.content,
