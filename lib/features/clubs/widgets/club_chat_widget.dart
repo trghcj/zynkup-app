@@ -37,6 +37,9 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     if (mounted) {
       setState(() {
         _messages.addAll(history.cast<Map<String, dynamic>>());
+        if (_messages.isNotEmpty) {
+          _messages.insert(0, {'type': 'divider', 'text': 'Unread messages'});
+        }
         _loading = false;
       });
       _connectWebSocket();
@@ -92,6 +95,21 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
             itemCount: _messages.length,
             itemBuilder: (context, index) {
               final msg = _messages[index];
+              if (msg['type'] == 'divider') {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(child: Divider(color: ZynkColors.darkMuted.withValues(alpha: 0.3))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(msg['text'], style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      ),
+                      Expanded(child: Divider(color: ZynkColors.darkMuted.withValues(alpha: 0.3))),
+                    ],
+                  ),
+                );
+              }
               final isMe = _currentUserId != null && msg['user_id'] == _currentUserId;
               final name = msg['user_name'] ?? 'User';
               final avatar = msg['user_avatar'] ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=$name';
