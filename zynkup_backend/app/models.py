@@ -193,6 +193,7 @@ class FeedPost(Base):
     like_records = relationship("FeedLike", back_populates="post", cascade="all, delete-orphan")
     reactions = relationship("FeedReaction", back_populates="post", cascade="all, delete-orphan")
     poll = relationship("FeedPoll", back_populates="post", uselist=False, cascade="all, delete-orphan")
+    club = relationship("Club")
 
 
 class FeedComment(Base):
