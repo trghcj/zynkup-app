@@ -11,7 +11,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from ..database import get_db
-from ..models import Club, ClubMember, User, Event, EventAttendee, FeedPost, FeedLike, FeedComment, ClubMessage
+from ..models import Club, ClubMember, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage
 from ..auth import get_current_user, get_optional_current_user
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
@@ -211,7 +211,7 @@ def delete_club(club_id: int, db: Session = Depends(get_db), current_user: User 
     # 1. Events and their attendees
     event_ids = [e.id for e in db.query(Event.id).filter(Event.club_id == club_id).all()]
     if event_ids:
-        db.query(EventAttendee).filter(EventAttendee.event_id.in_(event_ids)).delete(synchronize_session=False)
+        db.query(Registration).filter(Registration.event_id.in_(event_ids)).delete(synchronize_session=False)
         db.query(Event).filter(Event.club_id == club_id).delete(synchronize_session=False)
         
     # 2. Feed Posts and their likes/comments
