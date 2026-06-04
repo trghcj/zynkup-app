@@ -41,6 +41,27 @@ class User(Base):
     registrations = relationship("Registration", back_populates="user")
     activities    = relationship("ActivityLog", back_populates="user")
 
+    @property
+    def resolved_avatar_url(self) -> str:
+        if self.avatar_url:
+            return self.avatar_url
+            
+        seed = self.avatar_seed or self.email or "User"
+        type_str = self.avatar_type or "rings"
+        
+        collection = 'adventurer'
+        type_lower = type_str.lower()
+        if type_lower == 'neon':
+            collection = 'bottts'
+        elif type_lower in ['cyber', 'cyberpunk']:
+            collection = 'avataaars'
+        elif type_lower == 'anime':
+            collection = 'pixel-art'
+        elif type_lower == 'space':
+            collection = 'big-smile'
+            
+        return f"https://api.dicebear.com/7.x/{collection}/png?seed={seed}&backgroundColor=b6e3f4,c0aede,d1d4f9"
+
 
 class Event(Base):
     __tablename__ = "events"

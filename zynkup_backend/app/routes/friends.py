@@ -105,9 +105,9 @@ def get_pending_requests(db: Session = Depends(get_db), current_user: models.Use
             "receiver_id": r.receiver_id,
             "status": r.status,
             "sender_name": r.sender.name or r.sender.display_name,
-            "sender_avatar": r.sender.avatar_url,
+            "sender_avatar": r.sender.resolved_avatar_url,
             "receiver_name": r.receiver.name or r.receiver.display_name,
-            "receiver_avatar": r.receiver.avatar_url
+            "receiver_avatar": r.receiver.resolved_avatar_url
         })
     return res
 
@@ -124,7 +124,7 @@ def get_friends(db: Session = Depends(get_db), current_user: models.User = Depen
         res.append({
             "user_id": friend_user.id,
             "name": friend_user.name or friend_user.display_name,
-            "avatar_url": friend_user.avatar_url,
+            "avatar_url": friend_user.resolved_avatar_url,
             "bio": friend_user.bio
         })
     return res

@@ -29,6 +29,9 @@ class FeedPostResponse(BaseModel):
     author_id: int
     author_name: Optional[str]
     author_avatar: Optional[str]
+    club_id: Optional[int] = None
+    club_name: Optional[str] = None
+    club_logo: Optional[str] = None
     content: str
     image_url: Optional[str]
     banner_url: Optional[str]
@@ -87,12 +90,24 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
             "options": json.loads(new_post.poll.options),
             "votes": json.loads(new_post.poll.votes) if new_post.poll.votes else {}
         }
+        
+    club_name = None
+    club_logo = None
+    if new_post.club_id:
+        from ..models import Club
+        club = db.query(Club).filter(Club.id == new_post.club_id).first()
+        if club:
+            club_name = club.name
+            club_logo = club.logo_url
 
     return FeedPostResponse(
         id=new_post.id,
         author_id=new_post.author_id,
         author_name=current_user.name or current_user.display_name,
-        author_avatar=current_user.avatar_url,
+        author_avatar=current_user.resolved_avatar_url,
+        club_id=new_post.club_id,
+        club_name=club_name,
+        club_logo=club_logo,
         content=new_post.content,
         image_url=new_post.image_url,
         banner_url=new_post.banner_url,
@@ -105,7 +120,7 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
 
 @router.get("/", response_model=List[FeedPostResponse])
 def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
-    posts = db.query(FeedPost).filter(FeedPost.report_count < 10, FeedPost.club_id == None).order_by(FeedPost.created_at.desc()).limit(100).all()
+    posts = db.query(FeedPost).filter(FeedPost.report_count < 10).order_by(FeedPost.created_at.desc()).limit(100).all()
 
     now = datetime.utcnow()
     user_memberships = set()
@@ -156,7 +171,10 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
             id=p.id,
             author_id=p.author_id,
             author_name=p.author.name or p.author.display_name,
-            author_avatar=p.author.avatar_url,
+            author_avatar=p.author.resolved_avatar_url,
+            club_id=p.club_id,
+            club_name=p.club.name if p.club else None,
+            club_logo=p.club.logo_url if p.club else None,
             content=p.content,
             image_url=p.image_url,
             banner_url=p.banner_url,
@@ -211,7 +229,7 @@ def update_post(post_id: int, post_data: FeedPostUpdate, db: Session = Depends(g
         id=post.id,
         author_id=post.author_id,
         author_name=post.author.name or post.author.display_name,
-        author_avatar=post.author.avatar_url,
+        author_avatar=post.author.resolved_avatar_url,
         content=post.content,
         image_url=post.image_url,
         banner_url=post.banner_url,
@@ -276,7 +294,7 @@ def create_comment(post_id: int, comment_data: FeedCommentCreate, db: Session = 
         post_id=new_comment.post_id,
         author_id=new_comment.author_id,
         author_name=current_user.name or current_user.display_name,
-        author_avatar=current_user.avatar_url,
+        author_avatar=current_user.resolved_avatar_url,
         content=new_comment.content,
         created_at=new_comment.created_at
     )
@@ -295,7 +313,7 @@ def get_comments(post_id: int, db: Session = Depends(get_db)):
             post_id=c.post_id,
             author_id=c.author_id,
             author_name=c.author.name or c.author.display_name,
-            author_avatar=c.author.avatar_url,
+            author_avatar=c.author.resolved_avatar_url,
             content=c.content,
             created_at=c.created_at
         ))

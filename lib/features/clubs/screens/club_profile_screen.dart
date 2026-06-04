@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
@@ -1044,31 +1046,62 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 
                 final fileIndex = canUpload ? index - 1 : index;
                 final file = _clubGallery[fileIndex] as Map<String, dynamic>;
-                final url = file['url'] ?? '';
-                
-                return GestureDetector(
-                  onTap: () {
-                    if (url.isNotEmpty) {
+                final url = file['url']?.toString();
+                if (url != null && url.isNotEmpty) {
+                  return GestureDetector(
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => FullScreenImageViewer(imageUrl: url),
                         ),
                       );
-                    }
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(ZynkRadius.md),
-                    child: Image.network(
-                      url,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: ZynkColors.darkSurface2,
-                        child: const Center(
-                          child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(ZynkRadius.md),
+                      child: Image.network(
+                        url,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: ZynkColors.darkSurface2,
+                          child: const Center(
+                            child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                          ),
                         ),
                       ),
                     ),
+                  );
+                }
+
+                // Fallback: base64 encoded data
+                final data = file['data']?.toString();
+                if (data != null && data.isNotEmpty) {
+                  try {
+                    final bytes = base64Decode(data);
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FullScreenImageViewer(imageBytes: bytes),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(ZynkRadius.md),
+                        child: Image.memory(bytes, fit: BoxFit.cover),
+                      ),
+                    );
+                  } catch (_) {}
+                }
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: ZynkColors.darkSurface2,
+                    borderRadius: BorderRadius.circular(ZynkRadius.md),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
                   ),
                 );
               },

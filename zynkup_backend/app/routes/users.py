@@ -60,7 +60,7 @@ def _user_response(user: models.User, token: str) -> dict:
             "id":           user.id,
             "email":        user.email,
             "name":         user.name,
-            "avatar_url":   user.avatar_url,
+            "avatar_url":   user.resolved_avatar_url,
             "role":         user.role,
             "college":      user.college,
             "branch":       user.branch,
@@ -206,7 +206,7 @@ def get_me(
         "id":           current_user.id,
         "email":        current_user.email,
         "name":         current_user.name,
-        "avatar_url":   current_user.avatar_url,
+        "avatar_url":   current_user.resolved_avatar_url,
         "role":         current_user.role,
         "college":      current_user.college,
         "branch":       current_user.branch,
@@ -250,7 +250,11 @@ def update_profile(
     if data.enrollment   is not None: current_user.enrollment   = data.enrollment
     if data.college      is not None: current_user.college      = data.college
     if data.bio          is not None: current_user.bio          = data.bio
-    if data.avatar_url   is not None: current_user.avatar_url   = data.avatar_url
+    if data.avatar_url   is not None:
+        current_user.avatar_url = data.avatar_url
+    elif data.avatar_seed is not None or data.avatar_type is not None:
+        current_user.avatar_url = None
+
     if data.avatar_seed  is not None: current_user.avatar_seed  = data.avatar_seed
     if data.avatar_type  is not None: current_user.avatar_type  = data.avatar_type
     if data.theme        is not None: current_user.theme        = data.theme
@@ -399,7 +403,7 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: mo
         "id":           user.id,
         "email":        user.email,
         "name":         user.name,
-        "avatar_url":   user.avatar_url,
+        "avatar_url":   user.resolved_avatar_url,
         "role":         user.role,
         "college":      user.college,
         "branch":       user.branch,

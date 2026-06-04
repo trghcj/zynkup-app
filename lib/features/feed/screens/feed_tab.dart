@@ -10,6 +10,7 @@ import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
+import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -500,19 +501,64 @@ class FeedPostCard extends StatelessWidget {
                         authorName,
                         style: const TextStyle(
                           color: ZynkColors.offWhite,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
-                      Text(
-                        timeStr,
-                        style: TextStyle(
-                          color: ZynkColors.darkMuted.withValues(alpha: 0.8),
-                          fontSize: 12,
+                      if (post['club_id'] != null)
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ClubProfileScreen(
+                                  clubId: post['club_id'].toString(),
+                                  clubName: post['club_name'] ?? 'Club',
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.group_rounded, size: 12, color: ZynkColors.gold),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    post['club_name'] ?? 'Club',
+                                    style: const TextStyle(
+                                      color: ZynkColors.gold,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        Text(
+                          timeStr,
+                          style: const TextStyle(
+                            color: ZynkColors.darkMuted,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
+                if (post['club_id'] != null)
+                  Text(
+                    timeStr,
+                    style: const TextStyle(
+                      color: ZynkColors.darkMuted,
+                      fontSize: 12,
+                    ),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.more_vert_rounded, color: ZynkColors.darkMuted),
                   onPressed: onMore,
