@@ -9,6 +9,7 @@ import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -522,11 +523,21 @@ class FeedPostCard extends StatelessWidget {
 
           // Image Content
           if (imageUrl != null && imageUrl.isNotEmpty)
-            Image.network(
-              imageUrl,
-              height: 240,
-              width: double.infinity,
-              fit: BoxFit.cover,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FullScreenImageViewer(imageUrl: imageUrl),
+                  ),
+                );
+              },
+              child: Image.network(
+                imageUrl,
+                height: 240,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
 
           // Text Content

@@ -11,6 +11,7 @@ import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_gallery_screen.dart';
 import 'package:zynkup/features/events/screens/qr_scanner_screen.dart';
+import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
@@ -361,12 +362,22 @@ class _HeroImage extends StatelessWidget {
       children: [
         Hero(
           tag: 'event_image_${event.id}',
-          child: Image.network(
-            image,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              decoration: BoxDecoration(
-                gradient: ZynkGradients.forCategory(event.category.name),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FullScreenImageViewer(imageUrl: image),
+                ),
+              );
+            },
+            child: Image.network(
+              image,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                decoration: BoxDecoration(
+                  gradient: ZynkGradients.forCategory(event.category.name),
+                ),
               ),
             ),
           ),

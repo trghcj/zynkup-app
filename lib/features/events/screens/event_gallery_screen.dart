@@ -6,6 +6,7 @@ import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/home/screens/home_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
+import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 
 class EventGalleryScreen extends StatefulWidget {
   const EventGalleryScreen({
@@ -243,19 +244,29 @@ class _GalleryTile extends StatelessWidget {
     // FIX: support both base64 'data' field AND direct 'url' field from backend
     final url = file['url']?.toString();
     if (url != null && url.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(ZynkRadius.md),
-        child: Image.network(
-          url,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            decoration: BoxDecoration(
-              gradient: ZynkGradients.cardSurface,
-              borderRadius: BorderRadius.circular(ZynkRadius.md),
+      return GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FullScreenImageViewer(imageUrl: url),
             ),
-            child: Icon(
-              Icons.broken_image_rounded,
-              color: ZynkColors.darkMuted.withValues(alpha: 0.5),
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(ZynkRadius.md),
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              decoration: BoxDecoration(
+                gradient: ZynkGradients.cardSurface,
+                borderRadius: BorderRadius.circular(ZynkRadius.md),
+              ),
+              child: Icon(
+                Icons.broken_image_rounded,
+                color: ZynkColors.darkMuted.withValues(alpha: 0.5),
+              ),
             ),
           ),
         ),
