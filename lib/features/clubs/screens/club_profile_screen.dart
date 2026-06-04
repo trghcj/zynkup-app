@@ -692,6 +692,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
+        final bool isAuthor = _currentUser?['id'] != null && post['author_id']?.toString() == _currentUser?['id']?.toString();
+        final bool isCreator = _club != null && _currentUser != null && _club!['creator_id']?.toString() == _currentUser!['id']?.toString();
+        
         return Container(
           decoration: BoxDecoration(
             color: ZynkColors.darkSurface2,
@@ -778,8 +781,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   }
                 },
               ),
-              if (_currentUser?['id'] != null &&
-                  post['author_id']?.toString() == _currentUser?['id'].toString()) ...[
+              if (isAuthor) ...[
                 const Divider(color: ZynkColors.darkBorder),
                 ListTile(
                   leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
@@ -801,22 +803,37 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     if (result != null) _loadFeed();
                   },
                 ),
+              ],
+              if (isAuthor || isCreator) ...[
                 ListTile(
-                  leading: const Icon(Icons.delete_rounded, color: ZynkColors.error),
+                  leading: const Icon(Icons.delete_outline_rounded, color: ZynkColors.error),
                   title: const Text(
                     'Delete Post',
                     style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
                   ),
                   onTap: () async {
-                    final messenger = ScaffoldMessenger.of(context);
                     Navigator.pop(sheetContext);
-                    final success = await ApiService.deleteFeedPost(post['id']);
-                    if (success) {
-                      _loadFeed();
-                    } else {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Failed to delete post')),
-                      );
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        backgroundColor: ZynkColors.darkSurface2,
+                        title: const Text('Delete Post', style: TextStyle(color: ZynkColors.error)),
+                        content: const Text('Are you sure you want to delete this post?', style: TextStyle(color: ZynkColors.offWhite)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(c, false),
+                            child: const Text('Cancel', style: TextStyle(color: ZynkColors.darkMuted)),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(c, true),
+                            child: const Text('Delete', style: TextStyle(color: ZynkColors.error)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      final success = await ApiService.deleteFeedPost(post['id']);
+                      if (success) _loadFeed();
                     }
                   },
                 ),
@@ -1206,12 +1223,39 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           child: Image.network(
                             url,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: ZynkColors.darkSurface2,
-                              child: const Center(
-                                child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
-                              ),
-                            ),
+                            errorBuilder: (_, __, ___) => Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: ZynkColors.darkSurface2,
+                                        borderRadius: BorderRadius.circular(ZynkRadius.md),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                                      ),
+                                    ),
+                                    if (canUpload)
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            final success = await ApiService.deleteClubGalleryImage(int.parse(widget.clubId), fileIndex);
+                                            if (success) _loadGallery();
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.black54,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                           ),
                         ),
                       ),
@@ -1260,12 +1304,39 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             child: Image.memory(
                               bytes,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: ZynkColors.darkSurface2,
-                                child: const Center(
-                                  child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                              errorBuilder: (_, __, ___) => Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: ZynkColors.darkSurface2,
+                                        borderRadius: BorderRadius.circular(ZynkRadius.md),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                                      ),
+                                    ),
+                                    if (canUpload)
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            final success = await ApiService.deleteClubGalleryImage(int.parse(widget.clubId), fileIndex);
+                                            if (success) _loadGallery();
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.black54,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                              ),
                             ),
                           ),
                         ),
@@ -1293,14 +1364,38 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   } catch (_) {}
                 }
 
-                return Container(
-                  decoration: BoxDecoration(
-                    color: ZynkColors.darkSurface2,
-                    borderRadius: BorderRadius.circular(ZynkRadius.md),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
-                  ),
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: ZynkColors.darkSurface2,
+                        borderRadius: BorderRadius.circular(ZynkRadius.md),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                      ),
+                    ),
+                    if (canUpload)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () async {
+                            final success = await ApiService.deleteClubGalleryImage(int.parse(widget.clubId), fileIndex);
+                            if (success) _loadGallery();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
