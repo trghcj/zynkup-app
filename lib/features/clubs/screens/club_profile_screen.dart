@@ -17,6 +17,7 @@ import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/features/clubs/widgets/club_chat_widget.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
+import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 
 class ClubProfileScreen extends StatefulWidget {
   final String clubId;
@@ -1045,15 +1046,27 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 final file = _clubGallery[fileIndex] as Map<String, dynamic>;
                 final url = file['url'] ?? '';
                 
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(ZynkRadius.md),
-                  child: Image.network(
-                    url,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: ZynkColors.darkSurface2,
-                      child: const Center(
-                        child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                return GestureDetector(
+                  onTap: () {
+                    if (url.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FullScreenImageViewer(imageUrl: url),
+                        ),
+                      );
+                    }
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(ZynkRadius.md),
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: ZynkColors.darkSurface2,
+                        child: const Center(
+                          child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                        ),
                       ),
                     ),
                   ),

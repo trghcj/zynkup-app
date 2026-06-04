@@ -62,7 +62,8 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         author_id=current_user.id,
         content=post_data.content,
         image_url=post_data.image_url,
-        banner_url=post_data.banner_url
+        banner_url=post_data.banner_url,
+        club_id=post_data.club_id
     )
     db.add(new_post)
     db.commit()
