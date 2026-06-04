@@ -1189,6 +1189,20 @@ class ApiService {
   
   // ── Club Chat ──────────────────────────────────────────────────────────────
   
+  static Future<bool> deleteClubGalleryImage(int clubId, int index) async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("$baseUrl/clubs/$clubId/gallery/$index"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+
   static Future<List<dynamic>> getClubChatHistory(int clubId) async {
     try {
       await loadToken();

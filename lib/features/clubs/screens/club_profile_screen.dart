@@ -20,6 +20,7 @@ import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/features/clubs/widgets/club_chat_widget.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
+import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
 
 class ClubProfileScreen extends StatefulWidget {
   final String clubId;
@@ -686,6 +687,147 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
       );
   }
 
+  void _showMoreOptions(Map<String, dynamic> post) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: BoxDecoration(
+            color: ZynkColors.darkSurface2,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: ZynkColors.darkBorder),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ZynkColors.darkMuted.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.chat_bubble_outline_rounded, color: ZynkColors.gold),
+                title: const Text(
+                  'Watch Full Feed / View Discussion',
+                  style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  final postId = post['id'] as int?;
+                  if (postId == null) return;
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => PostCommentsSheet(
+                      postId: postId,
+                      authorName: post['author_name'] ?? 'Anonymous',
+                      authorAvatar: post['author_avatar'],
+                      postContent: post['content'] ?? '',
+                      authorId: post['author_id'],
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: ZynkColors.darkBorder),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined, color: ZynkColors.error),
+                title: const Text(
+                  'Report Bad Content',
+                  style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
+                ),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(sheetContext);
+                  if (!ApiService.hasToken) {
+                    showLoginPrompt(context, message: 'Sign in to report unsafe content.');
+                    return;
+                  }
+                  final postId = post['id'] as int?;
+                  if (postId != null) {
+                    final success = await ApiService.reportFeedPost(postId);
+                    if (success) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: const Row(
+                            children: [
+                              Icon(Icons.check_circle_outline_rounded, color: ZynkColors.error),
+                              SizedBox(width: 12),
+                              Text('Post reported successfully.'),
+                            ],
+                          ),
+                          backgroundColor: ZynkColors.darkSurface,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    } else {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to report post.'),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              if (_currentUser?['id'] != null &&
+                  post['author_id']?.toString() == _currentUser?['id'].toString()) ...[
+                const Divider(color: ZynkColors.darkBorder),
+                ListTile(
+                  leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
+                  title: const Text(
+                    'Edit Post',
+                    style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    final result = await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => EditPostSheet(
+                        postId: post['id'],
+                        initialContent: post['content'] ?? '',
+                      ),
+                    );
+                    if (result != null) _loadFeed();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_rounded, color: ZynkColors.error),
+                  title: const Text(
+                    'Delete Post',
+                    style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    Navigator.pop(sheetContext);
+                    final success = await ApiService.deleteFeedPost(post['id']);
+                    if (success) {
+                      _loadFeed();
+                    } else {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Failed to delete post')),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildFeedTab() {
     if (_loadingFeed) {
       return const Center(child: CircularProgressIndicator(color: ZynkColors.gold));
@@ -783,6 +925,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           ),
                         );
                       },
+                      onMore: () => _showMoreOptions(post),
                       onShare: () async {
                         final text = post['content'] ?? '';
                         if (text.isEmpty) return;
@@ -810,9 +953,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           );
                         }
                       },
-                      onMore: () {
-                        // More logic
-                      },
+
                       onReact: (emoji) async {
                         final postId = post['id'] as int?;
                         if (postId != null) {
@@ -1048,28 +1189,52 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 final file = _clubGallery[fileIndex] as Map<String, dynamic>;
                 final url = file['url']?.toString();
                 if (url != null && url.isNotEmpty) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FullScreenImageViewer(imageUrl: url),
-                        ),
-                      );
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(ZynkRadius.md),
-                      child: Image.network(
-                        url,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: ZynkColors.darkSurface2,
-                          child: const Center(
-                            child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FullScreenImageViewer(imageUrl: url),
+                            ),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(ZynkRadius.md),
+                          child: Image.network(
+                            url,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: ZynkColors.darkSurface2,
+                              child: const Center(
+                                child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      if (canUpload)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () async {
+                              final success = await ApiService.deleteClubGalleryImage(int.parse(widget.clubId), fileIndex);
+                              if (success) _loadGallery();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 }
 
@@ -1078,19 +1243,52 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 if (data != null && data.isNotEmpty) {
                   try {
                     final bytes = base64Decode(data);
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FullScreenImageViewer(imageBytes: bytes),
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FullScreenImageViewer(imageBytes: bytes),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(ZynkRadius.md),
+                            child: Image.memory(
+                              bytes,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: ZynkColors.darkSurface2,
+                                child: const Center(
+                                  child: Icon(Icons.broken_image_rounded, color: ZynkColors.darkMuted),
+                                ),
+                              ),
+                            ),
                           ),
-                        );
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(ZynkRadius.md),
-                        child: Image.memory(bytes, fit: BoxFit.cover),
-                      ),
+                        ),
+                        if (canUpload)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () async {
+                                final success = await ApiService.deleteClubGalleryImage(int.parse(widget.clubId), fileIndex);
+                                if (success) _loadGallery();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                              ),
+                            ),
+                          ),
+                      ],
                     );
                   } catch (_) {}
                 }

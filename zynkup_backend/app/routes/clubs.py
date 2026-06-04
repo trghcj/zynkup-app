@@ -377,6 +377,40 @@ async def upload_club_gallery(
         "total": len(existing) + len(additions),
     }
 
+@router.delete("/{club_id}/gallery/{index}")
+def delete_club_gallery_by_index(
+    club_id: int,
+    index: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    member_record = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
+    has_permission = (
+        club.creator_id == current_user.id or
+        (member_record is not None and member_record.role != "member")
+    )
+    if not has_permission:
+        raise HTTPException(status_code=403, detail="Only the club creator or assigned organizers can delete from gallery")
+
+    existing = _parse_gallery(club.gallery_files)
+    if index < 0 or index >= len(existing):
+        raise HTTPException(status_code=404, detail="Gallery item not found")
+
+    existing.pop(index)
+
+    try:
+        club.gallery_files = _serialize_gallery(existing)
+        db.commit()
+    except Exception as db_err:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete club gallery image: {str(db_err)}")
+        
+    return {"message": "Image deleted successfully"}
+
 @router.get("/{club_id}/feed")
 def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
     from ..models import FeedPost, FeedLike
