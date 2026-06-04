@@ -247,7 +247,7 @@ def get_club_members(club_id: int, db: Session = Depends(get_db)):
         result.append(ClubMemberResponse(
             user_id=m.user_id,
             name=m.user.name or m.user.display_name or "Student",
-            avatar_url=m.user.avatar_url,
+            avatar_url=m.user.resolved_avatar_url,
             role=role_str,
             joined_at=m.joined_at
         ))
@@ -409,12 +409,13 @@ def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Opt
             id=p.id,
             author_id=p.author_id,
             author_name=p.author.name or p.author.display_name,
-            author_avatar=p.author.avatar_url,
+            author_avatar=p.author.resolved_avatar_url,
+            club_id=p.club_id,
+            club_name=club.name,
+            club_logo=club.logo_url,
             content=p.content,
             image_url=p.image_url,
             banner_url=p.banner_url,
-            imageUrl=p.image_url,
-            bannerUrl=p.banner_url,
             likes=p.likes,
             is_liked=(p.id in liked_post_ids),
             created_at=p.created_at,
@@ -475,7 +476,7 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
             "created_at": msg.created_at.isoformat(),
             "user_id": msg.user_id,
             "user_name": msg.user.name or msg.user.display_name or "User",
-            "user_avatar": msg.user.avatar_url,
+            "user_avatar": msg.user.resolved_avatar_url,
             "user_role": memberships.get(msg.user_id, "member")
         })
     return result
@@ -523,7 +524,7 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
                 "created_at": new_msg.created_at.isoformat(),
                 "user_id": user_id,
                 "user_name": user.name or user.display_name or "User",
-                "user_avatar": user.avatar_url,
+                "user_avatar": user.resolved_avatar_url,
                 "user_role": member.role
             }
             await manager.broadcast(msg_dict, club_id)

@@ -1,9 +1,12 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 class FullScreenImageViewer extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
+  final Uint8List? imageBytes;
 
-  const FullScreenImageViewer({super.key, required this.imageUrl});
+  const FullScreenImageViewer({super.key, this.imageUrl, this.imageBytes}) 
+    : assert(imageUrl != null || imageBytes != null);
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +18,9 @@ class FullScreenImageViewer extends StatelessWidget {
       ),
       body: Center(
         child: InteractiveViewer(
-          child: Image.network(imageUrl),
+          child: imageUrl != null 
+              ? Image.network(imageUrl!) 
+              : Image.memory(imageBytes!),
         ),
       ),
     );
