@@ -12,6 +12,7 @@ from dotenv import load_dotenv  # type: ignore
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 
 from app.database import Base, engine
 from app.routes import users, events, analytics, admin, clubs, notifications, feed, friends
@@ -100,6 +101,16 @@ def repair_event_schema() -> None:
             "ALTER TABLE clubs ADD COLUMN IF NOT EXISTS gallery_files TEXT DEFAULT ''",
             "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS attachment_url TEXT",
             "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS attachment_type TEXT",
+            "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS is_edited BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE",
+            """
+            CREATE TABLE IF NOT EXISTS user_hidden_messages (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                message_id INTEGER REFERENCES club_messages(id) ON DELETE CASCADE,
+                hidden_at TIMESTAMP DEFAULT NOW()
+            )
+            """,
             """
             DO $$
             BEGIN
@@ -162,14 +173,28 @@ def repair_event_schema() -> None:
             "ALTER TABLE club_members ADD COLUMN role VARCHAR DEFAULT 'member'",
             "ALTER TABLE club_messages ADD COLUMN attachment_url TEXT",
             "ALTER TABLE club_messages ADD COLUMN attachment_type TEXT",
+            "ALTER TABLE club_messages ADD COLUMN is_edited BOOLEAN DEFAULT 0",
+            "ALTER TABLE club_messages ADD COLUMN is_deleted BOOLEAN DEFAULT 0",
         ]
-        with engine.begin() as conn:
-            for statement in statements:
+        with engine.begin() as db:
+            for stmt in statements:
                 try:
-                    conn.execute(text(statement))
-                except Exception as exc:
-                    # Ignore duplicate column error in SQLite
-                    logger.debug(f"SQLite migration skipped/already exists: {exc}")
+                    db.execute(text(stmt))
+                except OperationalError as e:
+                    logger.debug(f"SQLite migration skipped/already exists: {e}")
+            
+            # SQLite Create Table for user_hidden_messages
+            try:
+                db.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_hidden_messages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        message_id INTEGER REFERENCES club_messages(id) ON DELETE CASCADE,
+                        hidden_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+            except Exception as e:
+                logger.error(f"SQLite error creating user_hidden_messages: {e}")
 
 
 repair_event_schema()

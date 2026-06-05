@@ -6,6 +6,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart' as fp;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
+import 'package:zynkup/features/profile/screens/profile_screen.dart';
 
 class ClubChatWidget extends StatefulWidget {
   final int clubId;
@@ -55,7 +57,27 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
       if (mounted) {
         setState(() {
           final data = jsonDecode(message);
-          _messages.insert(0, data);
+          if (data['action'] == 'new') {
+            _messages.insert(0, data['message']);
+          } else if (data['action'] == 'edit') {
+            final idx = _messages.indexWhere((m) => m['id'] == data['message']['id']);
+            if (idx != -1) {
+              _messages[idx] = data['message'];
+            }
+          } else if (data['action'] == 'delete_for_everyone') {
+            final idx = _messages.indexWhere((m) => m['id'] == data['message_id']);
+            if (idx != -1) {
+              _messages[idx]['is_deleted'] = true;
+              _messages[idx]['content'] = "This message was deleted";
+              _messages[idx]['attachment_url'] = null;
+              _messages[idx]['attachment_type'] = null;
+            }
+          } else {
+            // legacy fallback
+            if (!data.containsKey('action')) {
+              _messages.insert(0, data);
+            }
+          }
         });
       }
     }, onError: (err) {
@@ -202,6 +224,98 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     }
   }
 
+  void _showMessageOptions(Map<String, dynamic> msg) {
+    if (_currentUserId == null) return;
+    
+    final isMe = msg['user_id'] == _currentUserId;
+    if (!isMe) return; // For now, only show options for own messages
+    
+    DateTime? dt;
+    try { dt = DateTime.parse(msg['created_at']); } catch(_) {} // Parse UTC
+    final bool within5Mins = dt != null && DateTime.now().toUtc().difference(dt).inMinutes <= 5;
+    final bool isDeleted = msg['is_deleted'] == true;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: ZynkColors.darkSurface,
+      builder: (ctx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              if (within5Mins && !isDeleted)
+                ListTile(
+                  leading: const Icon(Icons.edit, color: ZynkColors.gold),
+                  title: const Text('Edit', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showEditDialog(msg);
+                  },
+                ),
+              if (within5Mins && !isDeleted)
+                ListTile(
+                  leading: const Icon(Icons.delete_forever, color: Colors.redAccent),
+                  title: const Text('Delete for everyone', style: TextStyle(color: Colors.redAccent)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ApiService.deleteClubChatMessage(widget.clubId, msg['id']);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.white70),
+                title: const Text('Delete for me', style: TextStyle(color: Colors.white70)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ApiService.deleteClubChatMessage(widget.clubId, msg['id']);
+                  setState(() {
+                    _messages.removeWhere((m) => m['id'] == msg['id']);
+                  });
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  void _showEditDialog(Map<String, dynamic> msg) {
+    final editController = TextEditingController(text: msg['content'] == 'This message was deleted' ? '' : msg['content']);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ZynkColors.darkSurface,
+        title: const Text('Edit Message', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: editController,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: 'New message...',
+            hintStyle: TextStyle(color: ZynkColors.darkMuted),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ZynkColors.darkMuted)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: ZynkColors.gold)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ZynkColors.gold),
+            onPressed: () {
+              final newContent = editController.text.trim();
+              if (newContent.isNotEmpty) {
+                ApiService.editClubChatMessage(widget.clubId, msg['id'], newContent);
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -243,9 +357,12 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
               
               final role = msg['user_role'] ?? 'member';
               
-              DateTime? dt;
+               DateTime? dt;
               try { dt = DateTime.parse(msg['created_at']).toLocal(); } catch(_) {}
               final timeStr = dt != null ? DateFormat('h:mm a').format(dt) : '';
+              
+              final isDeleted = msg['is_deleted'] == true;
+              final isEdited = msg['is_edited'] == true && !isDeleted;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -254,77 +371,112 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (!isMe) ...[
-                      CircleAvatar(radius: 14, backgroundImage: NetworkImage(avatar)),
+                      GestureDetector(
+                        onTap: () {
+                          if (msg['user_id'] != null) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(userId: msg['user_id'])));
+                          }
+                        },
+                        child: CircleAvatar(radius: 14, backgroundImage: NetworkImage(avatar)),
+                      ),
                       const SizedBox(width: 8),
                     ],
                     Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isMe ? ZynkColors.gold : ZynkColors.darkSurface2,
-                          borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(ZynkRadius.md),
-                            topRight: const Radius.circular(ZynkRadius.md),
-                            bottomLeft: isMe ? const Radius.circular(ZynkRadius.md) : Radius.zero,
-                            bottomRight: isMe ? Radius.zero : const Radius.circular(ZynkRadius.md),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(name, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 11, fontWeight: FontWeight.bold)),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                    decoration: BoxDecoration(
-                                      color: role == 'admin' ? (isMe ? Colors.black12 : ZynkColors.gold.withValues(alpha: 0.2)) : Colors.white10,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(role.toUpperCase(), style: TextStyle(color: role == 'admin' ? (isMe ? Colors.black87 : ZynkColors.gold) : (isMe ? Colors.black54 : Colors.white70), fontSize: 8, fontWeight: FontWeight.bold)),
-                                  ),
-                                ],
-                              ),
+                      child: GestureDetector(
+                        onLongPress: () => _showMessageOptions(msg),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isMe ? ZynkColors.gold : ZynkColors.darkSurface2,
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(ZynkRadius.md),
+                              topRight: const Radius.circular(ZynkRadius.md),
+                              bottomLeft: isMe ? const Radius.circular(ZynkRadius.md) : Radius.zero,
+                              bottomRight: isMe ? Radius.zero : const Radius.circular(ZynkRadius.md),
                             ),
-                            if (content.isNotEmpty)
-                              Text(content, style: TextStyle(color: isMe ? Colors.black87 : ZynkColors.offWhite)),
-                            if (msg['attachment_url'] != null) ...[
-                               const SizedBox(height: 8),
-                               if (msg['attachment_type'] == 'image' || msg['attachment_type'] == 'sticker' || msg['attachment_type'] == 'gif')
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(msg['attachment_url'], height: 150, fit: BoxFit.cover),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(name, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: role == 'admin' ? (isMe ? Colors.black12 : ZynkColors.gold.withValues(alpha: 0.2)) : Colors.white10,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(role.toUpperCase(), style: TextStyle(color: role == 'admin' ? (isMe ? Colors.black87 : ZynkColors.gold) : (isMe ? Colors.black54 : Colors.white70), fontSize: 8, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (content.isNotEmpty)
+                                Text(
+                                  content, 
+                                  style: TextStyle(
+                                    color: isMe ? Colors.black87 : ZynkColors.offWhite,
+                                    fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
                                   )
-                               else
-                                  GestureDetector(
-                                    onTap: () => launchUrl(Uri.parse(msg['attachment_url'])),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8)),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.insert_drive_file, color: isMe ? Colors.black54 : Colors.white70, size: 20),
-                                          const SizedBox(width: 8),
-                                          Text('View Document', style: TextStyle(color: isMe ? Colors.black87 : Colors.white)),
-                                        ],
+                                ),
+                              if (msg['attachment_url'] != null) ...[
+                                 const SizedBox(height: 8),
+                                 if (msg['attachment_type'] == 'image' || msg['attachment_type'] == 'sticker' || msg['attachment_type'] == 'gif')
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(context, MaterialPageRoute(builder: (_) => FullScreenImageViewer(imageUrl: msg['attachment_url'])));
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(msg['attachment_url'], height: 150, fit: BoxFit.cover),
+                                      ),
+                                    )
+                                 else
+                                    GestureDetector(
+                                      onTap: () => launchUrl(Uri.parse(msg['attachment_url'])),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8)),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.insert_drive_file, color: isMe ? Colors.black54 : Colors.white70, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text('View Document', style: TextStyle(color: isMe ? Colors.black87 : Colors.white)),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
+                              ],
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isEdited)
+                                    Text('(Edited) ', style: TextStyle(color: isMe ? Colors.black45 : ZynkColors.darkMuted, fontSize: 10, fontStyle: FontStyle.italic)),
+                                  Text(timeStr, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 10)),
+                                ],
+                              ),
                             ],
-                            const SizedBox(height: 4),
-                            Text(timeStr, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 10)),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                     if (isMe) ...[
                       const SizedBox(width: 8),
-                      CircleAvatar(radius: 14, backgroundImage: NetworkImage(avatar)),
+                      GestureDetector(
+                        onTap: () {
+                          if (msg['user_id'] != null) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(userId: msg['user_id'])));
+                          }
+                        },
+                        child: CircleAvatar(radius: 14, backgroundImage: NetworkImage(avatar)),
+                      ),
                     ],
                   ],
                 ),

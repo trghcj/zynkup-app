@@ -511,10 +511,12 @@ manager = ClubConnectionManager()
 
 @router.get("/{club_id}/chat")
 def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    from ..models import ClubMessage
+    from ..models import ClubMessage, UserHiddenMessage
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
+        
+    hidden_message_ids = {h.message_id for h in db.query(UserHiddenMessage).filter(UserHiddenMessage.user_id == current_user.id).all()}
         
     messages = db.query(ClubMessage).filter(ClubMessage.club_id == club_id).order_by(ClubMessage.created_at.desc()).limit(50).all()
     
@@ -523,11 +525,20 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
     
     result = []
     for msg in messages:
+        if msg.id in hidden_message_ids:
+            continue
+            
+        content = "This message was deleted" if msg.is_deleted else msg.content
+        attachment_url = None if msg.is_deleted else msg.attachment_url
+        attachment_type = None if msg.is_deleted else msg.attachment_type
+        
         result.append({
             "id": msg.id,
-            "content": msg.content,
-            "attachment_url": msg.attachment_url,
-            "attachment_type": msg.attachment_type,
+            "content": content,
+            "attachment_url": attachment_url,
+            "attachment_type": attachment_type,
+            "is_edited": msg.is_edited and not msg.is_deleted,
+            "is_deleted": msg.is_deleted,
             "created_at": msg.created_at.isoformat(),
             "user_id": msg.user_id,
             "user_name": msg.user.name or msg.user.display_name or "User",
@@ -599,15 +610,91 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
                 "content": new_msg.content,
                 "attachment_url": new_msg.attachment_url,
                 "attachment_type": new_msg.attachment_type,
+                "is_edited": False,
+                "is_deleted": False,
                 "created_at": new_msg.created_at.isoformat(),
                 "user_id": user_id,
                 "user_name": user.name or user.display_name or "User",
                 "user_avatar": user.resolved_avatar_url,
                 "user_role": member.role
             }
-            await manager.broadcast(msg_dict, club_id)
+            
+            await manager.broadcast({"action": "new", "message": msg_dict}, club_id)
+            
     except WebSocketDisconnect:
         manager.disconnect(websocket, club_id)
+
+from pydantic import BaseModel
+class EditMessagePayload(BaseModel):
+    content: str
+
+from datetime import datetime, timedelta
+
+@router.put("/{club_id}/chat/{message_id}")
+async def edit_club_message(club_id: int, message_id: int, payload: EditMessagePayload, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from ..models import ClubMessage, ClubMember
+    msg = db.query(ClubMessage).filter(ClubMessage.id == message_id, ClubMessage.club_id == club_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    if msg.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages")
+        
+    if msg.is_deleted:
+        raise HTTPException(status_code=400, detail="Cannot edit a deleted message")
+        
+    # Check 5 minutes
+    if datetime.utcnow() - msg.created_at > timedelta(minutes=5):
+        raise HTTPException(status_code=400, detail="Messages can only be edited within 5 minutes of sending")
+        
+    msg.content = payload.content
+    msg.is_edited = True
+    db.commit()
+    
+    # Broadcast edit
+    member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
+    msg_dict = {
+        "id": msg.id,
+        "content": msg.content,
+        "attachment_url": msg.attachment_url,
+        "attachment_type": msg.attachment_type,
+        "is_edited": msg.is_edited,
+        "is_deleted": msg.is_deleted,
+        "created_at": msg.created_at.isoformat(),
+        "user_id": msg.user_id,
+        "user_name": msg.user.name or msg.user.display_name or "User",
+        "user_avatar": msg.user.resolved_avatar_url,
+        "user_role": member.role if member else "member"
+    }
+    
+    await manager.broadcast({"action": "edit", "message": msg_dict}, club_id)
+    return {"message": "Message edited successfully"}
+
+@router.delete("/{club_id}/chat/{message_id}")
+async def delete_club_message(club_id: int, message_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from ..models import ClubMessage, UserHiddenMessage
+    msg = db.query(ClubMessage).filter(ClubMessage.id == message_id, ClubMessage.club_id == club_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    # Check 5 minutes for "delete for everyone"
+    time_passed = datetime.utcnow() - msg.created_at
+    
+    if msg.user_id == current_user.id and time_passed <= timedelta(minutes=5):
+        # Delete for everyone
+        msg.is_deleted = True
+        msg.content = None
+        msg.attachment_url = None
+        msg.attachment_type = None
+        db.commit()
+        await manager.broadcast({"action": "delete_for_everyone", "message_id": msg.id}, club_id)
+        return {"message": "Message deleted for everyone"}
+    else:
+        # Delete for me
+        hidden = UserHiddenMessage(user_id=current_user.id, message_id=msg.id)
+        db.add(hidden)
+        db.commit()
+        return {"message": "Message deleted for you"}
 
 @router.post("/{club_id}/chat/upload")
 async def upload_club_chat_attachment(
