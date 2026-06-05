@@ -128,3 +128,19 @@ def get_friends(db: Session = Depends(get_db), current_user: models.User = Depen
             "bio": friend_user.bio
         })
     return res
+
+@router.delete("/{user_id}")
+def remove_friend(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    friendship = db.query(models.FriendRequest).filter(
+        (
+            ((models.FriendRequest.sender_id == current_user.id) & (models.FriendRequest.receiver_id == user_id)) |
+            ((models.FriendRequest.sender_id == user_id) & (models.FriendRequest.receiver_id == current_user.id))
+        ) & (models.FriendRequest.status == "accepted")
+    ).first()
+    
+    if not friendship:
+        raise HTTPException(status_code=404, detail="Friendship not found")
+        
+    db.delete(friendship)
+    db.commit()
+    return {"message": "Friend removed successfully"}

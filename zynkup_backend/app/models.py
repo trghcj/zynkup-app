@@ -266,7 +266,9 @@ class ClubMessage(Base):
     id         = Column(Integer, primary_key=True, index=True)
     club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=False)
     user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
-    content    = Column(Text, nullable=False)
+    content    = Column(Text, nullable=True) # made nullable for attachment only messages
+    attachment_url = Column(Text, nullable=True)
+    attachment_type = Column(String, nullable=True) # image, pdf, doc, sticker, gif
     created_at = Column(DateTime, server_default=func.now())
 
     club = relationship("Club")

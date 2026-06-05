@@ -1187,6 +1187,19 @@ class ApiService {
     }
   }
   
+  static Future<bool> removeFriend(int userId) async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("$baseUrl/friends/$userId"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+  
   // ── Club Chat ──────────────────────────────────────────────────────────────
   
   static Future<bool> deleteClubGalleryImage(int clubId, int index) async {
@@ -1199,6 +1212,22 @@ class ApiService {
       return res.statusCode == 200;
     } catch (_) {
       return false;
+    }
+  }
+  static Future<Map<String, dynamic>?> uploadClubChatAttachment(int clubId, List<int> fileBytes, String filename) async {
+    try {
+      await loadToken();
+      final request = http.MultipartRequest('POST', Uri.parse("$baseUrl/clubs/$clubId/chat/upload"));
+      request.headers.addAll(await _headers);
+      request.files.add(http.MultipartFile.fromBytes('file', fileBytes, filename: filename));
+      final res = await request.send();
+      if (res.statusCode == 200) {
+        final body = await res.stream.bytesToString();
+        return jsonDecode(body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
