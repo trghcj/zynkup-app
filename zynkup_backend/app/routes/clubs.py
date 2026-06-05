@@ -526,6 +526,8 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
         result.append({
             "id": msg.id,
             "content": msg.content,
+            "attachment_url": msg.attachment_url,
+            "attachment_type": msg.attachment_type,
             "created_at": msg.created_at.isoformat(),
             "user_id": msg.user_id,
             "user_name": msg.user.name or msg.user.display_name or "User",
@@ -565,7 +567,28 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
             
             # Save to db
             from ..models import ClubMessage
-            new_msg = ClubMessage(club_id=club_id, user_id=user_id, content=data)
+            import json
+            
+            content = data
+            attachment_url = None
+            attachment_type = None
+            
+            try:
+                payload = json.loads(data)
+                if isinstance(payload, dict):
+                    content = payload.get("content", "")
+                    attachment_url = payload.get("attachment_url")
+                    attachment_type = payload.get("attachment_type")
+            except Exception:
+                pass
+                
+            new_msg = ClubMessage(
+                club_id=club_id, 
+                user_id=user_id, 
+                content=content,
+                attachment_url=attachment_url,
+                attachment_type=attachment_type
+            )
             db.add(new_msg)
             db.commit()
             db.refresh(new_msg)
@@ -574,6 +597,8 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
             msg_dict = {
                 "id": new_msg.id,
                 "content": new_msg.content,
+                "attachment_url": new_msg.attachment_url,
+                "attachment_type": new_msg.attachment_type,
                 "created_at": new_msg.created_at.isoformat(),
                 "user_id": user_id,
                 "user_name": user.name or user.display_name or "User",
@@ -582,4 +607,44 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
             }
             await manager.broadcast(msg_dict, club_id)
     except WebSocketDisconnect:
-        manager.disconnect(websocket, club_id)
+        manager.disconnect(websocket, club_id)
+
+@router.post("/{club_id}/chat/upload")
+async def upload_club_chat_attachment(
+    club_id: int, 
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    import os
+    import uuid
+    from pathlib import Path
+    
+    # Verify membership
+    member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a member of this club")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    ext = ""
+    if file.filename:
+        ext = os.path.splitext(file.filename)[1]
+    
+    filename = f"chat_{club_id}_{uuid.uuid4().hex}{ext}"
+    file_path = Path(UPLOAD_DIR) / filename
+    
+    # Determine type
+    attachment_type = "doc"
+    if ext.lower() in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+        attachment_type = "image"
+    elif ext.lower() == ".pdf":
+        attachment_type = "pdf"
+        
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    url = _public_upload_url(request, filename)
+    return {"url": url, "type": attachment_type}
+

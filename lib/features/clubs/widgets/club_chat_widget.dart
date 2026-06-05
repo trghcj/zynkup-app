@@ -4,6 +4,8 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart' as fp;
+import 'package:url_launcher/url_launcher.dart';
 
 class ClubChatWidget extends StatefulWidget {
   final int clubId;
@@ -71,8 +73,132 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
   void _sendMessage() {
     final text = _messageController.text.trim();
     if (text.isNotEmpty && _channel != null) {
-      _channel!.sink.add(text);
+      final payload = {
+        'content': text
+      };
+      _channel!.sink.add(jsonEncode(payload));
       _messageController.clear();
+    }
+  }
+
+  Future<void> _showAttachmentPicker() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: ZynkColors.darkSurface,
+      builder: (ctx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.image, color: ZynkColors.gold),
+                title: const Text('Upload Image', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadAttachment(fp.FileType.image);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.insert_drive_file, color: ZynkColors.gold),
+                title: const Text('Upload Document', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadAttachment(fp.FileType.custom, allowedExtensions: ['pdf', 'doc', 'docx']);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.emoji_emotions, color: ZynkColors.gold),
+                title: const Text('Send Sticker', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showStickerPicker();
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  void _showStickerPicker() {
+    final predefinedStickers = [
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Fire.png',
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Thumbs%20Up.png',
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Party%20Popper.png',
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Red%20Heart.png',
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Grinning%20Face%20with%20Big%20Eyes.png',
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Face%20with%20Tears%20of%20Joy.png',
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Rocket.png',
+      'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Star-Struck.png',
+    ];
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: ZynkColors.darkSurface,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: GridView.builder(
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: predefinedStickers.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _sendSticker(predefinedStickers[index]);
+                  },
+                  child: Image.network(predefinedStickers[index]),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    );
+  }
+
+  void _sendSticker(String url) {
+    if (_channel != null) {
+      final payload = {
+        'content': '',
+        'attachment_url': url,
+        'attachment_type': 'sticker'
+      };
+      _channel!.sink.add(jsonEncode(payload));
+    }
+  }
+
+  Future<void> _pickAndUploadAttachment(fp.FileType type, {List<String>? allowedExtensions}) async {
+    final result = await fp.FilePicker.pickFiles(
+      type: type,
+      allowedExtensions: allowedExtensions,
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    if (file.size > 10 * 1024 * 1024) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File must be smaller than 10MB')));
+      return;
+    }
+
+    final uploadRes = await ApiService.uploadClubChatAttachment(widget.clubId, file.bytes!, file.name);
+    if (uploadRes != null && _channel != null) {
+      final payload = {
+        'content': '',
+        'attachment_url': uploadRes['url'],
+        'attachment_type': uploadRes['type']
+      };
+      _channel!.sink.add(jsonEncode(payload));
+    } else {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload failed')));
     }
   }
 
@@ -164,7 +290,32 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                 ],
                               ),
                             ),
-                            Text(content, style: TextStyle(color: isMe ? Colors.black87 : ZynkColors.offWhite)),
+                            if (content.isNotEmpty)
+                              Text(content, style: TextStyle(color: isMe ? Colors.black87 : ZynkColors.offWhite)),
+                            if (msg['attachment_url'] != null) ...[
+                               const SizedBox(height: 8),
+                               if (msg['attachment_type'] == 'image' || msg['attachment_type'] == 'sticker' || msg['attachment_type'] == 'gif')
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(msg['attachment_url'], height: 150, fit: BoxFit.cover),
+                                  )
+                               else
+                                  GestureDetector(
+                                    onTap: () => launchUrl(Uri.parse(msg['attachment_url'])),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8)),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.insert_drive_file, color: isMe ? Colors.black54 : Colors.white70, size: 20),
+                                          const SizedBox(width: 8),
+                                          Text('View Document', style: TextStyle(color: isMe ? Colors.black87 : Colors.white)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                            ],
                             const SizedBox(height: 4),
                             Text(timeStr, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 10)),
                           ],
@@ -189,6 +340,11 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
           ),
           child: Row(
             children: [
+              GestureDetector(
+                onTap: _showAttachmentPicker,
+                child: const Icon(Icons.attach_file, color: ZynkColors.darkMuted),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _messageController,

@@ -755,6 +755,33 @@ class _OverviewTab extends StatelessWidget {
                           },
                           leading: CircleAvatar(backgroundImage: NetworkImage(f['avatar_url'] ?? '')),
                           title: Text(f['name'] ?? 'User', style: const TextStyle(color: Colors.white)),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.person_remove, color: ZynkColors.error),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  backgroundColor: ZynkColors.darkBg,
+                                  title: const Text('Unfriend', style: TextStyle(color: Colors.white)),
+                                  content: Text('Remove ${f['name'] ?? 'User'} from your friends?', style: const TextStyle(color: Colors.white70)),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Remove', style: TextStyle(color: ZynkColors.error)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                final success = await ApiService.removeFriend(f['user_id']);
+                                if (success) onBioUpdated(); // Trigger refresh
+                              }
+                            },
+                          ),
                         );
                       }),
                     ]

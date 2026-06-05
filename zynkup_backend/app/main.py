@@ -98,6 +98,8 @@ def repair_event_schema() -> None:
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS club_id INTEGER REFERENCES clubs(id)",
             "ALTER TABLE club_members ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'member'",
             "ALTER TABLE clubs ADD COLUMN IF NOT EXISTS gallery_files TEXT DEFAULT ''",
+            "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS attachment_url TEXT",
+            "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS attachment_type TEXT",
             """
             DO $$
             BEGIN
@@ -158,6 +160,8 @@ def repair_event_schema() -> None:
             "ALTER TABLE feed_posts ADD COLUMN report_count INTEGER DEFAULT 0 NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN club_id INTEGER",
             "ALTER TABLE club_members ADD COLUMN role VARCHAR DEFAULT 'member'",
+            "ALTER TABLE club_messages ADD COLUMN attachment_url TEXT",
+            "ALTER TABLE club_messages ADD COLUMN attachment_type TEXT",
         ]
         with engine.begin() as conn:
             for statement in statements:
