@@ -269,7 +269,18 @@ class ClubMessage(Base):
     content    = Column(Text, nullable=True) # made nullable for attachment only messages
     attachment_url = Column(Text, nullable=True)
     attachment_type = Column(String, nullable=True) # image, pdf, doc, sticker, gif
+    is_edited  = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
 
     club = relationship("Club")
     user = relationship("User")
+
+class UserHiddenMessage(Base):
+    __tablename__ = "user_hidden_messages"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    message_id = Column(Integer, ForeignKey("club_messages.id", ondelete="CASCADE"), nullable=False)
+    hidden_at  = Column(DateTime, server_default=func.now())
+

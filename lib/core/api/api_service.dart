@@ -1253,4 +1253,31 @@ class ApiService {
     final token = _token ?? "";
     return "$wsUrl/clubs/$clubId/chat/ws?token=$token";
   }
+
+  static Future<bool> editClubChatMessage(int clubId, int messageId, String newContent) async {
+    try {
+      await loadToken();
+      final res = await http.put(
+        Uri.parse("$baseUrl/clubs/$clubId/chat/$messageId"),
+        headers: await _headers,
+        body: jsonEncode({"content": newContent}),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> deleteClubChatMessage(int clubId, int messageId) async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("$baseUrl/clubs/$clubId/chat/$messageId"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 }
