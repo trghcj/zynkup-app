@@ -460,6 +460,13 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                   if (isEdited)
                                     Text('(Edited) ', style: TextStyle(color: isMe ? Colors.black45 : ZynkColors.darkMuted, fontSize: 10, fontStyle: FontStyle.italic)),
                                   Text(timeStr, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 10)),
+                                  if (isMe) ...[
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                      onTap: () => _showMessageOptions(msg),
+                                      child: const Icon(Icons.more_horiz, size: 14, color: Colors.black54),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ],
