@@ -231,7 +231,11 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     if (!isMe) return; // For now, only show options for own messages
     
     DateTime? dt;
-    try { dt = DateTime.parse(msg['created_at']); } catch(_) {} // Parse UTC
+    try { 
+      String dateStr = msg['created_at'];
+      if (!dateStr.endsWith('Z')) dateStr += 'Z';
+      dt = DateTime.parse(dateStr); 
+    } catch(_) {}
     final bool within5Mins = dt != null && DateTime.now().toUtc().difference(dt).inMinutes <= 5;
     final bool isDeleted = msg['is_deleted'] == true;
     
