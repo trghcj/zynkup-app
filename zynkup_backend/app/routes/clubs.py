@@ -683,7 +683,7 @@ async def delete_club_message(club_id: int, message_id: int, db: Session = Depen
     if msg.user_id == current_user.id and time_passed <= timedelta(minutes=5):
         # Delete for everyone
         msg.is_deleted = True
-        msg.content = None
+        msg.content = ""
         msg.attachment_url = None
         msg.attachment_type = None
         db.commit()
