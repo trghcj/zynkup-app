@@ -33,20 +33,23 @@ graph TD
 
 ## Screenshots
 
+### Discover Page
+![Discover](assets/screenshots/discover.jpeg)
+
+### Tickets Page
+![Tickets](assets/screenshots/tickets.jpeg)
+
+### Feed Page
+![Feed](assets/screenshots/feed.jpeg)
+
+### Notifications Page
+![Notifications](assets/screenshots/notification.jpeg)
+
 ### Login Screen
 ![Login Screen](assets/screenshots/login.jpeg)
 
-### Dashboard
-![Dashboard](assets/screenshots/dashboard.jpeg)
-
-### Events Page
-![Events Page](assets/screenshots/events.jpeg)
-
 ### Club Page
 ![Club Page](assets/screenshots/club.jpeg)
-
-### Profile Page
-![Profile Page](assets/screenshots/profile.jpeg)
 
 ## Setup Guide
 
