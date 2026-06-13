@@ -51,6 +51,9 @@ graph TD
 ### Club Page
 ![Club Page](assets/screenshots/club.jpeg)
 
+### Profile Page
+![Profile Page](assets/screenshots/profile.jpeg)
+
 ## Setup Guide
 
 ### 1️⃣ Clone the repository
