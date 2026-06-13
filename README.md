@@ -1,26 +1,54 @@
 # ZynkUp 🎯
 
+## Overview
 ZynkUp is a smart networking and event management platform built using Flutter (Web/Mobile) and a FastAPI backend. It helps users connect, interact, manage events, and build communities efficiently through a modern, scalable, and real-time system.
 
-## 😄 Features
+## Architecture
+
+```mermaid
+graph TD
+    A[Flutter App] -->|REST / WebSockets| B[FastAPI Backend]
+    B --> C[Firebase Auth]
+    B --> D[PostgreSQL/Firebase DB]
+    B --> E[Notification Services]
+```
+
+## Features
 - **🔐 Secure User Authentication** (JWT-based)
 - **🧭 Event Management:** Create, register, and manage campus events with QR passes.
 - **🤝 Campus Clubs:** Create clubs, join communities, and manage members with Role-based access (Admin/Member).
 - **💬 Real-Time Club Chat:** Instantly chat with club members using WebSockets, featuring dynamic role badges and avatars.
 - **🧑‍🤝‍🧑 Friend Connections:** Send, accept, and manage friend requests.
-- **🏆 Gamified XP System:** Earn XP by engaging with the platform (e.g., +40 XP for creating clubs, +5 XP for making friends).
+- **🏆 Gamified XP System:** Earn XP by engaging with the platform.
 - **🖼️ Cloud Media:** Seamless image uploads and hosting powered by Cloudinary.
 - **⚡ Fast & Scalable Backend:** Built on Python FastAPI with PostgreSQL (Supabase).
 - **🪶 Clean, Responsive Flutter UI:** Beautiful, animated, glassmorphism UI that works on Web, Android, and iOS.
 
-## 🛠️ Tech Stack
+## Tech Stack
 - **Frontend:** Flutter (Dart) - *Web & Mobile*
 - **Backend:** FastAPI (Python)
 - **Database:** PostgreSQL (Hosted on Supabase)
 - **Real-Time:** WebSockets (FastAPI)
 - **Storage:** Cloudinary API
 
-## 📦 Getting Started
+## Screenshots
+
+### Login Screen
+![Login Screen](assets/screenshots/login.png)
+
+### Dashboard
+![Dashboard](assets/screenshots/dashboard.png)
+
+### Events Page
+![Events Page](assets/screenshots/events.png)
+
+### Club Page
+![Club Page](assets/screenshots/club.png)
+
+### Profile Page
+![Profile Page](assets/screenshots/profile.png)
+
+## Setup Guide
 
 ### 1️⃣ Clone the repository
 ```bash
@@ -48,14 +76,7 @@ flutter pub get
 flutter run -d chrome
 ```
 
-## 🔗 API Configuration
-Make sure your Flutter app is pointing to your backend. By default, API calls are directed to:
-```
-http://127.0.0.1:8000
-```
-⚠️ *For real mobile devices or emulators, replace with your local IP (e.g., `http://192.168.x.x:8000`) or your live production URL.*
-
-## 📂 Project Structure
+## Folder Structure
 ```text
 zynkup/
 │
@@ -68,12 +89,7 @@ zynkup/
 └── .gitignore
 ```
 
-## 🚀 Deployment
-- **Frontend:** Hosted and automatically deployed via **Vercel** (`flutter build web`).
-- **Backend:** Hosted via **Render** web services.
-- **Database:** Hosted via **Supabase** (PostgreSQL).
-
-## 🧠 Future Improvements
+## Future Scope
 - [ ] 🔔 Push notifications
 - [ ] 🤖 AI-based networking recommendations
 - [ ] 📅 Advanced calendar integrations
