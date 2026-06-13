@@ -34,19 +34,19 @@ graph TD
 ## Screenshots
 
 ### Login Screen
-![Login Screen](assets/screenshots/login.png)
+![Login Screen](assets/screenshots/login.jpeg)
 
 ### Dashboard
-![Dashboard](assets/screenshots/dashboard.png)
+![Dashboard](assets/screenshots/dashboard.jpeg)
 
 ### Events Page
-![Events Page](assets/screenshots/events.png)
+![Events Page](assets/screenshots/events.jpeg)
 
 ### Club Page
-![Club Page](assets/screenshots/club.png)
+![Club Page](assets/screenshots/club.jpeg)
 
 ### Profile Page
-![Profile Page](assets/screenshots/profile.png)
+![Profile Page](assets/screenshots/profile.jpeg)
 
 ## Setup Guide
 
