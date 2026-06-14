@@ -11,6 +11,7 @@ import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -258,7 +259,7 @@ class _FeedTabState extends State<FeedTab> {
                           children: [
                             CircleAvatar(
                               radius: 16,
-                              backgroundImage: const NetworkImage('https://api.dicebear.com/7.x/avataaars/png?seed=You'),
+                              backgroundImage: const CachedNetworkImageProvider('https://api.dicebear.com/7.x/avataaars/png?seed=You'),
                               backgroundColor: ZynkColors.darkSurface2,
                             ),
                             const SizedBox(width: 12),
@@ -461,8 +462,7 @@ class FeedPostCard extends StatelessWidget {
           if (hasBanner)
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(ZynkRadius.lg - 1)),
-              child: Image.network(
-                bannerUrl,
+              child: CachedNetworkImage(imageUrl: bannerUrl,
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -488,7 +488,7 @@ class FeedPostCard extends StatelessWidget {
                   },
                   child: CircleAvatar(
                     radius: 18,
-                    backgroundImage: NetworkImage(avatarUrl),
+                    backgroundImage: CachedNetworkImageProvider(avatarUrl),
                     backgroundColor: ZynkColors.darkSurface2,
                   ),
                 ),
@@ -578,8 +578,7 @@ class FeedPostCard extends StatelessWidget {
                   ),
                 );
               },
-              child: Image.network(
-                imageUrl,
+              child: CachedNetworkImage(imageUrl: imageUrl,
                 height: 240,
                 width: double.infinity,
                 fit: BoxFit.cover,

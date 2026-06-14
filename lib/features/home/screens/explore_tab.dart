@@ -5,6 +5,7 @@ import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ExploreTab extends StatefulWidget {
   const ExploreTab({super.key});
@@ -337,12 +338,11 @@ class _EventCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                child: Image.network(
-                  event.imageUrls.first,
+                child: CachedNetworkImage(imageUrl: event.imageUrls.first,
                   height: 140,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _strip(cat),
+                  errorWidget: (_, __, ___) => _strip(cat),
                 ),
               )
             else

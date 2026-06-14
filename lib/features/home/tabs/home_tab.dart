@@ -8,6 +8,7 @@ import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
 import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -249,10 +250,9 @@ class _AvatarBubble extends StatelessWidget {
         color: ZynkColors.darkSurface2,
       ),
       child: ClipOval(
-        child: Image.network(
-          url,
+        child: CachedNetworkImage(imageUrl: url,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 16, color: ZynkColors.darkMuted),
+          errorWidget: (_, __, ___) => const Icon(Icons.person, size: 16, color: ZynkColors.darkMuted),
         ),
       ),
     );
@@ -486,7 +486,7 @@ class _ClubsSection extends StatelessWidget {
                           CircleAvatar(
                             radius: 32,
                             backgroundColor: ZynkColors.darkSurface2,
-                            backgroundImage: NetworkImage(displayImage),
+                            backgroundImage: CachedNetworkImageProvider(displayImage),
                           ),
                           const SizedBox(height: 12),
                           Padding(

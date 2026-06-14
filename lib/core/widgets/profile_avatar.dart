@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileAvatar extends StatelessWidget {
   final String? avatarUrl; // can be base64 data URL or https URL
@@ -65,17 +66,14 @@ class ProfileAvatar extends StatelessWidget {
     }
 
     // Regular HTTPS URL
-    return Image.network(
-      url,
+    return CachedNetworkImage(imageUrl: url,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) =>
+      errorWidget: (_, __, ___) =>
           const Icon(Icons.person_rounded, color: Colors.white, size: 22),
-      loadingBuilder: (_, child, progress) {
-        if (progress == null) return child;
-        return const Icon(Icons.person_rounded, color: Colors.white, size: 22);
-      },
+      placeholder: (_, __) =>
+          const Icon(Icons.person_rounded, color: Colors.white, size: 22),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EventCard extends StatelessWidget {
   final String title;
@@ -37,12 +38,11 @@ class EventCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                child: Image.network(
-                  imageUrl!,
+                child: CachedNetworkImage(imageUrl: imageUrl!,
                   height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                  errorWidget: (_, __, ___) => _imagePlaceholder(),
                 ),
               )
             else

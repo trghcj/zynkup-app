@@ -12,6 +12,7 @@ import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_gallery_screen.dart';
 import 'package:zynkup/features/events/screens/qr_scanner_screen.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
@@ -371,10 +372,10 @@ class _HeroImage extends StatelessWidget {
                 ),
               );
             },
-            child: Image.network(
-              image,
+            child: CachedNetworkImage(imageUrl: image,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              memCacheWidth: 800,
+              errorWidget: (_, __, ___) => Container(
                 decoration: BoxDecoration(
                   gradient: ZynkGradients.forCategory(event.category.name),
                 ),
@@ -483,14 +484,16 @@ class _ActionRow extends StatelessWidget {
       return Row(
         children: [
           Expanded(
+            flex: 3,
             child: ZynkButton(
               label: 'Scan Attendance',
               icon: Icons.qr_code_scanner_rounded,
               onTap: onScan,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
+            flex: 2,
             child: ZynkButton(
               label: 'Share',
               icon: Icons.ios_share_rounded,
@@ -505,6 +508,7 @@ class _ActionRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
+          flex: 3,
           child: ZynkButton(
             label: isGuest
                 ? 'Login to participate'
@@ -518,8 +522,9 @@ class _ActionRow extends StatelessWidget {
             onTap: onRegister,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
+          flex: 2,
           child: ZynkButton(
             label: 'Share',
             icon: Icons.ios_share_rounded,

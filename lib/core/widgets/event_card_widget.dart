@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EventCardWidget extends StatefulWidget {
   const EventCardWidget({
@@ -159,10 +160,9 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                                       color: ZynkColors.darkSurface2,
                                     ),
                                     child: ClipOval(
-                                      child: Image.network(
-                                        'https://api.dicebear.com/7.x/avataaars/png?seed=${widget.event.id}_$index',
+                                      child: CachedNetworkImage(imageUrl: 'https://api.dicebear.com/7.x/avataaars/png?seed=${widget.event.id}_$index',
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const Icon(
+                                        errorWidget: (_, __, ___) => const Icon(
                                           Icons.person,
                                           size: 14,
                                           color: ZynkColors.darkMuted,
@@ -236,12 +236,11 @@ class _Banner extends StatelessWidget {
         children: [
           Hero(
             tag: 'event_image_${event.id}',
-            child: Image.network(
-              image,
+            child: CachedNetworkImage(imageUrl: image,
               height: height,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
+              errorWidget: (_, __, ___) =>
                   _GradientBanner(event: event, height: height),
             ),
           ),

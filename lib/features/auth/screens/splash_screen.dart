@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _route() async {
-    await Future<void>.delayed(const Duration(milliseconds: 900));
+    // await Future<void>.delayed(const Duration(milliseconds: 900)); // Delay removed for instant startup
     await ApiService.loadToken();
     if (ApiService.hasToken) {
       await ApiService.getCurrentUser();
