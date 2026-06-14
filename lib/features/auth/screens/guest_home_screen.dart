@@ -113,7 +113,7 @@ class _Hero extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset('assets/logos/icon.jpg', height: 36, width: 36),
+                child: Image.asset('assets/logos/zynkup_logo.jpg', height: 36, width: 36),
               ),
               const SizedBox(width: 8),
               const Text(

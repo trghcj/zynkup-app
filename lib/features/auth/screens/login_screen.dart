@@ -156,7 +156,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset('assets/logos/icon.jpg', height: 56, width: 56),
+                child: Image.asset('assets/logos/zynkup_logo.jpg', height: 56, width: 56),
               ),
               const SizedBox(width: 12),
               const Text(

@@ -119192,7 +119192,7 @@ return A.r($async$ED,r)},
 a14(a){var s=null
 this.c.ac(t.J).f.cZ(A.hm(s,s,s,B.ak,s,B.q,s,A.a9(a,s,s,s,s,s,s,s,s),s,B.ap,s,s,s,s,s,s,s,s,s,s))},
 E(a){return A.jl(null,B.ay,A.rb(new A.aX9(this)),null,!1,null)},
-VV(a){var s=this,r=null,q=a?32:64,p=t.p,o=A.ba(A.b([A.f0(A.aB(12),A.b15("assets/logos/icon.jpg",r,56,56)),B.cj,B.ags],p),B.o,B.k,B.m,0,r),n=A.ch(r,a?40:80,r)
+VV(a){var s=this,r=null,q=a?32:64,p=t.p,o=A.ba(A.b([A.f0(A.aB(12),A.b15("assets/logos/zynkup_logo.jpg",r,56,56)),B.cj,B.ags],p),B.o,B.k,B.m,0,r),n=A.ch(r,a?40:80,r)
 o=A.b([o,n,A.a9("Your Campus,\nConnected.",r,r,r,r,A.bW(r,r,B.j,r,r,r,r,r,r,r,r,a?48:64,r,r,B.au,r,1.1,!0,r,-1.5,r,r,r,r,r,r),r,r,r),B.bl,B.aiw,B.oX,A.N0(A.b([s.CT("\ud83c\udf89","Campus Events"),s.CT("\ud83d\udc65","Student Communities"),s.CT("\ud83d\udcbc","Opportunities"),s.CT("\ud83e\udd1d","Networking")],p),12,12)],p)
 if(!a)B.b.I(o,A.b([B.fP,B.agV],p))
 return A.aq(r,A.b4(o,B.U,B.aM,B.m,0,B.t),B.i,r,r,r,r,r,r,new A.a2(q,48,q,48),r,r,r)},
@@ -119255,7 +119255,7 @@ o.CX()
 case 1:return A.q(q,r)}})
 return A.r($async$uz,r)},
 E(a){var s=null
-return A.jl(s,B.ay,A.e0(A.b4(A.b([A.f0(A.aB(24),A.b15("assets/logos/icon.jpg",s,100,100)),B.iu,B.ahG,B.b7,B.ahC],t.p),B.o,B.k,B.aa,0,B.t),s,s),s,!1,s)}}
+return A.jl(s,B.ay,A.e0(A.b4(A.b([A.f0(A.aB(24),A.b15("assets/logos/zynkup_logo.jpg",s,100,100)),B.iu,B.ahG,B.b7,B.ahC],t.p),B.o,B.k,B.aa,0,B.t),s,s),s,!1,s)}}
 A.aVh.prototype={
 $1(a){return B.jT},
 $S:114}

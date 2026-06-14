@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: Image.asset('assets/logos/icon.jpg', width: 100, height: 100),
+              child: Image.asset('assets/logos/zynkup_logo.jpg', width: 100, height: 100),
             ),
             const SizedBox(height: 14),
             const Text(
