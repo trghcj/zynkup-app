@@ -100,6 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     showModalBottomSheet(
       context: context,
       backgroundColor: ZynkColors.darkSurface,
+      constraints: const BoxConstraints(maxWidth: 400),
       builder: (ctx) {
         return SafeArea(
           child: Wrap(
@@ -305,7 +306,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ),
                               ),
                               // Avatar
-                              GestureDetector(
+                              InkWell(
+                                borderRadius: BorderRadius.circular(50),
                                 onTap: widget.userId == null ? _showAvatarOptions : null,
                                 child: Container(
                                   width: 100,
