@@ -309,28 +309,47 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               InkWell(
                                 borderRadius: BorderRadius.circular(50),
                                 onTap: widget.userId == null ? _showAvatarOptions : null,
-                                child: Container(
-                                  width: 100,
-                                  height: 100,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
-                                  child: ClipOval(
-                                    child: (user['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty)
-                                        ? CachedNetworkImage(
-                                            imageUrl: user['avatar_url'],
-                                            fit: BoxFit.cover,
-                                            width: 100,
-                                            height: 100,
-                                            memCacheWidth: 300,
-                                          )
-                                        : DiceBearAvatar(
-                                            seed: seed,
-                                            type: avatarType,
-                                            size: 100,
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white,
+                                      ),
+                                      child: ClipOval(
+                                        child: (user['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty)
+                                            ? CachedNetworkImage(
+                                                imageUrl: user['avatar_url'],
+                                                fit: BoxFit.cover,
+                                                width: 100,
+                                                height: 100,
+                                                memCacheWidth: 300,
+                                              )
+                                            : DiceBearAvatar(
+                                                seed: seed,
+                                                type: avatarType,
+                                                size: 100,
+                                              ),
+                                      ),
+                                    ),
+                                    if (widget.userId == null)
+                                      Positioned(
+                                        right: -4,
+                                        bottom: 12,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: ZynkColors.darkSurface,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: ZynkColors.gold, width: 1.5),
                                           ),
-                                  ),
+                                          child: const Icon(Icons.edit, size: 14, color: ZynkColors.gold),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                               // Level Badge

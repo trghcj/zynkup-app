@@ -128,29 +128,6 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 3,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: ZynkColors.gold,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'ZYNKUP',
-                style: TextStyle(
-                  color: ZynkColors.gold,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 3,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           const Text(
             'What is happening\naround you?',
             style: TextStyle(
