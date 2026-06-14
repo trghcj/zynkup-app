@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: zynkup-postgres
+    restart: always
+    env_file:
+      - .env.docker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./zynkup_backend
+      dockerfile: Dockerfile
+    container_name: zynkup-backend
+    restart: always
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount a local uploads directory into the container to persist images
+      - ./zynkup_backend/uploads:/app/uploads
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
