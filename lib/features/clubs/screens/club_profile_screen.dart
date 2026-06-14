@@ -615,7 +615,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                 ),
                                 if (_club == null || _currentUser == null || (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
                                   SizedBox(
-                                    width: 130,
+                                    width: 160,
                                     child: ZynkButton(
                                       height: 36,
                                       label: _isMember ? 'Joined' : 'Join',
