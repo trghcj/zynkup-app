@@ -152,7 +152,24 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset('assets/logos/logo_full.jpg', height: 40),
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset('assets/logos/zynkup_logo.jpg', height: 56, width: 56),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'ZynkUp',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: isMobile ? 40 : 80),
           Text(
             'Your Campus,\nConnected.',

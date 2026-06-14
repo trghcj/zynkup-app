@@ -39,8 +39,8 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset('assets/logos/icon.jpg', width: 72, height: 72),
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset('assets/logos/zynkup_logo.jpg', width: 100, height: 100),
             ),
             const SizedBox(height: 14),
             const Text(
