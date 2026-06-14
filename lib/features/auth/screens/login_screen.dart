@@ -155,8 +155,8 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
           Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset('assets/logos/icon.jpg', height: 40, width: 40),
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset('assets/logos/icon.jpg', height: 56, width: 56),
               ),
               const SizedBox(width: 12),
               const Text(
