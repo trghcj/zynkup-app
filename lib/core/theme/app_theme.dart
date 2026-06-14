@@ -31,12 +31,12 @@ class ZynkColors {
   static const terra3 = Color(0xFFE8875A);
 
   // ── Dark surfaces ─────────────────────────────────────────────────
-  static const darkBg = Color(0xFF050505);
-  static const darkSurface = Color(0xFF0F0F0F);
-  static const darkSurface2 = Color(0xFF161616);
+  static const darkBg = Color(0xFF0D1117);
+  static const darkSurface = Color(0xFF161B22);
+  static const darkSurface2 = Color(0xFF1C2128);
   static const darkBorder = Color(0xFF202020);
   static const darkText = offWhite;
-  static const darkMuted = Color(0xFFB3A68D);
+  static const darkMuted = Color(0xFF9CA3AF);
 
   // ── Light surfaces ────────────────────────────────────────────────
   static const lightBg = Color(0xFFFAF6F1);
@@ -97,7 +97,7 @@ class ZynkGradients {
 
   /// Subtle card surface gradient for premium feel
   static const cardSurface = LinearGradient(
-    colors: [Color(0xFF0D0D0D), Color(0xFF080808)],
+    colors: [Color(0xFF1C2128), Color(0xFF161B22)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
