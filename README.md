@@ -62,19 +62,16 @@ git clone https://github.com/trghcj/zynkup-app.git
 cd zynkup-app
 ```
 
-### 2️⃣ Setup Backend (FastAPI)
-Ensure you create a `.env` file in the `zynkup_backend` directory containing your `DATABASE_URL`, `JWT_SECRET`, and `CLOUDINARY` keys.
+### 2️⃣ Setup Backend & Database (Docker)
+Ensure Docker Desktop is installed and running on your machine.
+Rename `.env.example` to `.env.docker` and fill in any required keys (if not using defaults).
 
 ```bash
-cd zynkup_backend
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+# This will spin up the FastAPI Backend and PostgreSQL Database instantly
+docker-compose up -d --build
 ```
-*Backend will run locally at: `http://127.0.0.1:8000`*
-
+*Backend API will run locally at: `http://127.0.0.1:8000`*
+*Database runs on `localhost:5432`*
 ### 3️⃣ Run Flutter App
 ```bash
 cd ..
