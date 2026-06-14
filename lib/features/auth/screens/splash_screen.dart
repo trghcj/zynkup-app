@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
     // await Future<void>.delayed(const Duration(milliseconds: 900)); // Delay removed for instant startup
     await ApiService.loadToken();
     if (ApiService.hasToken) {
-      await ApiService.getCurrentUser();
+      // User is fetched in HomeScreen, no need to wait here!
     }
     if (!mounted) return;
     Navigator.pushReplacement(
