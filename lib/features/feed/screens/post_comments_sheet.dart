@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PostCommentsSheet extends StatefulWidget {
   final int postId;
@@ -183,7 +184,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                     },
                     child: CircleAvatar(
                       radius: 16,
-                      backgroundImage: NetworkImage(primaryAvatar),
+                      backgroundImage: CachedNetworkImageProvider(primaryAvatar),
                       backgroundColor: ZynkColors.darkSurface2,
                     ),
                   ),
@@ -287,7 +288,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                                     },
                                     child: CircleAvatar(
                                       radius: 16,
-                                      backgroundImage: NetworkImage(avatarUrl),
+                                      backgroundImage: CachedNetworkImageProvider(avatarUrl),
                                       backgroundColor: ZynkColors.darkSurface2,
                                     ),
                                   ),

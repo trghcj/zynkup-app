@@ -7,6 +7,7 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/home/screens/home_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EventGalleryScreen extends StatefulWidget {
   const EventGalleryScreen({
@@ -255,10 +256,9 @@ class _GalleryTile extends StatelessWidget {
         },
         child: ClipRRect(
           borderRadius: BorderRadius.circular(ZynkRadius.md),
-          child: Image.network(
-            url,
+          child: CachedNetworkImage(imageUrl: url,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorWidget: (_, __, ___) => Container(
               decoration: BoxDecoration(
                 gradient: ZynkGradients.cardSurface,
                 borderRadius: BorderRadius.circular(ZynkRadius.md),

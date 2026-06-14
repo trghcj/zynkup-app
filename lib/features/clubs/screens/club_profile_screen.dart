@@ -21,6 +21,7 @@ import 'package:zynkup/features/clubs/widgets/club_chat_widget.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ClubProfileScreen extends StatefulWidget {
   final String clubId;
@@ -521,8 +522,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         background: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.network(
-                              bannerImage,
+                            CachedNetworkImage(imageUrl: bannerImage,
                               fit: BoxFit.cover,
                             ),
                             Container(
@@ -575,7 +575,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                   ),
                                   child: CircleAvatar(
                                     radius: 32,
-                                    backgroundImage: NetworkImage(logoImage),
+                                    backgroundImage: CachedNetworkImageProvider(logoImage),
                                     backgroundColor: ZynkColors.darkSurface2,
                                   ),
                                 ),
@@ -885,7 +885,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       children: [
                         CircleAvatar(
                           radius: 16,
-                          backgroundImage: NetworkImage(_currentUser?['avatar_url'] ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=User'),
+                          backgroundImage: CachedNetworkImageProvider(_currentUser?['avatar_url'] ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=User'),
                         ),
                         const SizedBox(width: 12),
                         const Text('Share something with the club...', style: TextStyle(color: ZynkColors.darkMuted)),
@@ -1114,7 +1114,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     );
                   },
                   leading: CircleAvatar(
-                    backgroundImage: NetworkImage(avatarUrl),
+                    backgroundImage: CachedNetworkImageProvider(avatarUrl),
                     backgroundColor: ZynkColors.darkSurface2,
                   ),
                   title: Text(name, style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold)),
@@ -1220,10 +1220,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         },
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(ZynkRadius.md),
-                          child: Image.network(
-                            url,
+                          child: CachedNetworkImage(imageUrl: url,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Stack(
+                            errorWidget: (_, __, ___) => Stack(
                                   fit: StackFit.expand,
                                   children: [
                                     Container(
@@ -1447,8 +1446,7 @@ class _ClubEventCard extends StatelessWidget {
             if (image != null && image.isNotEmpty)
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(ZynkRadius.lg - 1)),
-                child: Image.network(
-                  image,
+                child: CachedNetworkImage(imageUrl: image,
                   height: 140,
                   width: double.infinity,
                   fit: BoxFit.cover,

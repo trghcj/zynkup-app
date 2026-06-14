@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class FullScreenImageViewer extends StatelessWidget {
   final String? imageUrl;
@@ -19,7 +20,7 @@ class FullScreenImageViewer extends StatelessWidget {
       body: Center(
         child: InteractiveViewer(
           child: imageUrl != null 
-              ? Image.network(imageUrl!) 
+              ? CachedNetworkImage(imageUrl: imageUrl!) 
               : Image.memory(imageBytes!),
         ),
       ),

@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart' as fp;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ClubChatWidget extends StatefulWidget {
   final int clubId;
@@ -20,6 +21,7 @@ class ClubChatWidget extends StatefulWidget {
 
 class _ClubChatWidgetState extends State<ClubChatWidget> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
   bool _loading = true;
   WebSocketChannel? _channel;
@@ -40,9 +42,10 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     final history = await ApiService.getClubChatHistory(widget.clubId);
     if (mounted) {
       setState(() {
-        _messages.addAll(history.cast<Map<String, dynamic>>());
+        _messages.addAll(history.cast<Map<String, dynamic>>().reversed.toList());
         if (_messages.isNotEmpty) {
-          _messages.insert(0, {'type': 'divider', 'text': 'Unread messages'});
+          _messages.add({'type': 'divider', 'text': 'Unread messages'});
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
         }
         _loading = false;
       });
@@ -58,7 +61,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
         setState(() {
           final data = jsonDecode(message);
           if (data['action'] == 'new') {
-            _messages.insert(0, data['message']);
+            _messages.add(data['message']);
+            _scrollToBottom();
           } else if (data['action'] == 'edit') {
             final idx = _messages.indexWhere((m) => m['id'] == data['message']['id']);
             if (idx != -1) {
@@ -75,7 +79,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
           } else {
             // legacy fallback
             if (!data.containsKey('action')) {
-              _messages.insert(0, data);
+              _messages.add(data);
+              _scrollToBottom();
             }
           }
         });
@@ -85,10 +90,26 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     });
   }
 
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     _channel?.sink.close();
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -175,7 +196,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                     Navigator.pop(ctx);
                     _sendSticker(predefinedStickers[index]);
                   },
-                  child: Image.network(predefinedStickers[index]),
+                  child: CachedNetworkImage(imageUrl: predefinedStickers[index]),
                 );
               },
             ),
@@ -334,7 +355,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
       children: [
         Expanded(
           child: ListView.builder(
-            reverse: true,
+            controller: _scrollController,
+            // reverse: true removed for normal scrolling
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             itemCount: _messages.length,
             itemBuilder: (context, index) {
@@ -381,7 +403,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(userId: msg['user_id'])));
                           }
                         },
-                        child: CircleAvatar(radius: 14, backgroundImage: NetworkImage(avatar)),
+                        child: CircleAvatar(radius: 14, backgroundImage: CachedNetworkImageProvider(avatar)),
                       ),
                       const SizedBox(width: 8),
                     ],
@@ -437,7 +459,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                       },
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(msg['attachment_url'], height: 150, fit: BoxFit.cover),
+                                        child: CachedNetworkImage(imageUrl: msg['attachment_url'], height: 150, fit: BoxFit.cover),
                                       ),
                                     )
                                  else
@@ -486,7 +508,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(userId: msg['user_id'])));
                           }
                         },
-                        child: CircleAvatar(radius: 14, backgroundImage: NetworkImage(avatar)),
+                        child: CircleAvatar(radius: 14, backgroundImage: CachedNetworkImageProvider(avatar)),
                       ),
                     ],
                   ],

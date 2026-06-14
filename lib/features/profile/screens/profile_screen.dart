@@ -1,5 +1,7 @@
 // lib/features/profile/screens/profile_screen.dart
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 
@@ -92,10 +94,64 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     });
   }
 
+  Future<void> _showAvatarOptions() async {
+    if (widget.userId != null) return; // Can't change someone else's avatar
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: ZynkColors.darkSurface,
+      builder: (ctx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: ZynkColors.gold),
+                title: const Text('Upload Photo', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndUploadAvatar();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.casino, color: ZynkColors.gold),
+                title: const Text('Random Cartoon Avatar', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _randomizeAvatar();
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    setState(() => _loading = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final url = await ApiService.uploadImageBytes(bytes, file.name);
+      if (url != null) {
+        await ApiService.updateProfile(avatarUrl: url);
+        await _load();
+      } else {
+        setState(() => _loading = false);
+      }
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
   Future<void> _randomizeAvatar() async {
+    setState(() => _loading = true);
     final newSeed = DateTime.now().millisecondsSinceEpoch.toString();
-    await ApiService.updateProfile(avatarSeed: newSeed);
-    _load();
+    await ApiService.updateProfile(avatarUrl: '', avatarSeed: newSeed);
+    await _load();
   }
 
   Widget _buildFriendActionButton(Map<String, dynamic> user) {
@@ -250,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               ),
                               // Avatar
                               GestureDetector(
-                                onTap: _randomizeAvatar,
+                                onTap: widget.userId == null ? _showAvatarOptions : null,
                                 child: Container(
                                   width: 100,
                                   height: 100,
@@ -259,11 +315,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                     color: Colors.white,
                                   ),
                                   child: ClipOval(
-                                    child: DiceBearAvatar(
-                                      seed: seed,
-                                      type: avatarType,
-                                      size: 100,
-                                    ),
+                                    child: (user['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty)
+                                        ? CachedNetworkImage(
+                                            imageUrl: user['avatar_url'],
+                                            fit: BoxFit.cover,
+                                            width: 100,
+                                            height: 100,
+                                            memCacheWidth: 300,
+                                          )
+                                        : DiceBearAvatar(
+                                            seed: seed,
+                                            type: avatarType,
+                                            size: 100,
+                                          ),
                                   ),
                                 ),
                               ),
@@ -713,7 +777,7 @@ class _OverviewTab extends StatelessWidget {
                       ...pending.map((r) {
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(backgroundImage: NetworkImage(r['sender_avatar'] ?? '')),
+                          leading: CircleAvatar(backgroundImage: CachedNetworkImageProvider(r['sender_avatar'] ?? '')),
                           title: Text(r['sender_name'] ?? 'User', style: const TextStyle(color: Colors.white)),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -753,7 +817,7 @@ class _OverviewTab extends StatelessWidget {
                               MaterialPageRoute(builder: (_) => ProfileScreen(userId: f['user_id'])),
                             );
                           },
-                          leading: CircleAvatar(backgroundImage: NetworkImage(f['avatar_url'] ?? '')),
+                          leading: CircleAvatar(backgroundImage: CachedNetworkImageProvider(f['avatar_url'] ?? '')),
                           title: Text(f['name'] ?? 'User', style: const TextStyle(color: Colors.white)),
                           trailing: IconButton(
                             icon: const Icon(Icons.person_remove, color: ZynkColors.error),
