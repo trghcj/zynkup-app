@@ -666,12 +666,16 @@ class _ZynkButtonState extends State<ZynkButton> with SingleTickerProviderStateM
         children: [
           Icon(widget.icon, size: 18, color: c),
           const SizedBox(width: 8),
-          Text(
-            widget.label,
-            style: TextStyle(
-              color: c,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
+          Flexible(
+            child: Text(
+              widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: c,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
           ),
         ],
@@ -679,6 +683,8 @@ class _ZynkButtonState extends State<ZynkButton> with SingleTickerProviderStateM
     }
     return Text(
       widget.label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 15),
     );
   }

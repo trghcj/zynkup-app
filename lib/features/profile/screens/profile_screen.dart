@@ -1,6 +1,6 @@
 // lib/features/profile/screens/profile_screen.dart
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart' as fp;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -129,13 +129,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
 
   Future<void> _pickAndUploadAvatar() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
-    if (file == null) return;
+    final result = await fp.FilePicker.pickFiles(type: fp.FileType.image, withData: true);
+    if (result == null || result.files.isEmpty) return;
 
     setState(() => _loading = true);
     try {
-      final bytes = await file.readAsBytes();
+      final file = result.files.first;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        setState(() => _loading = false);
+        return;
+      }
+      
       final url = await ApiService.uploadImageBytes(bytes, file.name);
       if (url != null) {
         await ApiService.updateProfile(avatarUrl: url);
