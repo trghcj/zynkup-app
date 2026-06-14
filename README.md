@@ -92,11 +92,6 @@ zynkup/
 └── .gitignore
 ```
 
-## Future Scope
-- [ ] 🔔 Push notifications
-- [ ] 🤖 AI-based networking recommendations
-- [ ] 📅 Advanced calendar integrations
-
 ## 🤝 Contributing
 Contributions are welcome! Feel free to fork this repo, create a feature branch, and submit a pull request.
 
