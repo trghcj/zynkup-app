@@ -56,8 +56,8 @@ flutter_launcher_icons:
   ios: true
   web:
     generate: true
-    image_path: "assets/logos/icon.jpg"
-  image_path: "assets/logos/icon.jpg"
+    image_path: "assets/logos/zynkup_logo.jpg"
+  image_path: "assets/logos/zynkup_logo.jpg"
 
 flutter:
   uses-material-design: true

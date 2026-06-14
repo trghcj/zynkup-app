@@ -189,7 +189,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: ZynkColors.darkBg,
       appBar: AppBar(
-        title: const Text('Zynkup'),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset('assets/logos/zynkup_logo.jpg', height: 28, width: 28),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'ZYNKUP',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
         actions: [
           Stack(
             alignment: Alignment.center,
