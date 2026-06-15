@@ -461,6 +461,7 @@ class FeedPostCard extends StatelessWidget {
           // Banner Attachment
           if (hasBanner)
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 Navigator.push(
                   context,

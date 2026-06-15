@@ -391,6 +391,36 @@ async def upload_gallery(
     }
 
 
+@router.delete("/{event_id}/gallery/{index}")
+def delete_gallery_file(
+    event_id: int,
+    index: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the event creator can delete gallery files")
+    
+    files = _parse_gallery(event.gallery_files)
+    if index < 0 or index >= len(files):
+        raise HTTPException(status_code=404, detail="File index out of range")
+        
+    del files[index]
+    
+    try:
+        event.gallery_files = _serialize_gallery(files)
+        db.commit()
+    except Exception as db_err:
+        db.rollback()
+        logger.error(f"GALLERY DB SAVE ERROR: {db_err}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save gallery: {str(db_err)}")
+        
+    return {"message": "File deleted successfully"}
+
+
 @router.get("/{event_id}/gallery")
 def get_gallery(event_id: int, db: Session = Depends(get_db)):
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
