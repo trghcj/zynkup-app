@@ -24,9 +24,22 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     try {
       final result = await ApiService.markAttendance(code);
       if (!mounted) return;
+      final studentName = result['student_name']?.toString() ?? 'Attendee';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result['message']?.toString() ?? 'Attendance marked'),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Marked Present:\n$studentName',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
         backgroundColor: ZynkColors.success,
+        duration: const Duration(seconds: 4),
       ));
     } on ApiException catch (e) {
       if (!mounted) return;
