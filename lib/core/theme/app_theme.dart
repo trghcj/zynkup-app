@@ -585,6 +585,7 @@ class _ZynkButtonState extends State<ZynkButton> with SingleTickerProviderStateM
               if (hovering) { _anim.forward(); } else { _anim.reverse(); }
             },
             style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               foregroundColor: c,
               side: BorderSide(color: c.withValues(alpha: 0.6), width: 1.5),
               shape: RoundedRectangleBorder(
@@ -638,6 +639,7 @@ class _ZynkButtonState extends State<ZynkButton> with SingleTickerProviderStateM
               if (hovering) { _anim.forward(); } else { _anim.reverse(); }
             },
             style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               foregroundColor: Colors.white,
@@ -666,16 +668,12 @@ class _ZynkButtonState extends State<ZynkButton> with SingleTickerProviderStateM
         children: [
           Icon(widget.icon, size: 18, color: c),
           const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              widget.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: c,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
+          Text(
+            widget.label,
+            style: TextStyle(
+              color: c,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
             ),
           ),
         ],
@@ -683,8 +681,6 @@ class _ZynkButtonState extends State<ZynkButton> with SingleTickerProviderStateM
     }
     return Text(
       widget.label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
       style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 15),
     );
   }

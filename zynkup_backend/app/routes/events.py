@@ -24,13 +24,16 @@ _NAME_SEP = "|||"
 UPLOAD_DIR = "uploads"
 MAX_GALLERY_FILES = 50
 MAX_EVENTS_PER_DAY = 5
-ALLOWED_MIME = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
-ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_MIME = {"image/jpeg", "image/jpg", "image/png", "image/webp", "video/mp4", "video/quicktime", "video/x-msvideo"}
+ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".avi"}
 EXT_MIME = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".png": "image/png",
     ".webp": "image/webp",
+    ".mp4": "video/mp4",
+    ".mov": "video/quicktime",
+    ".avi": "video/x-msvideo",
 }
 
 

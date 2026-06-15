@@ -460,12 +460,22 @@ class FeedPostCard extends StatelessWidget {
         children: [
           // Banner Attachment
           if (hasBanner)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(ZynkRadius.lg - 1)),
-              child: CachedNetworkImage(imageUrl: bannerUrl,
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FullScreenImageViewer(imageUrl: bannerUrl),
+                  ),
+                );
+              },
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ZynkRadius.lg - 1)),
+                child: CachedNetworkImage(imageUrl: bannerUrl,
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
 
