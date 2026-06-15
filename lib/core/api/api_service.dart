@@ -553,6 +553,19 @@ class ApiService {
     }
   }
 
+  static Future<bool> deleteEventGalleryFile(int eventId, int index) async {
+    try {
+      await loadToken();
+      final res = await http.delete(
+        Uri.parse("\$baseUrl/events/\$eventId/gallery/\$index"),
+        headers: await _headers,
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── Analytics (personal) ───────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>?> getPersonalAnalytics() async {
