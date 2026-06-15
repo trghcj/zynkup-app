@@ -101,10 +101,17 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
 
       if (!mounted) return;
       if (uploaded.isNotEmpty) {
-        _snack('Photos uploaded!');
+        bool hasVideo = names.any((n) => n.toLowerCase().endsWith('.mp4') || n.toLowerCase().endsWith('.mov') || n.toLowerCase().endsWith('.avi') || n.toLowerCase().endsWith('.mkv'));
+        if (hasVideo && names.length == 1) {
+          _snack('Video uploaded successfully!');
+        } else if (hasVideo && names.length > 1) {
+          _snack('Media uploaded successfully!');
+        } else {
+          _snack('Pictures uploaded successfully!');
+        }
         await _load();
       } else {
-        _snack('No photos were uploaded.', error: true);
+        _snack('No files were uploaded.', error: true);
       }
     } on ApiException catch (e) {
       if (!mounted) return;

@@ -48,7 +48,14 @@ class ApiService {
   }
 
   static Future<void> loadToken() async {
-    _token = await _storage.read(key: "token");
+    try {
+      _token = await _storage.read(key: "token");
+    } catch (e) {
+      try {
+        await _storage.deleteAll();
+      } catch (_) {}
+      _token = null;
+    }
   }
 
   /// Register FCM token with backend.
@@ -510,6 +517,10 @@ class ApiService {
         if (filename.endsWith('.png')) mime = 'image/png';
         if (filename.endsWith('.webp')) mime = 'image/webp';
         if (filename.endsWith('.pdf')) mime = 'application/pdf';
+        if (filename.endsWith('.mp4')) mime = 'video/mp4';
+        if (filename.endsWith('.mov')) mime = 'video/quicktime';
+        if (filename.endsWith('.avi')) mime = 'video/x-msvideo';
+        if (filename.endsWith('.mkv')) mime = 'video/x-matroska';
 
         req.files.add(
           http.MultipartFile.fromBytes(
@@ -557,7 +568,7 @@ class ApiService {
     try {
       await loadToken();
       final res = await http.delete(
-        Uri.parse("\$baseUrl/events/\$eventId/gallery/\$index"),
+        Uri.parse("$baseUrl/events/$eventId/gallery/$index"),
         headers: await _headers,
       );
       return res.statusCode == 200;
