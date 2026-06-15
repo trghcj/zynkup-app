@@ -8,8 +8,7 @@ import 'package:zynkup/features/home/screens/home_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
-class EventGalleryScreen extends StatefulWidget {
+import 'package:url_launcher/url_launcher.dart';class EventGalleryScreen extends StatefulWidget {
   const EventGalleryScreen({
     super.key,
     required this.event,
@@ -62,14 +61,15 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
     final mime = file['mime']?.toString();
     return (url != null && url.isNotEmpty) ||
         (data != null && data.isNotEmpty) ||
-        mime == 'application/pdf';
+        mime == 'application/pdf' ||
+        (mime != null && mime.startsWith('video/'));
   }
 
   Future<void> _upload() async {
     // FIX: on web, pickMultiImage works but we need to handle it gracefully
     List<XFile> images;
     try {
-      images = await _picker.pickMultiImage(imageQuality: 85);
+      images = await _picker.pickMultipleMedia(imageQuality: 85);
     } catch (e) {
       _snack(
         'Could not open image picker. Try a different browser.',
@@ -227,6 +227,29 @@ class _GalleryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mime = file['mime']?.toString() ?? '';
+
+    if (mime.startsWith('video/')) {
+      final url = file['url']?.toString();
+      return GestureDetector(
+        onTap: () {
+          if (url != null && url.isNotEmpty) {
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: ZynkGradients.cardSurface,
+            borderRadius: BorderRadius.circular(ZynkRadius.md),
+            border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.4)),
+          ),
+          child: const Icon(
+            Icons.play_circle_fill_rounded,
+            color: ZynkColors.gold,
+            size: 32,
+          ),
+        ),
+      );
+    }
 
     if (mime == 'application/pdf') {
       return Container(
