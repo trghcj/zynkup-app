@@ -17,6 +17,7 @@ class _MyEventsTabState extends State<MyEventsTab> {
   var _registered = <Event>[];
   bool _loading = true;
   int _segment = 0;
+  String _filter = 'All Events';
 
   @override
   void initState() {
@@ -45,7 +46,12 @@ class _MyEventsTabState extends State<MyEventsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final events = _segment == 0 ? _created : _registered;
+    final rawEvents = _segment == 0 ? _created : _registered;
+    final events = rawEvents.where((event) {
+      if (_filter == 'All Events') return true;
+      return event.category.name.toLowerCase() == _filter.toLowerCase();
+    }).toList();
+    
     return SafeArea(
       child: RefreshIndicator(
         color: ZynkColors.gold,
@@ -76,6 +82,41 @@ class _MyEventsTabState extends State<MyEventsTab> {
                       selected: {_segment},
                       onSelectionChanged: (value) =>
                           setState(() => _segment = value.first),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: ZynkColors.darkSurface,
+                            borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                            border: Border.all(color: ZynkColors.darkBorder),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _filter,
+                              dropdownColor: ZynkColors.darkSurface,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.gold, size: 18),
+                              style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                              items: ['All Events', 'Tech', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _filter = newValue;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
