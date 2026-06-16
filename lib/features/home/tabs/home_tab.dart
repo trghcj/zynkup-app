@@ -24,6 +24,7 @@ class _HomeTabState extends State<HomeTab> {
   int _eventsThisWeek = 0;
   List<String> _activeAvatars = [];
   List<dynamic> _clubs = [];
+  String _filter = 'All Events';
 
   @override
   void initState() {
@@ -58,10 +59,15 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final upcoming = _events
+    final filteredEvents = _events.where((event) {
+      if (_filter == 'All Events') return true;
+      return event.category.name.toLowerCase() == _filter.toLowerCase();
+    }).toList();
+
+    final upcoming = filteredEvents
         .where((event) => event.date.isAfter(DateTime.now()))
         .toList();
-    final trending = [..._events]
+    final trending = [...filteredEvents]
       ..sort((a, b) => b.attendeeCount.compareTo(a.attendeeCount));
 
     return SafeArea(
@@ -76,6 +82,45 @@ class _HomeTabState extends State<HomeTab> {
                   activeStudents: _activeStudents,
                   eventsThisWeek: _eventsThisWeek,
                   activeAvatars: _activeAvatars,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: ZynkColors.darkSurface,
+                          borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                          border: Border.all(color: ZynkColors.darkBorder),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _filter,
+                            dropdownColor: ZynkColors.darkSurface,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.gold, size: 18),
+                            style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                            items: ['All Events', 'Tech', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  _filter = newValue;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               if (_loading)
@@ -93,7 +138,7 @@ class _HomeTabState extends State<HomeTab> {
                 ),
                 _Section(
                   title: 'Featured Events',
-                  events: _events.take(3).toList(),
+                  events: filteredEvents.take(3).toList(),
                 ),
                 _Section(
                   title: 'Upcoming Events',
@@ -244,19 +289,6 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (events.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-          child: Text(
-            'Be the first to host something.',
-            style: TextStyle(
-              color: ZynkColors.darkMuted.withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-      );
-    }
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,41 +322,52 @@ class _Section extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(
-            height: 280,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: events.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
-              itemBuilder: (context, index) => TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 350 + (index * 80)),
-                tween: Tween(begin: 0.0, end: 1.0),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return Transform.translate(
-                    offset: Offset(0, 16 * (1.0 - value)),
-                    child: Opacity(
-                      opacity: value,
-                      child: child,
-                    ),
-                  );
-                },
-                child: SizedBox(
-                  width: 270,
-                  child: EventCardWidget(
-                    event: events[index],
-                    onTap: () => showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => EventDetailsScreen(event: events[index]),
+          if (events.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+              child: Text(
+                'No events found.',
+                style: TextStyle(
+                  color: ZynkColors.darkMuted.withValues(alpha: 0.6),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 280,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: events.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, index) => TweenAnimationBuilder<double>(
+                  duration: Duration(milliseconds: 350 + (index * 80)),
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 16 * (1.0 - value)),
+                      child: Opacity(
+                        opacity: value,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: SizedBox(
+                    width: 270,
+                    child: EventCardWidget(
+                      event: events[index],
+                      onTap: () => showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => EventDetailsScreen(event: events[index]),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

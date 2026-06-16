@@ -24,6 +24,7 @@ class _FeedTabState extends State<FeedTab> {
   bool _loading = true;
   List<dynamic> _posts = [];
   int? _currentUserId;
+  String _filter = 'All Posts';
 
   @override
   void initState() {
@@ -210,6 +211,14 @@ class _FeedTabState extends State<FeedTab> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredPosts = _posts.where((post) {
+      if (_filter == 'All Posts') return true;
+      if (_filter == 'Clubs Only') return post['club_id'] != null;
+      if (_filter == 'Media Only') return (post['image_url'] != null && post['image_url'].toString().isNotEmpty) || (post['banner_url'] != null && post['banner_url'].toString().isNotEmpty);
+      if (_filter == 'Text Only') return (post['image_url'] == null || post['image_url'].toString().isEmpty) && (post['banner_url'] == null || post['banner_url'].toString().isEmpty);
+      return true;
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -283,6 +292,45 @@ class _FeedTabState extends State<FeedTab> {
                     ),
                   ),
                 ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: ZynkColors.darkSurface,
+                            borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                            border: Border.all(color: ZynkColors.darkBorder),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _filter,
+                              dropdownColor: ZynkColors.darkSurface,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.gold, size: 18),
+                              style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                              items: ['All Posts', 'Clubs Only', 'Media Only', 'Text Only'].map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _filter = newValue;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 if (_loading)
                   const SliverToBoxAdapter(
                     child: Padding(
@@ -292,7 +340,7 @@ class _FeedTabState extends State<FeedTab> {
                       ),
                     ),
                   )
-                else if (_posts.isEmpty)
+                else if (filteredPosts.isEmpty)
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 60),
@@ -308,7 +356,7 @@ class _FeedTabState extends State<FeedTab> {
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final post = _posts[index] as Map<String, dynamic>;
+                        final post = filteredPosts[index] as Map<String, dynamic>;
                         return FeedPostCard(
                           post: post,
                           onLike: () async {
@@ -379,7 +427,7 @@ class _FeedTabState extends State<FeedTab> {
                           },
                         );
                       },
-                      childCount: _posts.length,
+                      childCount: filteredPosts.length,
                     ),
                   ),
                 const SliverToBoxAdapter(child: SizedBox(height: 110)),
