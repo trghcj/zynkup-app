@@ -36,6 +36,7 @@ class ZynkBottomNav extends StatelessWidget {
   String _getShowcaseDescription(int index) {
     switch (index) {
       case 0: return 'See posts from campus and interact with them.';
+      case 1: return 'Discover upcoming events and new clubs.';
       case 2: return 'Host events, create clubs, or share a post from here.';
       case 3: return 'View your registered events and tickets.';
       case 4: return 'Manage your profile, badges, and avatar.';
@@ -77,6 +78,7 @@ class ZynkBottomNav extends StatelessWidget {
                   return Expanded(
                     child: Showcase(
                       key: _getShowcaseKey(index),
+                      title: _items[index].$2,
                       description: _getShowcaseDescription(index),
                       child: GestureDetector(
                         onTap: () => onChanged(index),
@@ -98,16 +100,20 @@ class ZynkBottomNav extends StatelessWidget {
                             children: [
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 220),
-                                decoration: isCreate && selected
+                                decoration: isCreate
                                     ? BoxDecoration(
-                                        color: ZynkColors.primary,
+                                        color: selected
+                                            ? ZynkColors.primary
+                                            : Colors.white.withValues(alpha: 0.15),
                                         shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: ZynkColors.primary.withValues(alpha: 0.3),
-                                            blurRadius: 12,
-                                          ),
-                                        ],
+                                        boxShadow: selected
+                                            ? [
+                                                BoxShadow(
+                                                  color: ZynkColors.primary.withValues(alpha: 0.3),
+                                                  blurRadius: 12,
+                                                ),
+                                              ]
+                                            : null,
                                       )
                                     : null,
                                 padding: isCreate
@@ -115,9 +121,11 @@ class ZynkBottomNav extends StatelessWidget {
                                     : EdgeInsets.zero,
                                 child: Icon(
                                   item.$1,
-                                  color: selected
-                                      ? (isCreate ? Colors.white : ZynkColors.gold)
-                                      : ZynkColors.darkMuted.withValues(alpha: 0.6),
+                                  color: isCreate
+                                      ? Colors.white
+                                      : (selected
+                                          ? ZynkColors.gold
+                                          : ZynkColors.darkMuted.withValues(alpha: 0.6)),
                                   size: isCreate ? 26 : 22,
                                 ),
                               ),
