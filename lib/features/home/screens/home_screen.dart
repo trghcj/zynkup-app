@@ -80,20 +80,23 @@ class _HomeScreenInnerState extends State<_HomeScreenInner> {
 
   Future<void> _checkFirstLaunch() async {
     final prefs = await SharedPreferences.getInstance();
-    final hasSeenTutorial = prefs.getBool('has_seen_tutorial_v2') ?? false;
+    final hasSeenTutorial = prefs.getBool('has_seen_tutorial_v3') ?? false;
     
     if (!hasSeenTutorial && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // ignore: deprecated_member_use
-        ShowCaseWidget.of(context).startShowCase([
-          ShowcaseKeys.homeTab,
-          ShowcaseKeys.discoverTab,
-          ShowcaseKeys.createFab,
-          ShowcaseKeys.ticketsTab,
-          ShowcaseKeys.profileTab,
-        ]);
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (!mounted) return;
+          // ignore: deprecated_member_use
+          ShowCaseWidget.of(context).startShowCase([
+            ShowcaseKeys.homeTab,
+            ShowcaseKeys.discoverTab,
+            ShowcaseKeys.createFab,
+            ShowcaseKeys.ticketsTab,
+            ShowcaseKeys.profileTab,
+          ]);
+        });
       });
-      await prefs.setBool('has_seen_tutorial_v2', true);
+      await prefs.setBool('has_seen_tutorial_v3', true);
     }
   }
 
@@ -101,7 +104,7 @@ class _HomeScreenInnerState extends State<_HomeScreenInner> {
     if (key == ShowcaseKeys.profileTab) {
       setState(() => _index = 4);
       // Wait for tab to build
-      Future.delayed(const Duration(milliseconds: 300), () {
+      Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) {
           // ignore: deprecated_member_use
           ShowCaseWidget.of(context).startShowCase([

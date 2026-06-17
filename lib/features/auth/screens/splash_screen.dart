@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _route() async {
-    // await Future<void>.delayed(const Duration(milliseconds: 900)); // Delay removed for instant startup
+    await Future<void>.delayed(const Duration(milliseconds: 1500)); // Added delay for splash screen pause
     await ApiService.loadToken();
     if (ApiService.hasToken) {
       // User is fetched in HomeScreen, no need to wait here!

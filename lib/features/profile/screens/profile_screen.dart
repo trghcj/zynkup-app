@@ -313,10 +313,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ),
                               ),
                               // Avatar
-                              Showcase(
-                                key: ShowcaseKeys.profileAvatar,
-                                description: 'Upload a custom photo or use unlocked avatar tiers here.',
-                                child: InkWell(
+                                Showcase(
+                                  key: ShowcaseKeys.profileAvatar,
+                                  title: 'Your Avatar',
+                                  description: 'Upload a custom photo or use unlocked avatar tiers here.',
+                                  child: InkWell(
                                   borderRadius: BorderRadius.circular(50),
                                   onTap: widget.userId == null ? _showAvatarOptions : null,
                                   child: Stack(
@@ -546,16 +547,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 const Tab(text: 'Overview'),
                 Showcase(
                   key: ShowcaseKeys.profileTimeline,
+                  title: 'Your Timeline',
                   description: 'Track your recent activities across the campus.',
                   child: const Tab(text: 'Timeline'),
                 ),
                 Showcase(
                   key: ShowcaseKeys.profileEvents,
+                  title: 'Your Events',
                   description: 'Find all events you have hosted or joined.',
                   child: const Tab(text: 'Events'),
                 ),
                 Showcase(
                   key: ShowcaseKeys.profileBadges,
+                  title: 'Your Badges',
                   description: 'View the badges and achievements you\'ve unlocked.',
                   child: const Tab(text: 'Badges'),
                 ),
@@ -731,6 +735,7 @@ class _OverviewTab extends StatelessWidget {
         children: [
           Showcase(
             key: ShowcaseKeys.profileBio,
+            title: 'Your Bio',
             description: 'Write anything into your bio to introduce yourself.',
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
