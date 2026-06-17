@@ -12,6 +12,8 @@ import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:zynkup/core/utils/showcase_keys.dart';
 class ProfileScreen extends StatefulWidget {
   final int? userId;
   const ProfileScreen({super.key, this.userId});
@@ -311,12 +313,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ),
                               ),
                               // Avatar
-                              InkWell(
-                                borderRadius: BorderRadius.circular(50),
-                                onTap: widget.userId == null ? _showAvatarOptions : null,
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
+                              Showcase(
+                                key: ShowcaseKeys.profileAvatar,
+                                description: 'Upload a custom photo or use unlocked avatar tiers here.',
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(50),
+                                  onTap: widget.userId == null ? _showAvatarOptions : null,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
                                     Container(
                                       width: 100,
                                       height: 100,
@@ -357,6 +362,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   ],
                                 ),
                               ),
+                              ), // Closing Showcase
                               // Level Badge
                               Positioned(
                                 bottom: 0,
@@ -536,11 +542,23 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
               dividerColor: Colors.transparent,
               onTap: (index) => setState(() {}),
-              tabs: const [
-                Tab(text: 'Overview'),
-                Tab(text: 'Timeline'),
-                Tab(text: 'Events'),
-                Tab(text: 'Badges'),
+              tabs: [
+                const Tab(text: 'Overview'),
+                Showcase(
+                  key: ShowcaseKeys.profileTimeline,
+                  description: 'Track your recent activities across the campus.',
+                  child: const Tab(text: 'Timeline'),
+                ),
+                Showcase(
+                  key: ShowcaseKeys.profileEvents,
+                  description: 'Find all events you have hosted or joined.',
+                  child: const Tab(text: 'Events'),
+                ),
+                Showcase(
+                  key: ShowcaseKeys.profileBadges,
+                  description: 'View the badges and achievements you\'ve unlocked.',
+                  child: const Tab(text: 'Badges'),
+                ),
               ],
             ),
           ),
@@ -711,21 +729,25 @@ class _OverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Bio',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              if (isMe)
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 16, color: ZynkColors.gold),
-                  onPressed: () => _editBio(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+          Showcase(
+            key: ShowcaseKeys.profileBio,
+            description: 'Write anything into your bio to introduce yourself.',
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Bio',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
-            ],
+                if (isMe)
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 16, color: ZynkColors.gold),
+                    onPressed: () => _editBio(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1058,7 +1080,7 @@ class _BadgeIcon extends StatelessWidget {
   }
 }
 
-class _EventsTab extends StatelessWidget {
+class _EventsTab extends StatefulWidget {
   const _EventsTab({
     required this.createdEvents,
     required this.joinedEvents,
@@ -1070,12 +1092,26 @@ class _EventsTab extends StatelessWidget {
   final Future<void> Function() onRefresh;
 
   @override
+  State<_EventsTab> createState() => _EventsTabState();
+}
+
+class _EventsTabState extends State<_EventsTab> {
+  String _selectedFilter = 'All';
+
+  @override
   Widget build(BuildContext context) {
-    final allEvents = [
-      ...createdEvents.map((event) => (event: event, label: 'Created')),
-      ...joinedEvents.map((event) => (event: event, label: 'Joined')),
+    var allEvents = [
+      ...widget.createdEvents.map((event) => (event: event, label: 'Created')),
+      ...widget.joinedEvents.map((event) => (event: event, label: 'Joined')),
     ];
-    if (allEvents.isEmpty) {
+
+    if (_selectedFilter == 'Created') {
+      allEvents = allEvents.where((e) => e.label == 'Created').toList();
+    } else if (_selectedFilter == 'Joined') {
+      allEvents = allEvents.where((e) => e.label == 'Joined').toList();
+    }
+
+    if (widget.createdEvents.isEmpty && widget.joinedEvents.isEmpty) {
       return const _EmptyState(
         icon: Icons.event_busy_rounded,
         title: 'No events yet',
@@ -1085,71 +1121,118 @@ class _EventsTab extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 920
-              ? 3
-              : constraints.maxWidth >= 620
-                  ? 2
-                  : 1;
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: allEvents.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: columns == 1 ? 1.35 : 0.92,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'My Events',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: ZynkColors.darkSurface,
+                  borderRadius: BorderRadius.circular(ZynkRadius.md),
+                  border: Border.all(color: ZynkColors.darkBorder),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedFilter,
+                    dropdownColor: ZynkColors.darkSurface,
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.darkMuted),
+                    style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.bold),
+                    items: const [
+                      DropdownMenuItem(value: 'All', child: Text('All')),
+                      DropdownMenuItem(value: 'Created', child: Text('Created')),
+                      DropdownMenuItem(value: 'Joined', child: Text('Joined')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedFilter = val);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (allEvents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 32),
+              child: Center(
+                child: Text('No events found for this filter.', style: TextStyle(color: ZynkColors.darkMuted)),
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 920
+                    ? 3
+                    : constraints.maxWidth >= 620
+                        ? 2
+                        : 1;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: allEvents.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: columns == 1 ? 1.35 : 0.92,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = allEvents[index];
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: EventCardWidget(
+                            event: item.event,
+                            onTap: () async {
+                              await showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (_) => EventDetailsScreen(event: item.event),
+                              );
+                              await widget.onRefresh();
+                            },
+                          ),
+                        ),
+                        Positioned(
+                          right: 12,
+                          top: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ZynkColors.deepOlive.withValues(alpha: 0.82),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: ZynkColors.sand.withValues(alpha: 0.28),
+                              ),
+                            ),
+                            child: Text(
+                              item.label,
+                              style: const TextStyle(
+                                color: ZynkColors.offWhite,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
             ),
-            itemBuilder: (context, index) {
-              final item = allEvents[index];
-              return Stack(
-                children: [
-                  Positioned.fill(
-                    child: EventCardWidget(
-                      event: item.event,
-                      onTap: () async {
-                        await showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (_) => EventDetailsScreen(event: item.event),
-                        );
-                        await onRefresh();
-                      },
-                    ),
-                  ),
-                  Positioned(
-                    right: 12,
-                    top: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ZynkColors.deepOlive.withValues(alpha: 0.82),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: ZynkColors.sand.withValues(alpha: 0.28),
-                        ),
-                      ),
-                      child: Text(
-                        item.label,
-                        style: const TextStyle(
-                          color: ZynkColors.offWhite,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+        ],
       ),
     );
   }

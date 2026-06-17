@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 
 import 'features/auth/screens/splash_screen.dart';
 import 'firebase_options.dart';
+import 'services/push_notification_service.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint(
@@ -24,22 +25,7 @@ Future<void> main() async {
     );
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    final messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    // Register FCM Token
-    final token = await messaging.getToken();
-    if (token != null) {
-       ApiService.registerFcmToken(token);
-    }
-    messaging.onTokenRefresh.listen((newToken) {
-       ApiService.registerFcmToken(newToken);
-    });
-
+    await PushNotificationService.initialize();
   } catch (error) {
     debugPrint('Firebase init skipped: $error');
   }
