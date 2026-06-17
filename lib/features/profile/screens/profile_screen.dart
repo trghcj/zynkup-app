@@ -357,7 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   ],
                                 ),
                               ),
-                              ), // Closing Showcase
+                              // Closing Showcase
                               // Level Badge
                               Positioned(
                                 bottom: 0,
