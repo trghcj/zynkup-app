@@ -12,6 +12,8 @@ import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:showcaseview/showcaseview.dart';
+import 'package:zynkup/core/utils/showcase_keys.dart';
 class ProfileScreen extends StatefulWidget {
   final int? userId;
   const ProfileScreen({super.key, this.userId});
@@ -311,12 +313,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ),
                               ),
                               // Avatar
-                              InkWell(
-                                borderRadius: BorderRadius.circular(50),
-                                onTap: widget.userId == null ? _showAvatarOptions : null,
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
+                              Showcase(
+                                key: ShowcaseKeys.profileAvatar,
+                                description: 'Upload a custom photo or use unlocked avatar tiers here.',
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(50),
+                                  onTap: widget.userId == null ? _showAvatarOptions : null,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
                                     Container(
                                       width: 100,
                                       height: 100,
@@ -357,7 +362,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   ],
                                 ),
                               ),
-                              // Closing Showcase
+                              ), // Closing Showcase
                               // Level Badge
                               Positioned(
                                 bottom: 0,
@@ -537,11 +542,23 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
               dividerColor: Colors.transparent,
               onTap: (index) => setState(() {}),
-              tabs: const [
-                Tab(text: 'Overview'),
-                Tab(text: 'Timeline'),
-                Tab(text: 'Events'),
-                Tab(text: 'Badges'),
+              tabs: [
+                const Tab(text: 'Overview'),
+                Showcase(
+                  key: ShowcaseKeys.profileTimeline,
+                  description: 'Track your recent activities across the campus.',
+                  child: const Tab(text: 'Timeline'),
+                ),
+                Showcase(
+                  key: ShowcaseKeys.profileEvents,
+                  description: 'Find all events you have hosted or joined.',
+                  child: const Tab(text: 'Events'),
+                ),
+                Showcase(
+                  key: ShowcaseKeys.profileBadges,
+                  description: 'View the badges and achievements you\'ve unlocked.',
+                  child: const Tab(text: 'Badges'),
+                ),
               ],
             ),
           ),
@@ -712,21 +729,25 @@ class _OverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Bio',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              if (isMe)
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 16, color: ZynkColors.gold),
-                  onPressed: () => _editBio(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+          Showcase(
+            key: ShowcaseKeys.profileBio,
+            description: 'Write anything into your bio to introduce yourself.',
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Bio',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
-            ],
+                if (isMe)
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 16, color: ZynkColors.gold),
+                    onPressed: () => _editBio(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           Text(
