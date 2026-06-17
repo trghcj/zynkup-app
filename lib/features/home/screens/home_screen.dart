@@ -14,14 +14,38 @@ import 'package:zynkup/features/feed/screens/feed_tab.dart';
 import 'package:zynkup/features/notifications/screens/notification_center_screen.dart';
 import 'dart:async';
 
-class HomeScreen extends StatefulWidget {
+import 'package:showcaseview/showcaseview.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zynkup/core/utils/showcase_keys.dart';
+
+final GlobalKey<_HomeScreenInnerState> _homeScreenInnerKey = GlobalKey<_HomeScreenInnerState>();
+
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    // We ignore the deprecation warning for now since ShowCaseWidget is the currently supported 5.1 widget wrapper.
+    // ignore: deprecated_member_use
+    return ShowCaseWidget(
+      onComplete: (index, key) {
+        if (key == ShowcaseKeys.profileTab) {
+          _homeScreenInnerKey.currentState?._onShowcaseComplete(index, key);
+        }
+      },
+      builder: (context) => _HomeScreenInner(key: _homeScreenInnerKey),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenInner extends StatefulWidget {
+  const _HomeScreenInner({super.key});
+
+  @override
+  State<_HomeScreenInner> createState() => _HomeScreenInnerState();
+}
+
+class _HomeScreenInnerState extends State<_HomeScreenInner> {
   int _index = 0;
   int _unreadCount = 0;
   Map<String, dynamic>? _user;
@@ -48,6 +72,48 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     setState(() => _user = user);
     await _fetchUnread();
+    
+    if (user != null) {
+      _checkFirstLaunch();
+    }
+  }
+
+  Future<void> _checkFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenTutorial = prefs.getBool('has_seen_tutorial_v2') ?? false;
+    
+    if (!hasSeenTutorial && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // ignore: deprecated_member_use
+        ShowCaseWidget.of(context).startShowCase([
+          ShowcaseKeys.homeTab,
+          ShowcaseKeys.discoverTab,
+          ShowcaseKeys.createFab,
+          ShowcaseKeys.ticketsTab,
+          ShowcaseKeys.profileTab,
+        ]);
+      });
+      await prefs.setBool('has_seen_tutorial_v2', true);
+    }
+  }
+
+  void _onShowcaseComplete(int? index, GlobalKey key) {
+    if (key == ShowcaseKeys.profileTab) {
+      setState(() => _index = 4);
+      // Wait for tab to build
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          // ignore: deprecated_member_use
+          ShowCaseWidget.of(context).startShowCase([
+            ShowcaseKeys.profileAvatar,
+            ShowcaseKeys.profileBio,
+            ShowcaseKeys.profileTimeline,
+            ShowcaseKeys.profileEvents,
+            ShowcaseKeys.profileBadges,
+          ]);
+        }
+      });
+    }
   }
 
   Future<void> _fetchUnread() async {
