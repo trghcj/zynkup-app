@@ -7,6 +7,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import models
@@ -155,7 +156,7 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
         # Find or create user
         user = db.query(models.User).filter(
             (models.User.google_id == google_id) |
-            (models.User.email == email)
+            (func.lower(models.User.email) == email.lower())
         ).first()
 
         if user:
