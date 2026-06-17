@@ -12,8 +12,7 @@ import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
-import 'package:showcaseview/showcaseview.dart';
-import 'package:zynkup/core/utils/showcase_keys.dart';
+
 class ProfileScreen extends StatefulWidget {
   final int? userId;
   const ProfileScreen({super.key, this.userId});
@@ -313,16 +312,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ),
                               ),
                               // Avatar
-                                Showcase(
-                                  key: ShowcaseKeys.profileAvatar,
-                                  title: 'Your Avatar',
-                                  description: 'Upload a custom photo or use unlocked avatar tiers here.',
-                                  child: InkWell(
-                                  borderRadius: BorderRadius.circular(50),
-                                  onTap: widget.userId == null ? _showAvatarOptions : null,
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
+                              InkWell(
+                                borderRadius: BorderRadius.circular(50),
+                                onTap: widget.userId == null ? _showAvatarOptions : null,
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
                                     Container(
                                       width: 100,
                                       height: 100,
@@ -363,7 +358,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   ],
                                 ),
                               ),
-                              ), // Closing Showcase
                               // Level Badge
                               Positioned(
                                 bottom: 0,
@@ -545,24 +539,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               onTap: (index) => setState(() {}),
               tabs: [
                 const Tab(text: 'Overview'),
-                Showcase(
-                  key: ShowcaseKeys.profileTimeline,
-                  title: 'Your Timeline',
-                  description: 'Track your recent activities across the campus.',
-                  child: const Tab(text: 'Timeline'),
-                ),
-                Showcase(
-                  key: ShowcaseKeys.profileEvents,
-                  title: 'Your Events',
-                  description: 'Find all events you have hosted or joined.',
-                  child: const Tab(text: 'Events'),
-                ),
-                Showcase(
-                  key: ShowcaseKeys.profileBadges,
-                  title: 'Your Badges',
-                  description: 'View the badges and achievements you\'ve unlocked.',
-                  child: const Tab(text: 'Badges'),
-                ),
+                const Tab(text: 'Timeline'),
+                const Tab(text: 'Events'),
+                const Tab(text: 'Badges'),
               ],
             ),
           ),
@@ -733,11 +712,7 @@ class _OverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Showcase(
-            key: ShowcaseKeys.profileBio,
-            title: 'Your Bio',
-            description: 'Write anything into your bio to introduce yourself.',
-            child: Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
@@ -753,7 +728,6 @@ class _OverviewTab extends StatelessWidget {
                   ),
               ],
             ),
-          ),
           const SizedBox(height: 8),
           Text(
             user['bio']?.isNotEmpty == true ? user['bio'] : 'No bio set yet.',
@@ -785,7 +759,7 @@ class _OverviewTab extends StatelessWidget {
                     },
                   ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 30),
           const Text(
             'Activity Heatmap',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
