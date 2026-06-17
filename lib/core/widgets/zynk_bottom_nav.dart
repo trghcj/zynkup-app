@@ -25,10 +25,11 @@ class ZynkBottomNav extends StatelessWidget {
   GlobalKey _getShowcaseKey(int index) {
     switch (index) {
       case 0: return ShowcaseKeys.homeTab;
+      case 1: return ShowcaseKeys.discoverTab;
       case 2: return ShowcaseKeys.createFab;
       case 3: return ShowcaseKeys.ticketsTab;
       case 4: return ShowcaseKeys.profileTab;
-      default: return GlobalKey(); // Discover doesn't have a specific key for now
+      default: return GlobalKey();
     }
   }
 

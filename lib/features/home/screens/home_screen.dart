@@ -87,6 +87,7 @@ class _HomeScreenInnerState extends State<_HomeScreenInner> {
         // ignore: deprecated_member_use
         ShowCaseWidget.of(context).startShowCase([
           ShowcaseKeys.homeTab,
+          ShowcaseKeys.discoverTab,
           ShowcaseKeys.createFab,
           ShowcaseKeys.ticketsTab,
           ShowcaseKeys.profileTab,
