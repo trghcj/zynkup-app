@@ -59,90 +59,125 @@ class AvatarGalleryScreen extends StatelessWidget {
           const SizedBox(height: 32),
           ..._categories.map((cat) {
             final locked = currentLevel < cat.$1;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: ZynkColors.darkSurface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: locked ? Colors.white10 : ZynkColors.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Stack(
-                    children: [
-                      ClipOval(
-                        child: ColorFiltered(
-                          colorFilter: locked
-                              ? const ColorFilter.matrix([
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0,      0,      0,      1, 0,
-                                ])
-                              : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
-                          child: DiceBearAvatar(
-                            seed: 'gallery-${cat.$3}',
-                            type: cat.$3,
-                            size: 80,
-                          ),
-                        ),
+            return GestureDetector(
+              onTap: locked ? null : () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: ZynkColors.darkSurface,
+                    title: const Text('Set Avatar', style: TextStyle(color: Colors.white)),
+                    content: Text('Use the ${cat.$2} style for your profile?', style: const TextStyle(color: Colors.white70)),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
                       ),
-                      if (locked)
-                        const Positioned.fill(
-                          child: Center(
-                            child: Icon(Icons.lock_rounded, color: Colors.white70, size: 30),
-                          ),
-                        ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Confirm', style: TextStyle(color: ZynkColors.gold)),
+                      ),
                     ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                );
+
+                if (confirm == true && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Updating avatar...')),
+                  );
+                  final success = await ApiService.updateProfile(avatarType: cat.$3, avatarUrl: '');
+                  if (success && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Avatar updated successfully!')),
+                    );
+                    Navigator.pop(context, true); // Pop back to profile to refresh
+                  }
+                }
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: ZynkColors.darkSurface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: locked ? Colors.white10 : ZynkColors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Stack(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              cat.$2,
-                              style: TextStyle(
-                                color: locked ? Colors.white30 : Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        ClipOval(
+                          child: ColorFiltered(
+                            colorFilter: locked
+                                ? const ColorFilter.matrix([
+                                    0.2126, 0.7152, 0.0722, 0, 0,
+                                    0.2126, 0.7152, 0.0722, 0, 0,
+                                    0.2126, 0.7152, 0.0722, 0, 0,
+                                    0,      0,      0,      1, 0,
+                                  ])
+                                : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                            child: DiceBearAvatar(
+                              seed: 'gallery-${cat.$3}',
+                              type: cat.$3,
+                              size: 80,
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: locked ? Colors.white10 : ZynkColors.primary.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Lvl ${cat.$1}',
-                                style: TextStyle(
-                                  color: locked ? Colors.white24 : ZynkColors.primary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          cat.$4,
-                          style: TextStyle(
-                            color: locked ? Colors.white12 : ZynkColors.darkMuted,
-                            fontSize: 12,
                           ),
                         ),
+                        if (locked)
+                          const Positioned.fill(
+                            child: Center(
+                              child: Icon(Icons.lock_rounded, color: Colors.white70, size: 30),
+                            ),
+                          ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                cat.$2,
+                                style: TextStyle(
+                                  color: locked ? Colors.white30 : Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: locked ? Colors.white10 : ZynkColors.primary.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Lvl ${cat.$1}',
+                                  style: TextStyle(
+                                    color: locked ? Colors.white24 : ZynkColors.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            cat.$4,
+                            style: TextStyle(
+                              color: locked ? Colors.white12 : ZynkColors.darkMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }),
