@@ -21,10 +21,49 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
   static const _webClientId =
       '659234851207-o80f3633j9f09j79d0ml7376o7v4iv58.apps.googleusercontent.com';
 
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isSignUp = false;
+
   // --- LOCAL COLORS FOR REDESIGN ---
   static const Color _bgColor = Color(0xFF0D1117);
   static const Color _cardColor = Color(0xFF161B22);
   static const Color _textSecondary = Color(0xFF9CA3AF);
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _emailAuth() async {
+    if (_loading) return;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
+      _show('Please enter both email and password.');
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      if (_isSignUp) {
+        await ApiService.signUp(email, password);
+      } else {
+        await ApiService.login(email, password);
+      }
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (_) => false,
+      );
+    } catch (e) {
+      _show(e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   Future<void> _googleLogin() async {
     // Prevent duplicate popup if already loading
@@ -294,8 +333,81 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 40),
+                        TextField(
+                          controller: _emailController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Email address',
+                            hintStyle: const TextStyle(color: _textSecondary),
+                            filled: true,
+                            fillColor: Colors.black.withValues(alpha: 0.2),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Password',
+                            hintStyle: const TextStyle(color: _textSecondary),
+                            filled: true,
+                            fillColor: Colors.black.withValues(alpha: 0.2),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: _emailAuth,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ZynkColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: _loading
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text(
+                                  _isSignUp ? 'Sign Up' : 'Sign In',
+                                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () => setState(() => _isSignUp = !_isSignUp),
+                          child: Text(
+                            _isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up',
+                            style: const TextStyle(color: ZynkColors.primary),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('OR', style: TextStyle(color: _textSecondary)),
+                            ),
+                            Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.1))),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
                         _buildGoogleButton(),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 32),
                         _buildBenefitRow('✔', 'Discover Events'),
                         const SizedBox(height: 16),
                         _buildBenefitRow('✔', 'Join Student Communities'),

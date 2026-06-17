@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class ShowcaseKeys {
   // Navigation
   static final GlobalKey homeTab = GlobalKey();
+  static final GlobalKey discoverTab = GlobalKey();
   static final GlobalKey ticketsTab = GlobalKey();
   static final GlobalKey profileTab = GlobalKey();
   
@@ -18,6 +19,7 @@ class ShowcaseKeys {
 
   static List<GlobalKey> get allKeys => [
         homeTab,
+        discoverTab,
         ticketsTab,
         profileTab,
         createFab,
