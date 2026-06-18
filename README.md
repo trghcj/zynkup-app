@@ -1,58 +1,50 @@
 # ZynkUp 🎯
 
 ## Overview
-ZynkUp is a smart networking and event management platform built using Flutter (Web/Mobile) and a FastAPI backend. It helps users connect, interact, manage events, and build communities efficiently through a modern, scalable, and real-time system.
+ZynkUp is a smart networking and event management platform built using Flutter. It helps users connect, interact, manage events, and build communities efficiently through a modern, scalable, and real-time serverless architecture powered by Supabase.
 
 ## Architecture
 
 ```mermaid
 graph TD
-    A[Flutter App] -->|REST / WebSockets| B[FastAPI Backend]
-    B --> C[Firebase Auth]
-    B --> D[PostgreSQL/Firebase DB]
-    B --> E[Notification Services]
+    A[Flutter App iOS/Android/Web] -->|Realtime / REST| B[Supabase Backend-as-a-Service]
+    B --> C[PostgreSQL Database]
+    B --> D[Supabase Auth]
+    B --> E[Supabase Storage]
+    B --> F[Supabase Edge Functions]
+    F -->|Webhook Triggers| G[Firebase Cloud Messaging]
+    G -->|Push Notifications| A
 ```
 
 ## Features
-- **🔐 Secure User Authentication** (JWT-based)
-- **🧭 Event Management:** Create, register, and manage campus events with QR passes.
+- **🔐 Secure User Authentication:** Seamless login and session management natively handled by Supabase Auth.
+- **🧭 Event Management:** Create, register, and manage campus events with QR passes and dynamic ticketing.
 - **🤝 Campus Clubs:** Create clubs, join communities, and manage members with Role-based access (Admin/Member).
-- **💬 Real-Time Club Chat:** Instantly chat with club members using WebSockets, featuring dynamic role badges and avatars.
+- **💬 Real-Time Interactions:** Instantly chat and see live updates (like/follower counts) powered by Supabase Realtime WebSockets.
+- **🔔 Automated Push Notifications:** Supabase Database Webhooks instantly trigger Deno Edge Functions to fire targeted push notifications to users via Firebase Cloud Messaging.
 - **🧑‍🤝‍🧑 Friend Connections:** Send, accept, and manage friend requests.
-- **🏆 Gamified XP System:** Earn XP by engaging with the platform.
-- **🖼️ Cloud Media:** Seamless image uploads and hosting powered by Cloudinary.
-- **⚡ Fast & Scalable Backend:** Built on Python FastAPI with PostgreSQL (Supabase).
-- **🪶 Clean, Responsive Flutter UI:** Beautiful, animated, glassmorphism UI that works on Web, Android, and iOS.
+- **🏆 Gamified XP System:** Earn XP and level up by engaging with the platform.
+- **🖼️ Cloud Media:** Seamless image uploads and hosting natively integrated with Supabase Storage buckets.
+- **🪶 Premium Responsive UI:** Beautiful, animated, glassmorphism UI tailored for both Android and Web.
 
 ## Tech Stack
-- **Frontend:** Flutter (Dart) - *Web & Mobile*
-- **Backend:** FastAPI (Python)
-- **Database:** PostgreSQL (Hosted on Supabase)
-- **Real-Time:** WebSockets (FastAPI)
-- **Storage:** Cloudinary API
+- **Frontend:** Flutter (Dart)
+- **Backend & Database:** Supabase (PostgreSQL)
+- **Authentication:** Supabase Auth
+- **Real-Time Data:** Supabase Realtime
+- **Serverless Automation:** Supabase Edge Functions (Deno/TypeScript)
+- **Push Notifications:** Firebase Cloud Messaging (FCM v1 API)
 
 ## Screenshots
 
-### Discover Page
-![Discover](assets/screenshots/discover.jpeg)
-
-### Tickets Page
-![Tickets](assets/screenshots/tickets.jpeg)
-
-### Feed Page
-![Feed](assets/screenshots/feed.jpeg)
-
-### Notifications Page
-![Notifications](assets/screenshots/notification.jpeg)
-
-### Login Screen
-![Login Screen](assets/screenshots/login.jpeg)
-
-### Club Page
-![Club Page](assets/screenshots/club.jpeg)
-
-### Profile Page
-![Profile Page](assets/screenshots/profile.jpeg)
+<p align="center">
+  <img src="assets/screenshots/discover.jpeg" width="200" alt="Discover">
+  <img src="assets/screenshots/tickets.jpeg" width="200" alt="Tickets">
+  <img src="assets/screenshots/feed.jpeg" width="200" alt="Feed">
+  <img src="assets/screenshots/notification.jpeg" width="200" alt="Notifications">
+  <img src="assets/screenshots/login.jpeg" width="200" alt="Login">
+  <img src="assets/screenshots/profile.jpeg" width="200" alt="Profile">
+</p>
 
 ## Setup Guide
 
@@ -62,40 +54,36 @@ git clone https://github.com/trghcj/zynkup-app.git
 cd zynkup-app
 ```
 
-### 2️⃣ Setup Backend & Database (Docker)
-Ensure Docker Desktop is installed and running on your machine.
-Rename `.env.example` to `.env.docker` and fill in any required keys (if not using defaults).
-
-```bash
-# This will spin up the FastAPI Backend and PostgreSQL Database instantly
-docker-compose up -d --build
+### 2️⃣ Environment Configuration
+Create a `.env` file in the root of the project and add your Supabase connection strings:
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
-*Backend API will run locally at: `http://127.0.0.1:8000`*
-*Database runs on `localhost:5432`*
-### 3️⃣ Run Flutter App
+
+### 3️⃣ Firebase Setup (Push Notifications)
+Add your `google-services.json` file (downloaded from the Firebase Console) into the `android/app/` directory to enable Cloud Messaging.
+
+### 4️⃣ Run Flutter App
 ```bash
-cd ..
 flutter pub get
-flutter run -d chrome
+flutter run
 ```
 
 ## Folder Structure
 ```text
-zynkup/
+zynkup-app/
 │
-├── lib/                 # Flutter frontend source code
-├── zynkup_backend/      # FastAPI backend source code
-│   ├── app/             # Routers, models, and websocket logic
-│   └── requirements.txt 
+├── lib/                 # Core Flutter frontend source code
+│   ├── core/            # App routing, themes, and shared logic
+│   ├── features/        # Feature-based modules (home, profile, auth, etc.)
+│   └── main.dart        # Application entry point
 │
-├── README.md
-└── .gitignore
+├── assets/              # Local images, icons, and fonts
+├── android/             # Android native code & Firebase config
+├── .env                 # Environment variables (Supabase Keys)
+└── README.md
 ```
-
-## Future Scope
-- [ ] 🔔 Push notifications
-- [ ] 🤖 AI-based networking recommendations
-- [ ] 📅 Advanced calendar integrations
 
 ## 🤝 Contributing
 Contributions are welcome! Feel free to fork this repo, create a feature branch, and submit a pull request.
