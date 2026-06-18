@@ -29,7 +29,7 @@ graph TD
 
 ## Tech Stack
 - **Frontend:** Flutter (Dart)
-- **Backend & Database:** Supabase (PostgreSQL)
+- **Backend & Database:** Fastapi & Supabase (PostgreSQL)
 - **Authentication:** Firebase Auth
 - **Real-Time Data:** Supabase Realtime
 - **Serverless Automation:** Supabase Edge Functions (Deno/TypeScript)
