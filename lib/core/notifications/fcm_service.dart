@@ -21,6 +21,9 @@ class FCMService {
     /// Example:
     /// POST /users/save-token
 
+    /// 📢 SUBSCRIBE TO GLOBAL TOPIC (For collective notifications to everyone)
+    await _messaging.subscribeToTopic('all_users');
+
     /// 🔔 FOREGROUND
     FirebaseMessaging.onMessage.listen((message) {
       debugPrint("Foreground: ${message.notification?.title}");
