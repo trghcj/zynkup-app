@@ -1,23 +1,23 @@
 # ZynkUp 🎯
 
 ## Overview
-ZynkUp is a smart networking and event management platform built using Flutter. It helps users connect, interact, manage events, and build communities efficiently through a modern, scalable, and real-time serverless architecture powered by Supabase.
+ZynkUp is a smart networking and event management platform built using Flutter. It helps users connect, interact, manage events, and build communities efficiently through a modern, scalable, and real-time serverless architecture powered by Supabase and Firebase.
 
 ## Architecture
 
 ```mermaid
 graph TD
-    A[Flutter App iOS/Android/Web] -->|Realtime / REST| B[Supabase Backend-as-a-Service]
-    B --> C[PostgreSQL Database]
-    B --> D[Supabase Auth]
-    B --> E[Supabase Storage]
-    B --> F[Supabase Edge Functions]
-    F -->|Webhook Triggers| G[Firebase Cloud Messaging]
-    G -->|Push Notifications| A
+    A[Flutter App iOS/Android/Web] -->|Authentication| B[Firebase Auth]
+    A -->|Push Notifications| C[Firebase Cloud Messaging]
+    A -->|Realtime / REST| D[Supabase Backend-as-a-Service]
+    D --> E[PostgreSQL Database]
+    D --> F[Supabase Storage]
+    D --> G[Supabase Edge Functions]
+    G -->|Webhook Triggers| C
 ```
 
 ## Features
-- **🔐 Secure User Authentication:** Seamless login and session management natively handled by Supabase Auth.
+- **🔐 Secure User Authentication:** Seamless login and session management natively handled by Firebase Auth.
 - **🧭 Event Management:** Create, register, and manage campus events with QR passes and dynamic ticketing.
 - **🤝 Campus Clubs:** Create clubs, join communities, and manage members with Role-based access (Admin/Member).
 - **💬 Real-Time Interactions:** Instantly chat and see live updates (like/follower counts) powered by Supabase Realtime WebSockets.
@@ -30,7 +30,7 @@ graph TD
 ## Tech Stack
 - **Frontend:** Flutter (Dart)
 - **Backend & Database:** Supabase (PostgreSQL)
-- **Authentication:** Supabase Auth
+- **Authentication:** Firebase Auth
 - **Real-Time Data:** Supabase Realtime
 - **Serverless Automation:** Supabase Edge Functions (Deno/TypeScript)
 - **Push Notifications:** Firebase Cloud Messaging (FCM v1 API)
@@ -61,8 +61,8 @@ SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 3️⃣ Firebase Setup (Push Notifications)
-Add your `google-services.json` file (downloaded from the Firebase Console) into the `android/app/` directory to enable Cloud Messaging.
+### 3️⃣ Firebase Setup (Auth & Push Notifications)
+Add your `google-services.json` file (downloaded from the Firebase Console) into the `android/app/` directory to enable Authentication and Cloud Messaging.
 
 ### 4️⃣ Run Flutter App
 ```bash
