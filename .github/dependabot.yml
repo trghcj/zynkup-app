@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Maintain dependencies for Flutter/Dart frontend
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Maintain dependencies for Firebase Cloud Functions (Node.js)
+  - package-ecosystem: "npm"
+    directory: "/functions"
+    schedule:
+      interval: "weekly"
+
+  # Maintain dependencies for the Python Backend API
+  - package-ecosystem: "pip"
+    directory: "/zynkup_backend"
+    schedule:
+      interval: "weekly"
+
+  # Maintain dependencies for GitHub Actions workflows (like CodeQL)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
