@@ -717,16 +717,17 @@ async def upload_club_chat_attachment(
 
     ext = ""
     if file.filename:
-        ext = os.path.splitext(file.filename)[1]
+        safe_filename = os.path.basename(file.filename)
+        ext = os.path.splitext(safe_filename)[1].lower()
     
     filename = f"chat_{club_id}_{uuid.uuid4().hex}{ext}"
     file_path = Path(UPLOAD_DIR) / filename
     
     # Determine type
     attachment_type = "doc"
-    if ext.lower() in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+    if ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
         attachment_type = "image"
-    elif ext.lower() == ".pdf":
+    elif ext == ".pdf":
         attachment_type = "pdf"
         
     with open(file_path, "wb") as f:
