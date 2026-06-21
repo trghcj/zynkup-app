@@ -719,9 +719,16 @@ async def upload_club_chat_attachment(
     if file.filename:
         safe_filename = os.path.basename(file.filename)
         ext = os.path.splitext(safe_filename)[1].lower()
+        
+    # Sanitize extension to prevent any possibility of path traversal via ext
+    ext = "".join(c for c in ext if c.isalnum() or c == ".")
     
     filename = f"chat_{club_id}_{uuid.uuid4().hex}{ext}"
     file_path = Path(UPLOAD_DIR) / filename
+    
+    # Enforce that the file path stays within UPLOAD_DIR
+    if not file_path.resolve().is_relative_to(Path(UPLOAD_DIR).resolve()):
+        raise HTTPException(status_code=400, detail="Invalid file path")
     
     # Determine type
     attachment_type = "doc"

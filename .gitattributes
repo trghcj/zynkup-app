@@ -1,0 +1,4 @@
+build/web/** linguist-generated=true
+build/** linguist-generated=true
+*.js linguist-generated=true
+*.dart.js linguist-generated=true
