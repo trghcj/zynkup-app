@@ -726,7 +726,9 @@ async def upload_club_chat_attachment(
         }
         ext = ALLOWED_EXTS.get(raw_ext, ".bin")
     
-    filename = f"chat_{club_id}_{uuid.uuid4().hex}{ext}"
+    # Remove club_id from filename to completely eliminate any user input from the path.
+    # The UUID is sufficiently unique on its own.
+    filename = f"chat_{uuid.uuid4().hex}{ext}"
     file_path = os.path.join(UPLOAD_DIR, filename)
     
     # Enforce that the file path stays within UPLOAD_DIR (CodeQL standard check)
