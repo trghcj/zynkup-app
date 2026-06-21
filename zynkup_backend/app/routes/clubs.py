@@ -717,11 +717,23 @@ async def upload_club_chat_attachment(
 
     ext = ""
     if file.filename:
-        safe_filename = os.path.basename(file.filename)
-        ext = os.path.splitext(safe_filename)[1].lower()
+        raw_ext = os.path.splitext(file.filename)[1].lower()
+        # Use a strict mapping to break data flow from user input to file path
+        ALLOWED_EXTS = {
+            ".jpg": ".jpg", ".jpeg": ".jpeg", ".png": ".png", 
+            ".webp": ".webp", ".gif": ".gif", ".pdf": ".pdf", 
+            ".doc": ".doc", ".docx": ".docx", ".txt": ".txt"
+        }
+        ext = ALLOWED_EXTS.get(raw_ext, ".bin")
     
-    filename = f"chat_{club_id}_{uuid.uuid4().hex}{ext}"
-    file_path = Path(UPLOAD_DIR) / filename
+    # Remove club_id from filename to completely eliminate any user input from the path.
+    # The UUID is sufficiently unique on its own.
+    filename = f"chat_{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    
+    # Enforce that the file path stays within UPLOAD_DIR (CodeQL standard check)
+    if not os.path.abspath(file_path).startswith(os.path.abspath(UPLOAD_DIR)):
+        raise HTTPException(status_code=400, detail="Invalid file path")
     
     # Determine type
     attachment_type = "doc"
