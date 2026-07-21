@@ -410,24 +410,14 @@ class _FeedTabState extends State<FeedTab> {
                             }
                             final postId = post['id'] as int?;
                             if (postId != null) {
-                              setState(() {
-                                final reactions = Map<String, dynamic>.from(post['reactions'] as Map<String, dynamic>? ?? {});
-                                final count = reactions[emoji] as int? ?? 0;
-                                reactions[emoji] = count + 1;
-                                post['reactions'] = reactions;
-                              });
                               final success = await ApiService.reactToFeedPost(postId, emoji);
-                              if (!success && mounted) {
-                                setState(() {
-                                  final reactions = Map<String, dynamic>.from(post['reactions'] as Map<String, dynamic>? ?? {});
-                                  final count = reactions[emoji] as int? ?? 1;
-                                  if (count > 1) {
-                                    reactions[emoji] = count - 1;
-                                  } else {
-                                    reactions.remove(emoji);
-                                  }
-                                  post['reactions'] = reactions;
-                                });
+                              if (success && mounted) {
+                                final data = await ApiService.getFeed();
+                                if (mounted) {
+                                  setState(() {
+                                    _posts = data;
+                                  });
+                                }
                               }
                             }
                           },

@@ -334,7 +334,7 @@ class _Section extends StatelessWidget {
             )
           else
             SizedBox(
-              height: 280,
+              height: 310,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
