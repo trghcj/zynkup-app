@@ -500,8 +500,11 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         child: Scaffold(
           backgroundColor: ZynkColors.darkBg,
-          body: ZynkBackground(
-            child: _loading
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: ZynkBackground(
+                child: _loading
                 ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
                 : NestedScrollView(
                 headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -679,6 +682,8 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     _buildMembersTab(),
                     _buildGalleryTab(),
                   ],
+                ),
+                  ),
                 ),
               ),
             ),
