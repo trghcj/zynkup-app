@@ -1,7 +1,20 @@
 # ZynkUp 🎯
 
-## Overview
-ZynkUp is a smart networking and event management platform built using Flutter. It helps users connect, interact, manage events, and build communities efficiently through a modern, scalable, and real-time serverless architecture powered by Supabase and Firebase.
+<p align="center">
+  <a href="release/Zynkup.apk"><img src="https://img.shields.io/badge/-%E2%AC%87%20DOWNLOAD%20APK-4CAF50?style=for-the-badge" alt="Download APK"></a>
+  <img src="https://img.shields.io/badge/VERSION-1.4.3-0088cc?style=for-the-badge" alt="Version 1.4.3">
+  <img src="https://img.shields.io/badge/PLATFORM-ANDROID-4CAF50?style=for-the-badge" alt="Platform Android">
+  <img src="https://img.shields.io/badge/BUILT%20WITH-FLUTTER-02569B?style=for-the-badge" alt="Built with Flutter">
+</p>
+
+---
+
+> 📌 **Note:** Enable *Install from Unknown Sources* in Android settings before installing the APK.
+
+---
+
+ZynkUp is a smart networking and event management platform built using **Flutter** and a **FastAPI backend**.
+It helps users connect, interact, and manage events efficiently through a modern and scalable system.
 
 ## Architecture
 
