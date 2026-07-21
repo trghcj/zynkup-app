@@ -93,7 +93,7 @@ To drastically reduce the APK size by creating separate APKs for each CPU archit
 ```bash
 ./build_split_apk.sh
 ```
-The compressed APKs will be output to `build/app/outputs/flutter-apk/`.
+The compressed APKs will be output to `build/app/outputs/apk/release/`.
 
 ## Folder Structure
 ```text

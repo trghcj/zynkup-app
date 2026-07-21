@@ -33,7 +33,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   late Event _event;
   bool _loading = true;
   bool _registering = false;
-  bool _deleting = false;
   // FIX: persist QR across _load() calls — never overwrite with null
   String? _qrCode;
   bool _isCreator = false;
@@ -147,10 +146,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     );
     if (confirmed != true) return;
 
-    setState(() => _deleting = true);
     final deleted = await ApiService.deleteEvent(int.parse(_event.id));
     if (!mounted) return;
-    setState(() => _deleting = false);
     if (deleted) {
       _snack('Event deleted.');
       Navigator.pop(context, true);
@@ -240,6 +237,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         ],
                       ),
                     ],
+                  ],
                   flexibleSpace: FlexibleSpaceBar(
                     background: _HeroImage(event: _event),
                   ),
@@ -350,7 +348,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ),
                           ),
                         ),
-                        ],
                       ],
                     ),
                   ),
