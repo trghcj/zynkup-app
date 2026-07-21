@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -31,6 +32,15 @@ Future<void> main() async {
   }
 
   runApp(const ZynkupApp());
+}
+
+class CustomScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+      };
 }
 
 class ZynkupApp extends StatefulWidget {
@@ -71,6 +81,7 @@ class _ZynkupAppState extends State<ZynkupApp> {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.dark,
+      scrollBehavior: CustomScrollBehavior(),
       home: const SplashScreen(),
     );
   }
