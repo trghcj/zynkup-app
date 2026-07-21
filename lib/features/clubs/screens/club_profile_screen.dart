@@ -974,15 +974,26 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       onReact: (emoji) async {
                         final postId = post['id'] as int?;
                         if (postId != null) {
-                          final success = await ApiService.reactToFeedPost(postId, emoji);
-                          if (success && mounted) {
-                            final data = await ApiService.getClubFeed(int.parse(widget.clubId));
-                            if (mounted) {
-                              setState(() {
-                                _clubFeed = data;
-                              });
+                          final currentReaction = post['user_reaction'] as String?;
+                          final reactions = Map<String, dynamic>.from(post['reactions'] as Map<String, dynamic>? ?? {});
+                          
+                          setState(() {
+                            if (currentReaction == emoji) {
+                              post['user_reaction'] = null;
+                              reactions[emoji] = (reactions[emoji] ?? 1) - 1;
+                              if (reactions[emoji] <= 0) reactions.remove(emoji);
+                            } else {
+                              if (currentReaction != null) {
+                                reactions[currentReaction] = (reactions[currentReaction] ?? 1) - 1;
+                                if (reactions[currentReaction] <= 0) reactions.remove(currentReaction);
+                              }
+                              post['user_reaction'] = emoji;
+                              reactions[emoji] = (reactions[emoji] ?? 0) + 1;
                             }
-                          }
+                            post['reactions'] = reactions;
+                          });
+
+                          await ApiService.reactToFeedPost(postId, emoji);
                         }
                       },
                       onVote: (optionIndex) async {
