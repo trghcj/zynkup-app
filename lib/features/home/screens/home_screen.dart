@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:flutter/services.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/zynk_bottom_nav.dart';
+import 'package:zynkup/core/widgets/zynk_side_nav.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/features/auth/screens/login_screen.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
@@ -23,6 +25,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
+  final GlobalKey<NavigatorState> _nestedNavKey = GlobalKey<NavigatorState>();
   int _unreadCount = 0;
   Map<String, dynamic>? _user;
   Timer? _notifTimer;
@@ -186,12 +189,39 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     setState(() => _index = index);
+    _nestedNavKey.currentState?.popUntil((route) => route.isFirst);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+    final isDesktop = MediaQuery.of(context).size.width > 800;
+
+    Widget content = Navigator(
+      key: _nestedNavKey,
+      onGenerateRoute: (settings) {
+        return MaterialPageRoute(
+          builder: (context) => IndexedStack(index: _index, children: _tabs),
+        );
+      },
+    );
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final navigator = _nestedNavKey.currentState;
+        if (navigator != null && navigator.canPop()) {
+          navigator.pop();
+        } else {
+          if (_index != 0) {
+            _change(0);
+          } else {
+            SystemNavigator.pop();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: ZynkColors.darkBg,
       appBar: AppBar(
         title: Row(
           children: [
@@ -275,11 +305,28 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: IndexedStack(index: _index, children: _tabs),
-      bottomNavigationBar: ZynkBottomNav(
-        currentIndex: _index,
-        onChanged: _change,
-      ),
+      body: isDesktop
+          ? Row(
+              children: [
+                ZynkSideNav(currentIndex: _index, onChanged: _change),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 680),
+                      child: content,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : content,
+      bottomNavigationBar: isDesktop
+          ? null
+          : ZynkBottomNav(
+              currentIndex: _index,
+              onChanged: _change,
+            ),
+    ),
     );
   }
 }
