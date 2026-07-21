@@ -427,3 +427,33 @@ def get_gallery(event_id: int, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return {"event_id": event_id, "files": _parse_gallery(event.gallery_files)}
+
+@router.get("/{event_id}/participants")
+def get_event_participants(
+    event_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    if event.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view participants")
+        
+    registrations = db.query(models.Registration).filter(models.Registration.event_id == event_id).all()
+    
+    participants = []
+    for r in registrations:
+        u = r.user
+        participants.append({
+            "id": u.id,
+            "name": u.name or u.display_name or "Unknown",
+            "email": u.email,
+            "avatar_url": u.resolved_avatar_url,
+            "attended": r.attended,
+            "registered_at": r.created_at.isoformat() if r.created_at else None,
+            "attended_at": r.attended_at.isoformat() if r.attended_at else None
+        })
+        
+    return participants

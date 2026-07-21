@@ -83,9 +83,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     final success = await ApiService.markAllRead();
     if (success && mounted) {
       setState(() {
-        for (var n in _notifications) {
-          n['is_read'] = true;
-        }
+        _notifications.clear();
       });
       _groupNotifications();
     }

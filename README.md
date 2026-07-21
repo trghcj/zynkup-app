@@ -83,6 +83,18 @@ flutter pub get
 flutter run
 ```
 
+### 5️⃣ Build Compressed Split APKs (Android)
+To drastically reduce the APK size by creating separate APKs for each CPU architecture, run the included script:
+**Windows:**
+```bash
+.\build_split_apk.bat
+```
+**Linux / macOS:**
+```bash
+./build_split_apk.sh
+```
+The compressed APKs will be output to `build/app/outputs/flutter-apk/`.
+
 ## Folder Structure
 ```text
 zynkup-app/

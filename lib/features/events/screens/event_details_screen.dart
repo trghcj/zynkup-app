@@ -13,6 +13,7 @@ import 'package:zynkup/features/events/screens/event_gallery_screen.dart';
 import 'package:zynkup/features/events/screens/qr_scanner_screen.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:zynkup/features/events/screens/event_participants_screen.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
@@ -192,12 +193,53 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       onPressed: _share,
                       icon: const Icon(Icons.ios_share_rounded),
                     ),
-                    if (_isCreator)
+                    if (_isCreator) ...[
                       IconButton(
                         icon: const Icon(Icons.qr_code_scanner_rounded),
                         onPressed: _openScanner,
                       ),
-                  ],
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded),
+                        color: ZynkColors.darkSurface,
+                        onSelected: (value) {
+                          if (value == 'participants') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EventParticipantsScreen(
+                                  eventId: _event.id,
+                                  eventTitle: _event.title,
+                                ),
+                              ),
+                            );
+                          } else if (value == 'delete') {
+                            _deleteEvent();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'participants',
+                            child: Row(
+                              children: [
+                                Icon(Icons.people_rounded, color: ZynkColors.offWhite, size: 20),
+                                SizedBox(width: 12),
+                                Text('View Participants', style: TextStyle(color: ZynkColors.offWhite)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_rounded, color: ZynkColors.error, size: 20),
+                                SizedBox(width: 12),
+                                Text('Delete Event', style: TextStyle(color: ZynkColors.error)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   flexibleSpace: FlexibleSpaceBar(
                     background: _HeroImage(event: _event),
                   ),
@@ -308,16 +350,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ),
                           ),
                         ),
-                        if (_isCreator) ...[
-                          const SizedBox(height: 12),
-                          ZynkButton(
-                            label: 'Delete Event',
-                            icon: Icons.delete_rounded,
-                            outlined: true,
-                            bgColor: ZynkColors.error,
-                            isLoading: _deleting,
-                            onTap: _deleteEvent,
-                          ),
                         ],
                       ],
                     ),

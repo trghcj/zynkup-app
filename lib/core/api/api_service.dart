@@ -497,6 +497,24 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getEventParticipants(String eventId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/events/$eventId/participants"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as List<dynamic>;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to fetch participants.");
+    }
+  }
+
   // ── Gallery ────────────────────────────────────────────────────────────────
 
   static Future<List<Map<String, dynamic>>> uploadEventGallery({
