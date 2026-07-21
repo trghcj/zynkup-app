@@ -1,4 +1,6 @@
 #!/bin/bash
 echo "Building APKs per architecture..."
 flutter build apk --split-per-abi
-echo "Done! Compressed APKs are located in build/app/outputs/apk/release/"
+mkdir -p release
+cp build/app/outputs/flutter-apk/*.apk release/
+echo "Done! Compressed APKs are located in the release/ folder."
