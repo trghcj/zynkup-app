@@ -911,7 +911,7 @@ class ApiService {
     try {
       await loadToken();
       final res = await http.get(
-        Uri.parse("$baseUrl/notifications/"),
+        Uri.parse("$baseUrl/notifications"),
         headers: await _headers,
       );
       if (res.statusCode == 200) {

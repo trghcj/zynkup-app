@@ -447,8 +447,11 @@ def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Opt
     result = []
     for p in posts:
         react_counts = {}
+        user_react = None
         for r in p.reactions:
             react_counts[r.emoji] = react_counts.get(r.emoji, 0) + 1
+            if current_user and r.user_id == current_user.id:
+                user_react = r.emoji
 
         poll_dict = None
         if p.poll:
@@ -473,6 +476,7 @@ def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Opt
             is_liked=(p.id in liked_post_ids),
             created_at=p.created_at,
             reactions=react_counts,
+            user_reaction=user_react,
             poll=poll_dict
         ))
     return result

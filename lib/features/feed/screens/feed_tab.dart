@@ -410,15 +410,26 @@ class _FeedTabState extends State<FeedTab> {
                             }
                             final postId = post['id'] as int?;
                             if (postId != null) {
-                              final success = await ApiService.reactToFeedPost(postId, emoji);
-                              if (success && mounted) {
-                                final data = await ApiService.getFeed();
-                                if (mounted) {
-                                  setState(() {
-                                    _posts = data;
-                                  });
+                              final currentReaction = post['user_reaction'] as String?;
+                              final reactions = Map<String, dynamic>.from(post['reactions'] as Map<String, dynamic>? ?? {});
+                              
+                              setState(() {
+                                if (currentReaction == emoji) {
+                                  post['user_reaction'] = null;
+                                  reactions[emoji] = (reactions[emoji] ?? 1) - 1;
+                                  if (reactions[emoji] <= 0) reactions.remove(emoji);
+                                } else {
+                                  if (currentReaction != null) {
+                                    reactions[currentReaction] = (reactions[currentReaction] ?? 1) - 1;
+                                    if (reactions[currentReaction] <= 0) reactions.remove(currentReaction);
+                                  }
+                                  post['user_reaction'] = emoji;
+                                  reactions[emoji] = (reactions[emoji] ?? 0) + 1;
                                 }
-                              }
+                                post['reactions'] = reactions;
+                              });
+
+                              await ApiService.reactToFeedPost(postId, emoji);
                             }
                           },
                           onVote: (optionIndex) async {
@@ -499,6 +510,7 @@ class FeedPostCard extends StatelessWidget {
     final String? bannerUrl = post['banner_url'];
     final int likes = post['likes'] ?? 0;
     final bool isLiked = post['is_liked'] == true;
+    final String? userReaction = post['user_reaction'] as String?;
     final String timeStr = _timeAgo(post['created_at'] as String?);
 
     final hasBanner = bannerUrl != null && bannerUrl.isNotEmpty;
@@ -698,6 +710,7 @@ class FeedPostCard extends StatelessWidget {
             PollWidget(poll: post['poll'] as Map<String, dynamic>, onVote: onVote),
           ReactionStrip(
             reactions: post['reactions'] as Map<String, dynamic>? ?? {},
+            userReaction: userReaction,
             onReact: onReact,
           ),
         ],
@@ -786,9 +799,10 @@ class PollWidget extends StatelessWidget {
 
 class ReactionStrip extends StatelessWidget {
   final Map<String, dynamic> reactions;
+  final String? userReaction;
   final Function(String) onReact;
 
-  const ReactionStrip({super.key, required this.reactions, required this.onReact});
+  const ReactionStrip({super.key, required this.reactions, this.userReaction, required this.onReact});
 
   @override
   Widget build(BuildContext context) {
@@ -798,15 +812,16 @@ class ReactionStrip extends StatelessWidget {
       child: Row(
         children: emojis.map((emoji) {
           final count = reactions[emoji] as int? ?? 0;
+          final isSelected = userReaction == emoji;
           return GestureDetector(
             onTap: () => onReact(emoji),
             child: Container(
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: count > 0 ? ZynkColors.primary.withValues(alpha: 0.2) : ZynkColors.darkSurface2,
+                color: isSelected ? ZynkColors.primary.withValues(alpha: 0.2) : ZynkColors.darkSurface2,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: count > 0 ? ZynkColors.primary : ZynkColors.darkBorder),
+                border: Border.all(color: isSelected ? ZynkColors.primary : ZynkColors.darkBorder),
               ),
               child: Row(
                 children: [

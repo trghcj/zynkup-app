@@ -39,6 +39,7 @@ class FeedPostResponse(BaseModel):
     is_liked: bool = False
     created_at: datetime
     reactions: Dict[str, int] = {}
+    user_reaction: Optional[str] = None
     poll: Optional[Dict[str, Any]] = None
 
     class Config:
@@ -156,8 +157,11 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
     result = []
     for p in posts:
         react_counts = {}
+        user_react = None
         for r in p.reactions:
             react_counts[r.emoji] = react_counts.get(r.emoji, 0) + 1
+            if current_user and r.user_id == current_user.id:
+                user_react = r.emoji
 
         poll_dict = None
         if p.poll:
@@ -182,6 +186,7 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
             is_liked=(p.id in liked_post_ids),
             created_at=p.created_at,
             reactions=react_counts,
+            user_reaction=user_react,
             poll=poll_dict
         ))
     return result
