@@ -44,7 +44,8 @@ class ZynkSideNav extends StatelessWidget {
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
               margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              width: 66,
+              height: 72,
               decoration: BoxDecoration(
                 color: selected
                     ? (isCreate
@@ -54,7 +55,7 @@ class ZynkSideNav extends StatelessWidget {
                 borderRadius: BorderRadius.circular(ZynkRadius.lg),
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
