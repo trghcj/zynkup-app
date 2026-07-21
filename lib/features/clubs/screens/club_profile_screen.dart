@@ -974,8 +974,25 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       onReact: (emoji) async {
                         final postId = post['id'] as int?;
                         if (postId != null) {
-                          await ApiService.reactToFeedPost(postId, emoji);
-                          _loadFeed();
+                          setState(() {
+                            final reactions = Map<String, dynamic>.from(post['reactions'] as Map<String, dynamic>? ?? {});
+                            final count = reactions[emoji] as int? ?? 0;
+                            reactions[emoji] = count + 1;
+                            post['reactions'] = reactions;
+                          });
+                          final success = await ApiService.reactToFeedPost(postId, emoji);
+                          if (!success && mounted) {
+                            setState(() {
+                              final reactions = Map<String, dynamic>.from(post['reactions'] as Map<String, dynamic>? ?? {});
+                              final count = reactions[emoji] as int? ?? 1;
+                              if (count > 1) {
+                                reactions[emoji] = count - 1;
+                              } else {
+                                reactions.remove(emoji);
+                              }
+                              post['reactions'] = reactions;
+                            });
+                          }
                         }
                       },
                       onVote: (optionIndex) async {
