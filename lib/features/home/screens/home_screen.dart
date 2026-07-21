@@ -275,7 +275,12 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: IndexedStack(index: _index, children: _tabs),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: IndexedStack(index: _index, children: _tabs),
+        ),
+      ),
       bottomNavigationBar: ZynkBottomNav(
         currentIndex: _index,
         onChanged: _change,
