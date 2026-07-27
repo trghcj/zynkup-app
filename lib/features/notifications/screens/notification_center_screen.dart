@@ -19,6 +19,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   List<dynamic> _notifications = [];
   List<_GroupedNotification> _grouped = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -27,13 +28,23 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   }
 
   Future<void> _fetchNotifications() async {
-    final notifs = await ApiService.getNotifications();
-    if (mounted) {
-      setState(() {
-        _notifications = notifs;
-        _loading = false;
-      });
-      _groupNotifications();
+    try {
+      final notifs = await ApiService.getNotifications();
+      if (mounted) {
+        setState(() {
+          _notifications = notifs;
+          _error = null;
+          _loading = false;
+        });
+        _groupNotifications();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -160,13 +171,24 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
-          : _notifications.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No notifications yet.',
-                    style: TextStyle(color: ZynkColors.darkMuted),
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text(
+                      'Failed to load notifications:\\n\\n$_error',
+                      style: const TextStyle(color: ZynkColors.error, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 )
+              : _notifications.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No notifications yet.',
+                        style: TextStyle(color: ZynkColors.darkMuted),
+                      ),
+                    )
               : ListView.builder(
                   itemCount: _grouped.length,
                   itemBuilder: (context, sectionIndex) {

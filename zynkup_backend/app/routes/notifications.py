@@ -15,8 +15,8 @@ class NotificationResponse(BaseModel):
     title: Optional[str] = ""
     body: Optional[str] = ""
     type: Optional[str] = ""
-    is_read: bool = False
-    created_at: datetime
+    is_read: Optional[bool] = False
+    created_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True

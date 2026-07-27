@@ -20,7 +20,7 @@ It helps users connect, interact, and manage events efficiently through a modern
 
 ```mermaid
 graph TD
-    A[Flutter App iOS/Android/Web] -->|Authentication| B[Firebase Auth]
+    A[Flutter App Android/Web] -->|Authentication| B[Firebase Auth]
     A -->|Push Notifications| C[Firebase Cloud Messaging]
     A -->|Realtime / REST| D[Supabase Backend-as-a-Service]
     D --> E[PostgreSQL Database]
