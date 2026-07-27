@@ -917,8 +917,10 @@ class ApiService {
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as List<dynamic>;
       }
+      debugPrint("getNotifications error: ${res.statusCode} ${res.body}");
       return [];
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint("getNotifications exception: $e\\n$st");
       return [];
     }
   }

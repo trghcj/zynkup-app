@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 from ..database import get_db
@@ -12,10 +12,10 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 class NotificationResponse(BaseModel):
     id: int
-    title: str
-    body: str
-    type: str
-    is_read: bool
+    title: Optional[str] = ""
+    body: Optional[str] = ""
+    type: Optional[str] = ""
+    is_read: bool = False
     created_at: datetime
 
     class Config:
