@@ -40,6 +40,7 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
+        config-file: ./.github/codeql/codeql-config.yml
         # If you wish to specify custom queries, you can do so here.
         # queries: security-extended,security-and-quality
 
