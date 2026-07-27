@@ -1,0 +1,6 @@
+name: "Zynkup CodeQL Config"
+
+paths-ignore:
+  - "build/**"
+  - "build/web/**"
+  - "**/*.js"
