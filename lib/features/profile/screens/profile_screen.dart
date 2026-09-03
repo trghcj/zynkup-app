@@ -241,7 +241,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final xp = user['xp'] ?? 0;
     final level = user['level'] ?? 1;
     final streak = user['streak'] ?? 0;
-    final theme = user['theme'] ?? 'midnight_orange';
     final email = user['email'] ?? 'user@zynkup.com';
     final seed = user['avatar_seed'] ?? email;
     final avatarType = user['avatar_type'] ?? 'rings';
