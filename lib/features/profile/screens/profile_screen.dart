@@ -269,23 +269,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 children: [
-                  // Gradient Background
+                  // Clean Dark Background
                   Container(
-                    decoration: BoxDecoration(
-                      gradient: ZynkGradients.forTheme(theme),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          ZynkColors.darkBg.withValues(alpha: 0.1),
-                          ZynkColors.darkBg,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
+                    color: ZynkColors.darkBg,
                   ),
 
                   // Content
@@ -579,20 +565,20 @@ class _InfoPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: ZynkColors.darkSurface2,
+        borderRadius: BorderRadius.circular(ZynkRadius.md),
+        border: Border.all(color: ZynkColors.darkBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 6),
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
+            style: const TextStyle(color: ZynkColors.darkText, fontWeight: FontWeight.w600, fontSize: 11),
           ),
         ],
       ),
@@ -611,38 +597,30 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: ZynkGradients.cardSurface,
-        borderRadius: BorderRadius.circular(ZynkRadius.lg),
-        border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.5)),
+        color: ZynkColors.darkSurface,
+        borderRadius: BorderRadius.circular(ZynkRadius.xl),
+        border: Border.all(color: ZynkColors.darkBorder, width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: ZynkColors.gold.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: ZynkColors.gold, size: 18),
-          ),
+          Icon(icon, color: ZynkColors.primary, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
             style: const TextStyle(
-              color: ZynkColors.offWhite,
+              color: ZynkColors.darkText,
               fontSize: 20,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
+              fontWeight: FontWeight.w700,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              color: ZynkColors.darkMuted.withValues(alpha: 0.7),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+            style: const TextStyle(
+              color: ZynkColors.darkMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],

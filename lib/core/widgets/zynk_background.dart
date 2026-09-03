@@ -1,96 +1,43 @@
-import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 
-class ZynkBackground extends StatefulWidget {
+class ZynkBackground extends StatelessWidget {
   final Widget child;
   const ZynkBackground({super.key, required this.child});
-
-  @override
-  State<ZynkBackground> createState() => _ZynkBackgroundState();
-}
-
-class _ZynkBackgroundState extends State<ZynkBackground>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _anim = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _anim.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // 1. Deep Space Gradient base instead of muddy brown
+        // Base dark background
         Container(
-          decoration: const BoxDecoration(
-            gradient: ZynkGradients.warmDark,
+          color: ZynkColors.darkBg,
+        ),
+        
+        // Very subtle warm orange glow near top/selected areas
+        Positioned(
+          top: -150,
+          left: -150,
+          child: _Orb(
+            color: const Color(0xFFFF8A1F).withValues(alpha: 0.04), // Extremely subtle
+            size: 500,
+          ),
+        ),
+        
+        // Very subtle purple glow near opposite/background areas
+        Positioned(
+          bottom: -200,
+          right: -100,
+          child: _Orb(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.03), // Extremely subtle
+            size: 600,
           ),
         ),
 
-        // 2. Cinematic Drifting category-accented glows (Tech-Blue, Seminar-Purple, Sports-Green)
-        AnimatedBuilder(
-          animation: _anim,
-          builder: (context, _) {
-            final t = _anim.value * 2 * math.pi;
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                // Tech Cyber-Cyan Glow Orb (Pulsing Top Left)
-                Positioned(
-                  top: -120 + math.sin(t) * 35,
-                  left: -80 + math.cos(t * 0.8) * 45,
-                  child: _Orb(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                    size: 320,
-                  ),
-                ),
-                // Seminar Magenta Glow Orb (Pulsing Bottom Right)
-                Positioned(
-                  bottom: -150 + math.cos(t * 1.2) * 55,
-                  right: -100 + math.sin(t * 0.9) * 35,
-                  child: _Orb(
-                    color: const Color(0xFFD500F9).withValues(alpha: 0.18),
-                    size: 380,
-                  ),
-                ),
-                // Energy Yellow/Gold Glow Orb (Drifting Center Left)
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.35 + math.sin(t * 0.7) * 40,
-                  left: -120 + math.cos(t * 1.4) * 30,
-                  child: _Orb(
-                    color: const Color(0xFFFFEA00).withValues(alpha: 0.12),
-                    size: 260,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-
-        // 3. Subtle Film Grain Noise Texture Overlay
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _NoisePainter(),
-          ),
-        ),
-
-        // 4. Content
-        widget.child,
+        // Content
+        child,
       ],
     );
   }
@@ -112,28 +59,9 @@ class _Orb extends StatelessWidget {
         color: color,
       ),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
+        filter: ImageFilter.blur(sigmaX: 120, sigmaY: 120),
         child: Container(color: Colors.transparent),
       ),
     );
   }
-}
-
-class _NoisePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rand = math.Random(42);
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.007)
-      ..strokeWidth = 1.0;
-
-    for (int i = 0; i < 3000; i++) {
-      final x = rand.nextDouble() * size.width;
-      final y = rand.nextDouble() * size.height;
-      canvas.drawCircle(Offset(x, y), 0.8, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

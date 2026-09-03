@@ -237,10 +237,10 @@ class _FeedTabState extends State<FeedTab> {
                         Text(
                           'Campus Feed',
                           style: TextStyle(
-                            color: ZynkColors.offWhite,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.8,
+                            color: ZynkColors.darkText,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
                           ),
                         ),
                         SizedBox(height: 8),
@@ -260,7 +260,7 @@ class _FeedTabState extends State<FeedTab> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          gradient: ZynkGradients.cardSurface,
+                          color: ZynkColors.darkSurface,
                           borderRadius: BorderRadius.circular(ZynkRadius.lg),
                           border: Border.all(color: ZynkColors.darkBorder),
                         ),
@@ -518,7 +518,7 @@ class FeedPostCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       decoration: BoxDecoration(
-        gradient: ZynkGradients.cardSurface,
+        color: ZynkColors.darkSurface,
         borderRadius: BorderRadius.circular(ZynkRadius.lg),
         border: Border.all(color: ZynkColors.darkBorder),
       ),

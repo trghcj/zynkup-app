@@ -91,15 +91,15 @@ class _MyEventsTabState extends State<MyEventsTab> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
                             color: ZynkColors.darkSurface,
-                            borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                            borderRadius: BorderRadius.circular(ZynkRadius.md),
                             border: Border.all(color: ZynkColors.darkBorder),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: _filter,
                               dropdownColor: ZynkColors.darkSurface,
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.gold, size: 18),
-                              style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
+                              style: const TextStyle(color: ZynkColors.darkText, fontSize: 13, fontWeight: FontWeight.w600),
                               items: ['All Events', 'Tech', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map((String value) {
                                 return DropdownMenuItem<String>(
                                   value: value,

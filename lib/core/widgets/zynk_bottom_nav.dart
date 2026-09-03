@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 
@@ -15,117 +14,90 @@ class ZynkBottomNav extends StatelessWidget {
   static const _items = [
     (Icons.dynamic_feed_rounded, 'Feed'),
     (Icons.explore_rounded, 'Discover'),
-    (Icons.add_circle_rounded, 'Create'),
+    (Icons.add_rounded, 'Create'), // changed icon for cleaner look
     (Icons.event_available_rounded, 'Tickets'),
     (Icons.person_rounded, 'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(ZynkRadius.xl),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.02),
-                borderRadius: BorderRadius.circular(ZynkRadius.xl),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    blurRadius: 32,
-                    offset: const Offset(0, 10),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F1217),
+        border: Border(top: BorderSide(color: Color(0xFF252B35), width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(_items.length, (index) {
+              final item = _items[index];
+              final selected = currentIndex == index;
+              final isCreate = index == 2;
+              
+              if (isCreate) {
+                return GestureDetector(
+                  onTap: () => onChanged(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: ZynkColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: ZynkColors.darkSurface,
+                      size: 24,
+                    ),
                   ),
-                ],
-              ),
-              child: Row(
-                children: List.generate(_items.length, (index) {
-                  final item = _items[index];
-                  final selected = currentIndex == index;
-                  final isCreate = index == 2;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => onChanged(index),
-                      behavior: HitTestBehavior.opaque,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
+                );
+              }
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        item.$1,
+                        color: selected
+                            ? ZynkColors.primary
+                            : const Color(0xFF737984),
+                        size: 24,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
                           color: selected
-                              ? (isCreate
-                                  ? ZynkColors.primary.withValues(alpha: 0.18)
-                                  : ZynkColors.gold.withValues(alpha: 0.10))
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 220),
-                              decoration: isCreate
-                                  ? BoxDecoration(
-                                      color: selected
-                                          ? ZynkColors.primary
-                                          : Colors.white.withValues(alpha: 0.15),
-                                      shape: BoxShape.circle,
-                                      boxShadow: selected
-                                          ? [
-                                              BoxShadow(
-                                                color: ZynkColors.primary.withValues(alpha: 0.3),
-                                                blurRadius: 12,
-                                              ),
-                                            ]
-                                          : null,
-                                    )
-                                  : null,
-                              padding: isCreate
-                                  ? const EdgeInsets.all(6)
-                                  : EdgeInsets.zero,
-                              child: Icon(
-                                item.$1,
-                                color: isCreate
-                                    ? Colors.white
-                                    : (selected
-                                        ? ZynkColors.gold
-                                        : ZynkColors.darkMuted.withValues(alpha: 0.6)),
-                                size: isCreate ? 26 : 22,
-                              ),
-                            ),
-                            if (!isCreate) ...[
-                              const SizedBox(height: 3),
-                              Text(
-                                item.$2,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: selected
-                                      ? ZynkColors.gold
-                                      : ZynkColors.darkMuted.withValues(alpha: 0.5),
-                                  fontSize: 10,
-                                  fontWeight: selected
-                                      ? FontWeight.w800
-                                      : FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ],
+                              ? ZynkColors.primary
+                              : const Color(0xFF737984),
+                          fontSize: 10,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
-                    ),
-                  );
-                }),
-              ),
-            ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
         ),
       ),

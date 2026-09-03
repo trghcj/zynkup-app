@@ -94,15 +94,15 @@ class _HomeTabState extends State<HomeTab> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           color: ZynkColors.darkSurface,
-                          borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                          borderRadius: BorderRadius.circular(ZynkRadius.md),
                           border: Border.all(color: ZynkColors.darkBorder),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: _filter,
                             dropdownColor: ZynkColors.darkSurface,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.gold, size: 18),
-                            style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
+                            style: const TextStyle(color: ZynkColors.darkText, fontSize: 13, fontWeight: FontWeight.w600),
                             items: ['All Events', 'Tech', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
@@ -177,17 +177,17 @@ class _Header extends StatelessWidget {
             'What is happening\naround you?',
             style: TextStyle(
               color: ZynkColors.darkText,
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              height: 1.05,
-              letterSpacing: -0.8,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 10),
-          Text(
+          const Text(
             'Create, register, scan QR passes, and relive campus moments.',
             style: TextStyle(
-              color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+              color: ZynkColors.darkMuted,
               height: 1.5,
               fontSize: 14,
             ),
@@ -197,19 +197,19 @@ class _Header extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              gradient: ZynkGradients.cardSurface,
+              color: ZynkColors.darkSurface,
               borderRadius: BorderRadius.circular(ZynkRadius.lg),
-              border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.2)),
+              border: Border.all(color: ZynkColors.darkBorder),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: ZynkColors.orange.withValues(alpha: 0.15),
+                    color: ZynkColors.warmAccent.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.local_fire_department_rounded, color: ZynkColors.orange, size: 16),
+                  child: const Icon(Icons.local_fire_department_rounded, color: ZynkColors.warmAccent, size: 16),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -219,15 +219,15 @@ class _Header extends StatelessWidget {
                       Text(
                         '$activeStudents+ students active now',
                         style: const TextStyle(
-                          color: ZynkColors.offWhite,
-                          fontWeight: FontWeight.w800,
+                          color: ZynkColors.darkText,
+                          fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
                       ),
                       Text(
                         '$eventsThisWeek events happening this week',
-                        style: TextStyle(
-                          color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+                        style: const TextStyle(
+                          color: ZynkColors.darkMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -391,15 +391,15 @@ class _ClubsSection extends StatelessWidget {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.groups_rounded, color: ZynkColors.orange, size: 20),
+                  Icon(Icons.groups_rounded, color: ZynkColors.primary, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Campus Clubs',
                     style: TextStyle(
-                      color: ZynkColors.offWhite,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
+                      color: ZynkColors.darkText,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ],
@@ -418,12 +418,12 @@ class _ClubsSection extends StatelessWidget {
                     onRefresh();
                   }
                 },
-                icon: const Icon(Icons.add_rounded, size: 18, color: ZynkColors.gold),
+                icon: const Icon(Icons.add_rounded, size: 18, color: ZynkColors.primary),
                 label: const Text(
                   'Create',
                   style: TextStyle(
-                    color: ZynkColors.gold,
-                    fontWeight: FontWeight.bold,
+                    color: ZynkColors.primary,
+                    fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                 ),
@@ -438,7 +438,7 @@ class _ClubsSection extends StatelessWidget {
               height: 100,
               width: double.infinity,
               decoration: BoxDecoration(
-                gradient: ZynkGradients.cardSurface,
+                color: ZynkColors.darkSurface,
                 borderRadius: BorderRadius.circular(ZynkRadius.lg),
                 border: Border.all(color: ZynkColors.darkBorder),
               ),
@@ -452,7 +452,7 @@ class _ClubsSection extends StatelessWidget {
           )
         else
           SizedBox(
-            height: 140,
+            height: 160,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -493,34 +493,45 @@ class _ClubsSection extends StatelessWidget {
                       );
                     },
                     child: Container(
-                      width: 120,
+                      width: 140,
                       margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        gradient: ZynkGradients.cardSurface,
+                        color: ZynkColors.darkSurface,
                         borderRadius: BorderRadius.circular(ZynkRadius.lg),
                         border: Border.all(color: ZynkColors.darkBorder),
                       ),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 32,
-                            backgroundColor: ZynkColors.darkSurface2,
-                            backgroundImage: CachedNetworkImageProvider(displayImage),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(ZynkRadius.sm),
+                            child: CachedNetworkImage(
+                              imageUrl: displayImage,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                           const SizedBox(height: 12),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              clubName,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: ZynkColors.offWhite,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
-                              ),
+                          Text(
+                            clubName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: ZynkColors.darkText,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Campus Club',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: ZynkColors.darkMuted,
+                              fontSize: 11,
                             ),
                           ),
                         ],
