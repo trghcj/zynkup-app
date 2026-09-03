@@ -38,7 +38,7 @@ graph TD
 - **🧑‍🤝‍🧑 Friend Connections:** Send, accept, and manage friend requests.
 - **🏆 Gamified XP System:** Earn XP and level up by engaging with the platform.
 - **🖼️ Cloud Media:** Seamless image uploads and hosting natively integrated with Supabase Storage buckets.
-- **🪶 Premium Responsive UI:** Beautiful, animated, glassmorphism UI tailored for both Android and Web.
+- **🪶 Premium Responsive UI:** Beautiful, minimal, dark aesthetic (Linear/Spotify-style) tailored for both Android and Web.
 
 ## Tech Stack
 - **Frontend:** Flutter (Dart)
@@ -84,16 +84,11 @@ flutter run
 ```
 
 ### 5️⃣ Build Compressed Split APKs (Android)
-To drastically reduce the APK size by creating separate APKs for each CPU architecture, run the included script:
-**Windows:**
+To drastically reduce the APK size by creating separate APKs for each CPU architecture, run the following command:
 ```bash
-.\build_split_apk.bat
+flutter build apk --split-per-abi
 ```
-**Linux / macOS:**
-```bash
-./build_split_apk.sh
-```
-The compressed APKs will be output to `build/app/outputs/apk/release/`.
+The compressed APKs will be output to `build/app/outputs/flutter-apk/`.
 
 ## Folder Structure
 ```text
