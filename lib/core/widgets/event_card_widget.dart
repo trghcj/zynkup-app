@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -43,41 +42,25 @@ class _EventCardWidgetState extends State<EventCardWidget> {
         child: GestureDetector(
           onTap: widget.onTap,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(ZynkRadius.xl),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: _hovering ? 0.04 : 0.02),
-                  borderRadius: BorderRadius.circular(ZynkRadius.xl),
-                  border: Border.all(
-                    color: _hovering
-                        ? ZynkColors.forCategory(category).withValues(alpha: 0.35)
-                        : Colors.white.withValues(alpha: 0.06),
-                  ),
-                  boxShadow: _hovering
-                      ? [
-                          BoxShadow(
-                            color: ZynkColors.forCategory(category).withValues(alpha: 0.15),
-                            blurRadius: 36,
-                            spreadRadius: 2,
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 32,
-                            offset: const Offset(0, 12),
-                          ),
-                        ]
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.18),
-                            blurRadius: 22,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
+          child: Container(
+            decoration: BoxDecoration(
+              color: ZynkColors.darkSurface,
+              borderRadius: BorderRadius.circular(ZynkRadius.xl),
+              border: Border.all(
+                color: _hovering ? ZynkColors.primary.withValues(alpha: 0.5) : ZynkColors.darkBorder,
+                width: 1,
+              ),
+              boxShadow: _hovering ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                child: Column(
+              ] : null,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(ZynkRadius.xl - 1),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _Banner(event: widget.event, compact: widget.compact),

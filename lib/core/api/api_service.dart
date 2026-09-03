@@ -917,11 +917,9 @@ class ApiService {
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as List<dynamic>;
       }
-      debugPrint("getNotifications error: ${res.statusCode} ${res.body}");
-      return [];
-    } catch (e, st) {
-      debugPrint("getNotifications exception: $e\\n$st");
-      return [];
+      throw Exception("API Error ${res.statusCode}: ${res.body}");
+    } catch (e) {
+      throw Exception("Network/Parsing Error: $e");
     }
   }
   // ── Timeline ────────────────────────────────────────────────────────────────
