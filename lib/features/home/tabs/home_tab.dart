@@ -9,6 +9,8 @@ import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
+import 'package:zynkup/core/widgets/zynk_empty_state.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -25,11 +27,19 @@ class _HomeTabState extends State<HomeTab> {
   List<String> _activeAvatars = [];
   List<dynamic> _clubs = [];
   String _filter = 'All Events';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+  
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -46,9 +56,7 @@ class _HomeTabState extends State<HomeTab> {
     final clubsData = results[2] as List<dynamic>;
 
     setState(() {
-      _events = eventsData
-          .map((item) => Event.fromJson(item as Map<String, dynamic>))
-          .toList();
+      _events = eventsData.map((item) => Event.fromJson(item as Map<String, dynamic>)).toList();
       _activeStudents = statsData['active_students'] as int? ?? 0;
       _eventsThisWeek = statsData['events_this_week'] as int? ?? 0;
       _activeAvatars = List<String>.from(statsData['active_avatars'] ?? []);
@@ -59,94 +67,219 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 900;
+    return SafeArea(
+      child: ZynkBackground(
+        child: RefreshIndicator(
+          color: ZynkColors.primary,
+          onRefresh: _load,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 960),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(color: ZynkColors.offWhite),
+                        onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                        decoration: InputDecoration(
+                          hintText: 'Search events, clubs, or topics...',
+                          hintStyle: const TextStyle(color: ZynkColors.darkMuted),
+                          prefixIcon: const Icon(Icons.search_rounded, color: ZynkColors.darkMuted),
+                          suffixIcon: _searchQuery.isNotEmpty 
+                              ? IconButton(
+                                  icon: const Icon(Icons.close_rounded, color: ZynkColors.darkMuted),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: ZynkColors.darkSurface,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: ZynkColors.primary),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (_searchQuery.isNotEmpty)
+                _buildSearchResults(isDesktop)
+              else
+                _buildDiscoverContent(isDesktop),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(bool isDesktop) {
+    final matchedEvents = _events.where((e) => e.title.toLowerCase().contains(_searchQuery) || e.category.name.toLowerCase().contains(_searchQuery)).toList();
+    final matchedClubs = _clubs.where((c) => (c['name'] ?? '').toString().toLowerCase().contains(_searchQuery)).toList();
+    
+    if (matchedEvents.isEmpty && matchedClubs.isEmpty) {
+      return SliverToBoxAdapter(
+        child: ZEmptyState(
+          icon: Icons.search_off_rounded,
+          title: 'No results found',
+          subtitle: 'Try searching for something else.',
+        ),
+      );
+    }
+
+    return SliverToBoxAdapter(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (matchedClubs.isNotEmpty) ...[
+                  const Text('Clubs', style: TextStyle(color: ZynkColors.offWhite, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: matchedClubs.map((club) {
+                      return GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id']))),
+                        child: Container(
+                          width: isDesktop ? 300 : MediaQuery.of(context).size.width - 40,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: ZynkColors.darkBorder)),
+                          child: Row(
+                            children: [
+                              CircleAvatar(radius: 24, backgroundColor: ZynkColors.darkSurface2, backgroundImage: club['logo_url'] != null ? CachedNetworkImageProvider(club['logo_url']) : null, child: club['logo_url'] == null ? const Icon(Icons.groups_rounded, color: ZynkColors.darkMuted) : null),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(club['name'] ?? 'Club', style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 4),
+                                    Text(club['category'] ?? 'Community', style: const TextStyle(color: ZynkColors.primary, fontSize: 12)),
+                                  ],
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+                if (matchedEvents.isNotEmpty) ...[
+                  const Text('Events', style: TextStyle(color: ZynkColors.offWhite, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                  const SizedBox(height: 16),
+                  isDesktop 
+                    ? GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, mainAxisSpacing: 20, crossAxisSpacing: 20, mainAxisExtent: 140),
+                        itemCount: matchedEvents.length,
+                        itemBuilder: (context, index) => EventCardWidget(event: matchedEvents[index]),
+                      )
+                    : Column(children: matchedEvents.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e))).toList()),
+                ]
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiscoverContent(bool isDesktop) {
+    if (_loading) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: List.generate(4, (index) => const Padding(padding: EdgeInsets.only(bottom: 20), child: ZSkeleton(width: double.infinity, height: 140, borderRadius: 16))),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    
     final filteredEvents = _events.where((event) {
       if (_filter == 'All Events') return true;
       return event.category.name.toLowerCase() == _filter.toLowerCase();
     }).toList();
 
-    final upcoming = filteredEvents
-        .where((event) => event.date.isAfter(DateTime.now()))
-        .toList();
-    final trending = [...filteredEvents]
-      ..sort((a, b) => b.attendeeCount.compareTo(a.attendeeCount));
+    final upcoming = filteredEvents.where((event) => event.date.isAfter(DateTime.now())).toList();
 
-    return SafeArea(
-      child: ZynkBackground(
-        child: RefreshIndicator(
-          color: ZynkColors.gold,
-          onRefresh: _load,
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _Header(
-                  activeStudents: _activeStudents,
-                  eventsThisWeek: _eventsThisWeek,
-                  activeAvatars: _activeAvatars,
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: ZynkColors.darkSurface,
-                          borderRadius: BorderRadius.circular(ZynkRadius.md),
-                          border: Border.all(color: ZynkColors.darkBorder),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _filter,
-                            dropdownColor: ZynkColors.darkSurface,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
-                            style: const TextStyle(color: ZynkColors.darkText, fontSize: 13, fontWeight: FontWeight.w600),
-                            items: ['All Events', 'Tech', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  _filter = newValue;
-                                });
-                              }
-                            },
-                          ),
+    return SliverToBoxAdapter(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 960),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Header(activeStudents: _activeStudents, eventsThisWeek: _eventsThisWeek, activeAvatars: _activeAvatars),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: ZynkColors.darkBorder)),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _filter,
+                          dropdownColor: ZynkColors.darkSurface,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
+                          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                          items: ['All Events', 'tech', 'cultural', 'sports', 'workshop', 'seminar'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+                          onChanged: (newValue) {
+                            if (newValue != null) setState(() => _filter = newValue);
+                          },
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              if (_loading)
-                const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(color: ZynkColors.gold),
-                  ),
-                )
-              else ...[
-                _Section(
-                  title: 'Featured Events',
-                  events: filteredEvents.take(3).toList(),
+              if (upcoming.isEmpty)
+                ZEmptyState(icon: Icons.event_busy_rounded, title: 'No upcoming events', subtitle: 'There are no events scheduled right now.', actionLabel: 'Host an Event', onAction: () {})
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: isDesktop 
+                    ? GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, mainAxisSpacing: 20, crossAxisSpacing: 20, mainAxisExtent: 140),
+                        itemCount: upcoming.length,
+                        itemBuilder: (context, index) => EventCardWidget(event: upcoming[index]),
+                      )
+                    : Column(children: upcoming.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e))).toList()),
                 ),
-                _Section(
-                  title: 'Upcoming Events',
-                  events: upcoming.take(5).toList(),
-                ),
-                _Section(title: 'Trending', events: trending.take(5).toList()),
-                SliverToBoxAdapter(
-                  child: _ClubsSection(
-                    clubs: _clubs,
-                    onRefresh: _load,
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 110)),
-              ],
+              const SizedBox(height: 32),
             ],
           ),
         ),

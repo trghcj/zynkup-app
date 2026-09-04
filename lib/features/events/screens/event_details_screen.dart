@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/widgets/zynk_toast.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
@@ -36,6 +37,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   // FIX: persist QR across _load() calls — never overwrite with null
   String? _qrCode;
   bool _isCreator = false;
+  bool _isSaved = false;
+
+  void _toggleSave() {
+    setState(() => _isSaved = !_isSaved);
+    _snack(_isSaved ? 'Event saved to bookmarks.' : 'Event removed from bookmarks.');
+  }
+
 
   @override
   void initState() {
@@ -88,7 +96,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       if (newQr != null && newQr.isNotEmpty) {
         setState(() => _qrCode = newQr);
       }
-      _snack('Registered. Your QR pass is ready.');
+      ZToast.showSuccess(context, 'Registered', subtitle: 'You\'re on the guest list.');
       // _load() will now only UPDATE _qrCode if backend returns it, not clear it
       await _load();
     } on ApiException catch (error) {
@@ -167,6 +175,25 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
+    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
+    final isPast = _event.date.isBefore(now) && !isToday;
+    
+    String urgencyLabel = '';
+    Color urgencyColor = ZynkColors.darkMuted;
+    
+    if (isToday) {
+      urgencyLabel = 'Happening Today';
+      urgencyColor = ZynkColors.error;
+    } else if (isSoon) {
+      urgencyLabel = 'Starts Soon';
+      urgencyColor = ZynkColors.primary;
+    } else if (isPast) {
+      urgencyLabel = 'Past Event';
+      urgencyColor = ZynkColors.darkMuted;
+    }
+
     final joined = _event.attendeeCount > 0
         ? _event.attendeeCount
         : _event.registeredUsers.length;
@@ -178,7 +205,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           backgroundColor: ZynkColors.darkBg,
           body: ZynkBackground(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
+                ? const _EventDetailsSkeleton()
                 : CustomScrollView(
               slivers: [
                 SliverAppBar(
@@ -186,6 +213,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   expandedHeight: 280,
                   backgroundColor: ZynkColors.darkSurface,
                   actions: [
+                    IconButton(
+                      onPressed: _toggleSave,
+                      icon: Icon(_isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _isSaved ? ZynkColors.primary : ZynkColors.offWhite),
+                    ),
                     IconButton(
                       onPressed: _share,
                       icon: const Icon(Icons.ios_share_rounded),
@@ -248,7 +279,26 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CategoryBadge(_event.category.name),
+                        Row(
+                          children: [
+                            CategoryBadge(_event.category.name),
+                            if (urgencyLabel.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: urgencyColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: urgencyColor.withValues(alpha: 0.3)),
+                                ),
+                                child: Text(
+                                  urgencyLabel,
+                                  style: TextStyle(color: urgencyColor, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ]
+                          ],
+                        ),
                         const SizedBox(height: 14),
                         Text(
                           _event.title,
@@ -367,6 +417,25 @@ class _HeroImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
+    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
+    final isPast = _event.date.isBefore(now) && !isToday;
+    
+    String urgencyLabel = '';
+    Color urgencyColor = ZynkColors.darkMuted;
+    
+    if (isToday) {
+      urgencyLabel = 'Happening Today';
+      urgencyColor = ZynkColors.error;
+    } else if (isSoon) {
+      urgencyLabel = 'Starts Soon';
+      urgencyColor = ZynkColors.primary;
+    } else if (isPast) {
+      urgencyLabel = 'Past Event';
+      urgencyColor = ZynkColors.darkMuted;
+    }
+
     final image = event.imageUrls.isNotEmpty ? event.imageUrls.first : null;
     if (image == null) {
       return Container(
@@ -437,6 +506,25 @@ class _Info extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
+    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
+    final isPast = _event.date.isBefore(now) && !isToday;
+    
+    String urgencyLabel = '';
+    Color urgencyColor = ZynkColors.darkMuted;
+    
+    if (isToday) {
+      urgencyLabel = 'Happening Today';
+      urgencyColor = ZynkColors.error;
+    } else if (isSoon) {
+      urgencyLabel = 'Starts Soon';
+      urgencyColor = ZynkColors.primary;
+    } else if (isPast) {
+      urgencyLabel = 'Past Event';
+      urgencyColor = ZynkColors.darkMuted;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
@@ -509,6 +597,25 @@ class _ActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
+    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
+    final isPast = _event.date.isBefore(now) && !isToday;
+    
+    String urgencyLabel = '';
+    Color urgencyColor = ZynkColors.darkMuted;
+    
+    if (isToday) {
+      urgencyLabel = 'Happening Today';
+      urgencyColor = ZynkColors.error;
+    } else if (isSoon) {
+      urgencyLabel = 'Starts Soon';
+      urgencyColor = ZynkColors.primary;
+    } else if (isPast) {
+      urgencyLabel = 'Past Event';
+      urgencyColor = ZynkColors.darkMuted;
+    }
+
     if (isCreator) {
       return Row(
         children: [
@@ -572,6 +679,25 @@ class _QrPass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
+    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
+    final isPast = _event.date.isBefore(now) && !isToday;
+    
+    String urgencyLabel = '';
+    Color urgencyColor = ZynkColors.darkMuted;
+    
+    if (isToday) {
+      urgencyLabel = 'Happening Today';
+      urgencyColor = ZynkColors.error;
+    } else if (isSoon) {
+      urgencyLabel = 'Starts Soon';
+      urgencyColor = ZynkColors.primary;
+    } else if (isPast) {
+      urgencyLabel = 'Past Event';
+      urgencyColor = ZynkColors.darkMuted;
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -623,6 +749,68 @@ class _QrPass extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
+
+class _EventDetailsSkeleton extends StatelessWidget {
+  const _EventDetailsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        const SliverAppBar(
+          pinned: true,
+          expandedHeight: 280,
+          backgroundColor: ZynkColors.darkSurface,
+          flexibleSpace: FlexibleSpaceBar(
+            background: ZSkeleton(width: double.infinity, height: 280, borderRadius: 0),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ZSkeleton(width: 80, height: 24),
+                const SizedBox(height: 16),
+                const ZSkeleton(width: 280, height: 32),
+                const SizedBox(height: 12),
+                const ZSkeleton(width: 140, height: 20),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    const ZSkeleton(width: 40, height: 40, isCircle: true),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        ZSkeleton(width: 120, height: 16),
+                        SizedBox(height: 6),
+                        ZSkeleton(width: 80, height: 12),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                const ZSkeleton(width: double.infinity, height: 80, borderRadius: 12),
+                const SizedBox(height: 32),
+                const ZSkeleton(width: 100, height: 24),
+                const SizedBox(height: 12),
+                const ZSkeleton(width: double.infinity, height: 16),
+                const SizedBox(height: 8),
+                const ZSkeleton(width: double.infinity, height: 16),
+                const SizedBox(height: 8),
+                const ZSkeleton(width: 200, height: 16),
+              ],
+            ),
+          ),
+        )
+      ],
     );
   }
 }

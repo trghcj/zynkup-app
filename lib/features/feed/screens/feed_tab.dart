@@ -7,11 +7,16 @@ import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
 import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
-import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
+import 'package:zynkup/core/widgets/zynk_empty_state.dart';
+import 'package:zynkup/core/widgets/zynk_toast.dart';
+import 'package:zynkup/features/events/screens/event_details_screen.dart';
+import 'package:zynkup/features/events/models/event_model.dart';
+import 'package:zynkup/features/profile/screens/profile_screen.dart';
+import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -23,6 +28,8 @@ class FeedTab extends StatefulWidget {
 class _FeedTabState extends State<FeedTab> {
   bool _loading = true;
   List<dynamic> _posts = [];
+  List<dynamic> _events = [];
+  List<dynamic> _clubs = [];
   int? _currentUserId;
   String _filter = 'All Posts';
 
@@ -36,11 +43,19 @@ class _FeedTabState extends State<FeedTab> {
     if (!mounted) return;
     setState(() => _loading = true);
     final user = ApiService.hasToken ? await ApiService.getCurrentUser() : null;
-    final data = await ApiService.getFeed();
+    
+    final results = await Future.wait([
+      ApiService.getFeed(),
+      ApiService.getEvents(),
+      ApiService.getClubs(),
+    ]);
+
     if (mounted) {
       setState(() {
         _currentUserId = int.tryParse(user?['id']?.toString() ?? '');
-        _posts = data;
+        _posts = results[0] as List<dynamic>;
+        _events = results[1] as List<dynamic>;
+        _clubs = results[2] as List<dynamic>;
         _loading = false;
       });
     }
@@ -56,6 +71,7 @@ class _FeedTabState extends State<FeedTab> {
       MaterialPageRoute(builder: (_) => const CreatePostScreen()),
     );
     if (result == true) {
+      ZToast.showSuccess(context, 'Post published', subtitle: 'Your update is now live on campus.');
       _load();
     }
   }
@@ -99,24 +115,12 @@ class _FeedTabState extends State<FeedTab> {
               Container(
                 width: 40,
                 height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
                 decoration: BoxDecoration(
                   color: ZynkColors.darkMuted.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(Icons.chat_bubble_outline_rounded, color: ZynkColors.gold),
-                title: const Text(
-                  'Watch Full Feed / View Discussion',
-                  style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
-                ),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _showComments(post);
-                },
-              ),
-              const Divider(color: ZynkColors.darkBorder),
               ListTile(
                 leading: const Icon(Icons.flag_outlined, color: ZynkColors.error),
                 title: const Text(
@@ -124,7 +128,6 @@ class _FeedTabState extends State<FeedTab> {
                   style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
                 ),
                 onTap: () async {
-                  final messenger = ScaffoldMessenger.of(context);
                   Navigator.pop(sheetContext);
                   if (!ApiService.hasToken) {
                     showLoginPrompt(context, message: 'Sign in to report unsafe content.');
@@ -134,70 +137,42 @@ class _FeedTabState extends State<FeedTab> {
                   if (postId != null) {
                     final success = await ApiService.reportFeedPost(postId);
                     if (success) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: const Row(
-                            children: [
-                              Icon(Icons.check_circle_outline_rounded, color: ZynkColors.error),
-                              SizedBox(width: 12),
-                              Text('Post reported successfully.'),
-                            ],
-                          ),
-                          backgroundColor: ZynkColors.darkSurface,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                      ZToast.showSuccess(context, 'Reported successfully.');
                     } else {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to report post.'),
-                          backgroundColor: Colors.red,
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to report post.'), backgroundColor: Colors.red),
                       );
                     }
                   }
                 },
               ),
-              if (_currentUserId != null &&
-                  post['author_id']?.toString() == _currentUserId.toString()) ...[
+              if (_currentUserId != null && post['author_id']?.toString() == _currentUserId.toString()) ...[
                 const Divider(color: ZynkColors.darkBorder),
                 ListTile(
                   leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
-                  title: const Text(
-                    'Edit Post',
-                    style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
-                  ),
+                  title: const Text('Edit Post', style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600)),
                   onTap: () async {
                     Navigator.pop(sheetContext);
                     final result = await showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => EditPostSheet(
-                        postId: post['id'],
-                        initialContent: post['content'] ?? '',
-                      ),
+                      builder: (_) => EditPostSheet(postId: post['id'], initialContent: post['content'] ?? ''),
                     );
                     if (result != null) _load();
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.delete_rounded, color: ZynkColors.error),
-                  title: const Text(
-                    'Delete Post',
-                    style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
-                  ),
+                  title: const Text('Delete Post', style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600)),
                   onTap: () async {
-                    final messenger = ScaffoldMessenger.of(context);
                     Navigator.pop(sheetContext);
                     final success = await ApiService.deleteFeedPost(post['id']);
                     if (success) {
+                      ZToast.showSuccess(context, 'Post deleted');
                       _load();
                     } else {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('Failed to delete post')),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete post')));
                     }
                   },
                 ),
@@ -211,6 +186,27 @@ class _FeedTabState extends State<FeedTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 1000;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: ZynkBackground(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 5, child: _buildMainFeed()),
+              if (isDesktop) ...[
+                const SizedBox(width: 32),
+                Expanded(flex: 3, child: _buildRightRail()),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainFeed() {
     final filteredPosts = _posts.where((post) {
       if (_filter == 'All Posts') return true;
       if (_filter == 'Clubs Only') return post['club_id'] != null;
@@ -219,268 +215,292 @@ class _FeedTabState extends State<FeedTab> {
       return true;
     }).toList();
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: ZynkBackground(
-          child: RefreshIndicator(
-            color: ZynkColors.gold,
-            onRefresh: _load,
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 700),
-                      child: const Padding(
-                        padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Campus Feed',
-                              style: TextStyle(
-                                color: ZynkColors.darkText,
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'What\'s buzzing on campus?',
-                              style: TextStyle(color: ZynkColors.darkMuted),
-                            ),
-                          ],
-                        ),
+    return RefreshIndicator(
+      color: ZynkColors.primary,
+      onRefresh: _load,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
+                child: const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 32, 20, 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Campus Feed', style: TextStyle(color: ZynkColors.darkText, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                      SizedBox(height: 8),
+                      Text('What's buzzing on campus?', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: GestureDetector(
+                    onTap: _createNewPost,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: ZynkColors.darkBorder)),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(radius: 18, backgroundImage: CachedNetworkImageProvider('https://api.dicebear.com/7.x/avataaars/png?seed=You'), backgroundColor: ZynkColors.darkSurface2),
+                          const SizedBox(width: 12),
+                          const Expanded(child: Text("Share something with your campus...", style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15))),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(color: ZynkColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                            child: const Text('Post', style: TextStyle(color: ZynkColors.primary, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 700),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                        child: GestureDetector(
-                          onTap: _createNewPost,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: ZynkColors.darkSurface,
-                              borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                              border: Border.all(color: ZynkColors.darkBorder),
-                            ),
-                            child: Row(
-                              children: [
-                                const CircleAvatar(
-                                  radius: 16,
-                                  backgroundImage: CachedNetworkImageProvider('https://api.dicebear.com/7.x/avataaars/png?seed=You'),
-                                  backgroundColor: ZynkColors.darkSurface2,
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    "What's buzzing right now?",
-                                    style: TextStyle(
-                                      color: ZynkColors.darkMuted,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.add_photo_alternate_rounded,
-                                  color: ZynkColors.primary,
-                                  size: 18,
-                                ),
-                              ],
-                            ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(20), border: Border.all(color: ZynkColors.darkBorder)),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _filter,
+                            dropdownColor: ZynkColors.darkSurface,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
+                            style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                            items: ['All Posts', 'Clubs Only', 'Media Only', 'Text Only'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+                            onChanged: (newValue) {
+                              if (newValue != null) setState(() => _filter = newValue);
+                            },
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 700),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: ZynkColors.darkSurface,
-                                borderRadius: BorderRadius.circular(ZynkRadius.pill),
-                                border: Border.all(color: ZynkColors.darkBorder),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _filter,
-                                  dropdownColor: ZynkColors.darkSurface,
-                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
-                                  style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
-                                  items: ['All Posts', 'Clubs Only', 'Media Only', 'Text Only'].map((String value) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  }).toList(),
-                                  onChanged: (String? newValue) {
-                                    if (newValue != null) {
-                                      setState(() {
-                                        _filter = newValue;
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (_loading)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(
-                        child: CircularProgressIndicator(color: ZynkColors.gold),
-                      ),
-                    ),
-                  )
-                else if (filteredPosts.isEmpty)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 60),
-                      child: Center(
-                        child: Text(
-                          'Your campus story starts here - be the first.',
-                          style: TextStyle(color: ZynkColors.darkMuted),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 700),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filteredPosts.length,
-                          itemBuilder: (context, index) {
-                            final post = filteredPosts[index] as Map<String, dynamic>;
-                        return FeedPostCard(
-                          post: post,
-                          onLike: () async {
-                            if (!ApiService.hasToken) {
-                              showLoginPrompt(context, message: 'Join the campus to like this post.');
-                              return;
-                            }
-                            final postId = post['id'] as int?;
-                            if (postId != null) {
-                              final isLiked = post['is_liked'] == true;
-                              setState(() {
-                                post['is_liked'] = !isLiked;
-                                post['likes'] = (post['likes'] ?? 0) + (isLiked ? -1 : 1);
-                              });
-                              await ApiService.likeFeedPost(postId);
-                            }
-                          },
-                          onReply: () => _showComments(post),
-                          onShare: () async {
-                            final text = post['content'] ?? '';
-                            if (text.isEmpty) return;
-                            final messenger = ScaffoldMessenger.of(context);
-                            try {
-                              await Share.share(text);
-                            } catch (_) {
-                              await Clipboard.setData(ClipboardData(text: text));
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: const Row(
-                                    children: [
-                                      Icon(Icons.check_circle_outline_rounded, color: ZynkColors.gold),
-                                      SizedBox(width: 12),
-                                      Text('Copied post text to clipboard!'),
-                                    ],
-                                  ),
-                                  backgroundColor: ZynkColors.darkSurface2,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.3)),
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          onMore: () => _showMoreOptions(post),
-                          onReact: (emoji) async {
-                            if (!ApiService.hasToken) {
-                              showLoginPrompt(context, message: 'Join the campus to react.');
-                              return;
-                            }
-                            final postId = post['id'] as int?;
-                            if (postId != null) {
-                              final currentReaction = post['user_reaction'] as String?;
-                              final reactions = Map<String, dynamic>.from(post['reactions'] as Map<String, dynamic>? ?? {});
-                              
-                              setState(() {
-                                if (currentReaction == emoji) {
-                                  post['user_reaction'] = null;
-                                  reactions[emoji] = (reactions[emoji] ?? 1) - 1;
-                                  if (reactions[emoji] <= 0) reactions.remove(emoji);
-                                } else {
-                                  if (currentReaction != null) {
-                                    reactions[currentReaction] = (reactions[currentReaction] ?? 1) - 1;
-                                    if (reactions[currentReaction] <= 0) reactions.remove(currentReaction);
-                                  }
-                                  post['user_reaction'] = emoji;
-                                  reactions[emoji] = (reactions[emoji] ?? 0) + 1;
-                                }
-                                post['reactions'] = reactions;
-                              });
-
-                              await ApiService.reactToFeedPost(postId, emoji);
-                            }
-                          },
-                          onVote: (optionIndex) async {
-                            if (!ApiService.hasToken) {
-                              showLoginPrompt(context, message: 'Join the campus to vote.');
-                              return;
-                            }
-                            final postId = post['id'] as int?;
-                            if (postId != null) {
-                              await ApiService.votePoll(postId, optionIndex);
-                              _load();
-                            }
-                          },
-                        );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                const SliverToBoxAdapter(child: SizedBox(height: 110)),
-              ],
+              ),
             ),
           ),
+          if (_loading)
+            SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 700),
+                  child: Column(
+                    children: List.generate(3, (index) => const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: ZSkeleton(width: double.infinity, height: 220, borderRadius: 16),
+                    )),
+                  ),
+                ),
+              ),
+            )
+          else if (filteredPosts.isEmpty)
+            SliverToBoxAdapter(
+              child: ZEmptyState(
+                icon: Icons.chat_bubble_outline_rounded,
+                title: 'Your campus is quiet',
+                subtitle: 'Be the first to share something exciting.',
+                actionLabel: 'Create a post',
+                onAction: _createNewPost,
+              ),
+            )
+          else
+            SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 700),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filteredPosts.length,
+                    itemBuilder: (context, index) {
+                      final post = filteredPosts[index] as Map<String, dynamic>;
+                      return FeedPostCard(
+                        post: post,
+                        onLike: () async {
+                          if (!ApiService.hasToken) {
+                            showLoginPrompt(context, message: 'Join the campus to like this post.');
+                            return;
+                          }
+                          final postId = post['id'] as int?;
+                          if (postId != null) {
+                            final isLiked = post['is_liked'] == true;
+                            setState(() {
+                              post['is_liked'] = !isLiked;
+                              post['likes'] = (post['likes'] ?? 0) + (isLiked ? -1 : 1);
+                            });
+                            await ApiService.likeFeedPost(postId);
+                          }
+                        },
+                        onReply: () => _showComments(post),
+                        onShare: () async {
+                          final text = post['content'] ?? '';
+                          if (text.isEmpty) return;
+                          await Share.share(text);
+                        },
+                        onMore: () => _showMoreOptions(post),
+                        onReact: (emoji) async {
+                          if (!ApiService.hasToken) {
+                            showLoginPrompt(context, message: 'Join the campus to react.');
+                            return;
+                          }
+                          final postId = post['id'] as int?;
+                          if (postId == null) return;
+                          final oldReaction = post['user_reaction'] as String?;
+                          setState(() {
+                            post['user_reaction'] = (oldReaction == emoji) ? null : emoji;
+                            final reactions = post['reactions'] as Map<String, dynamic>? ?? {};
+                            if (oldReaction != null) reactions[oldReaction] = (reactions[oldReaction] as int? ?? 1) - 1;
+                            if (oldReaction != emoji) reactions[emoji] = (reactions[emoji] as int? ?? 0) + 1;
+                            post['reactions'] = reactions;
+                          });
+                          await ApiService.reactToFeedPost(postId, emoji);
+                        },
+                        onVote: (optionIndex) async {
+                          if (!ApiService.hasToken) {
+                            showLoginPrompt(context, message: 'Join the campus to vote.');
+                            return;
+                          }
+                          final postId = post['id'] as int?;
+                          if (postId == null) return;
+                          final poll = post['poll'] as Map<String, dynamic>?;
+                          if (poll == null) return;
+                          final votes = poll['votes'] as Map<String, dynamic>? ?? {};
+                          final userIdStr = _currentUserId?.toString() ?? '0';
+                          if (votes.containsKey(userIdStr)) return;
+                          setState(() {
+                            votes[userIdStr] = optionIndex;
+                            poll['votes'] = votes;
+                          });
+                          await ApiService.votePoll(postId, optionIndex);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRightRail() {
+    return Container(
+      padding: const EdgeInsets.only(top: 48, right: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Trending Events', style: TextStyle(color: ZynkColors.offWhite, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          if (_loading)
+            Column(children: List.generate(3, (index) => const Padding(padding: EdgeInsets.only(bottom: 12), child: ZSkeleton(width: double.infinity, height: 72, borderRadius: 12))))
+          else if (_events.isEmpty)
+            const Text('No upcoming events right now.', style: TextStyle(color: ZynkColors.darkMuted))
+          else
+            ..._events.take(3).map((e) => _buildMiniEventCard(e)),
+            
+          const SizedBox(height: 48),
+          
+          const Text('Active Communities', style: TextStyle(color: ZynkColors.offWhite, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          if (_loading)
+            Column(children: List.generate(3, (index) => const Padding(padding: EdgeInsets.only(bottom: 12), child: ZSkeleton(width: double.infinity, height: 64, borderRadius: 12))))
+          else if (_clubs.isEmpty)
+            const Text('No communities found.', style: TextStyle(color: ZynkColors.darkMuted))
+          else
+            ..._clubs.take(4).map((c) => _buildMiniClubCard(c)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniEventCard(dynamic event) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: Event.fromJson(event))));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: ZynkColors.darkBorder)),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: ZynkColors.darkSurface2,
+                borderRadius: BorderRadius.circular(8),
+                image: event['cover_url'] != null ? DecorationImage(image: CachedNetworkImageProvider(event['cover_url']), fit: BoxFit.cover) : null,
+              ),
+              child: event['cover_url'] == null ? const Icon(Icons.event_rounded, color: ZynkColors.darkMuted, size: 20) : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(event['title'] ?? 'Unnamed Event', style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(event['category'] ?? 'Event', style: const TextStyle(color: ZynkColors.primary, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _createNewPost,
-        backgroundColor: ZynkColors.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.add_comment_rounded, color: Colors.white),
+    );
+  }
+
+  Widget _buildMiniClubCard(dynamic club) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id'])));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: ZynkColors.darkBorder)),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: ZynkColors.darkSurface2,
+              backgroundImage: club['logo_url'] != null ? CachedNetworkImageProvider(club['logo_url']) : null,
+              child: club['logo_url'] == null ? const Icon(Icons.groups_rounded, color: ZynkColors.darkMuted, size: 20) : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(club['name'] ?? 'Unnamed Club', style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  const Text('Campus Community', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
