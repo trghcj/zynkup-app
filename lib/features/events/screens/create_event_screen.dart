@@ -180,47 +180,52 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       ),
       body: ZynkBackground(
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildStepper(),
-              Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: PageView(
-                    controller: _page,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildStepShell(
-                        'What are we calling it?',
-                        'Make it catchy and descriptive.',
-                        _buildBasics(),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                children: [
+                  _buildStepper(),
+                  Expanded(
+                    child: Form(
+                      key: _formKey,
+                      child: PageView(
+                        controller: _page,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildStepShell(
+                            'What are we calling it?',
+                            'Make it catchy and descriptive.',
+                            _buildBasics(),
+                          ),
+                          _buildStepShell(
+                            'When & Where?',
+                            'Set the time and location.',
+                            _buildDetails(),
+                          ),
+                          _buildStepShell(
+                            'What kind of event?',
+                            'Categorize to help students find it.',
+                            _buildCategory(),
+                          ),
+                          _buildStepShell(
+                            'Make it pop',
+                            'Upload a banner or poster for the event.',
+                            _buildMedia(),
+                          ),
+                          _buildStepShell(
+                            'Review & Launch',
+                            'Here is how your event will look.',
+                            _buildPreview(),
+                          ),
+                        ],
                       ),
-                      _buildStepShell(
-                        'When & Where?',
-                        'Set the time and location.',
-                        _buildDetails(),
-                      ),
-                      _buildStepShell(
-                        'What kind of event?',
-                        'Categorize to help students find it.',
-                        _buildCategory(),
-                      ),
-                      _buildStepShell(
-                        'Make it pop',
-                        'Upload a banner or poster for the event.',
-                        _buildMedia(),
-                      ),
-                      _buildStepShell(
-                        'Review & Launch',
-                        'Here is how your event will look.',
-                        _buildPreview(),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  _buildBottomBar(),
+                ],
               ),
-              _buildBottomBar(),
-            ],
+            ),
           ),
         ),
       ),
@@ -229,32 +234,39 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Widget _buildStepper() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       child: Row(
-        children: List.generate(5, (index) {
-          final active = _step >= index;
-          return Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: EdgeInsets.only(right: index == 4 ? 0 : 8),
+        children: [
+          Text(
+            'Step ${_step + 1} of 5',
+            style: const TextStyle(
+              color: ZynkColors.primary,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Container(
               height: 4,
               decoration: BoxDecoration(
-                color: active
-                    ? ZynkColors.gold
-                    : ZynkColors.darkSurface2,
+                color: ZynkColors.darkSurface2,
                 borderRadius: BorderRadius.circular(2),
-                boxShadow: active
-                    ? [
-                        BoxShadow(
-                          color: ZynkColors.gold.withValues(alpha: 0.5),
-                          blurRadius: 8,
-                        )
-                      ]
-                    : null,
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: (_step + 1) / 5,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: ZynkColors.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
             ),
-          );
-        }),
+          ),
+        ],
       ),
     );
   }
@@ -405,25 +417,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              gradient: selected ? ZynkGradients.forCategory(cat) : null,
-              color: selected ? null : ZynkColors.darkSurface,
+              color: selected ? ZynkColors.primary.withValues(alpha: 0.1) : ZynkColors.darkSurface,
               borderRadius: BorderRadius.circular(ZynkRadius.pill),
               border: Border.all(
-                color: selected ? Colors.transparent : ZynkColors.darkBorder,
+                color: selected ? ZynkColors.primary : ZynkColors.darkBorder,
               ),
-              boxShadow: selected
-                  ? [BoxShadow(color: ZynkColors.forCategory(cat).withValues(alpha: 0.3), blurRadius: 12)]
-                  : null,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, color: selected ? Colors.white : ZynkColors.darkMuted, size: 20),
+                Icon(icon, color: selected ? ZynkColors.primary : ZynkColors.darkMuted, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   cat[0].toUpperCase() + cat.substring(1),
                   style: TextStyle(
-                    color: selected ? Colors.white : ZynkColors.darkMuted,
+                    color: selected ? ZynkColors.primary : ZynkColors.darkMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -445,12 +453,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             height: 200,
             decoration: BoxDecoration(
               color: ZynkColors.darkSurface.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(ZynkRadius.xl),
-              border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.3), style: BorderStyle.solid, width: 2),
+              borderRadius: BorderRadius.circular(ZynkRadius.lg),
+              border: Border.all(color: ZynkColors.darkBorder),
             ),
             child: _pickedBytes != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(ZynkRadius.xl - 2),
+                    borderRadius: BorderRadius.circular(ZynkRadius.lg - 1),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -468,10 +476,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: ZynkColors.gold.withValues(alpha: 0.1),
+                          color: ZynkColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.cloud_upload_rounded, color: ZynkColors.gold, size: 32),
+                        child: const Icon(Icons.cloud_upload_rounded, color: ZynkColors.primary, size: 32),
                       ),
                       const SizedBox(height: 16),
                       const Text(
