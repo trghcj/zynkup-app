@@ -1,3 +1,4 @@
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 // lib/features/profile/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as fp;
@@ -233,9 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: ZynkColors.gold));
-    }
+    if (_loading) { return const Scaffold(backgroundColor: ZynkColors.darkBg, body: _ProfileSkeleton()); }
 
     final user = _user ?? {};
     final xp = user['xp'] ?? 0;
@@ -1485,4 +1484,45 @@ Color _badgeColor(String hex) {
   final value = int.tryParse(normalized, radix: 16);
   if (value == null) return ZynkColors.primary;
   return Color(0xFF000000 | value);
+}
+
+class _ProfileSkeleton extends StatelessWidget {
+  const _ProfileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        children: [
+          const SizedBox(height: 48),
+          const Center(child: ZSkeleton(width: 120, height: 120, isCircle: true)),
+          const SizedBox(height: 24),
+          const Center(child: ZSkeleton(width: 200, height: 32)),
+          const SizedBox(height: 12),
+          const Center(child: ZSkeleton(width: 150, height: 16)),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(3, (index) => Column(
+              children: const [
+                ZSkeleton(width: 40, height: 24),
+                SizedBox(height: 8),
+                ZSkeleton(width: 60, height: 14),
+              ],
+            )),
+          ),
+          const SizedBox(height: 48),
+          const ZSkeleton(width: double.infinity, height: 48, borderRadius: 12),
+          const SizedBox(height: 32),
+          Column(
+            children: List.generate(3, (index) => const Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: ZSkeleton(width: double.infinity, height: 120, borderRadius: 12),
+            )),
+          ),
+        ],
+      ),
+    );
+  }
 }

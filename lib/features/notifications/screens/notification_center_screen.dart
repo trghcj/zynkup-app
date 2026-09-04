@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
+import 'package:zynkup/core/widgets/zynk_empty_state.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({super.key});
@@ -170,7 +172,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         iconTheme: const IconThemeData(color: ZynkColors.offWhite),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
+          ? _buildSkeleton()
           : _error != null
               ? Center(
                   child: Padding(
@@ -183,12 +185,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                   ),
                 )
               : _notifications.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No notifications yet.',
-                        style: TextStyle(color: ZynkColors.darkMuted),
-                      ),
-                    )
+                  ? const ZEmptyState(icon: Icons.notifications_none_rounded, title: 'You\'re all caught up', subtitle: 'Check back later for updates.')
               : ListView.builder(
                   itemCount: _grouped.length,
                   itemBuilder: (context, sectionIndex) {
@@ -281,6 +278,32 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                     );
                   },
                 ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: 5,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          children: [
+            const ZSkeleton(width: 48, height: 48, isCircle: true),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  ZSkeleton(width: double.infinity, height: 16),
+                  SizedBox(height: 8),
+                  ZSkeleton(width: 100, height: 12),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -502,7 +503,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           backgroundColor: ZynkColors.darkBg,
           body: ZynkBackground(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
+                ? const _ClubProfileSkeleton()
                 : NestedScrollView(
                 headerSliverBuilder: (context, innerBoxIsScrolled) {
                   return [
@@ -1556,5 +1557,56 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return false;
+  }
+}
+class _ClubProfileSkeleton extends StatelessWidget {
+  const _ClubProfileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        const SliverAppBar(
+          expandedHeight: 280,
+          pinned: true,
+          backgroundColor: ZynkColors.darkBg,
+          flexibleSpace: FlexibleSpaceBar(
+            background: ZSkeleton(width: double.infinity, height: 280, borderRadius: 0),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const ZSkeleton(width: 80, height: 80, isCircle: true),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          ZSkeleton(width: 200, height: 24),
+                          SizedBox(height: 8),
+                          ZSkeleton(width: 100, height: 14),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const ZSkeleton(width: double.infinity, height: 60, borderRadius: 12),
+                const SizedBox(height: 24),
+                const ZSkeleton(width: double.infinity, height: 14),
+                const SizedBox(height: 8),
+                const ZSkeleton(width: 250, height: 14),
+              ],
+            ),
+          ),
+        )
+      ],
+    );
   }
 }

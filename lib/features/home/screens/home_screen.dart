@@ -74,10 +74,138 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   Future<void> _create() async {
+    final isDesktop = MediaQuery.of(context).size.width > 800;
     if (_isGuest) {
       showLoginPrompt(context, message: 'Sign in to post, host events, and found clubs.');
       return;
     }
+    
+    Widget buildContent(BuildContext ctx) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isDesktop) ...[
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: ZynkColors.darkMuted.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+        const Text(
+          'Start Something',
+          style: TextStyle(
+            color: ZynkColors.offWhite,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Choose what you want to share with the campus.',
+          style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
+        ),
+        const SizedBox(height: 24),
+        _CreationHubItem(
+          icon: Icons.add_comment_rounded,
+          title: 'Share a Post',
+          subtitle: 'Post updates, photos, or banner highlights to feed',
+          gradient: ZynkGradients.forCategory('sports'),
+          onTap: () {
+            Navigator.pop(ctx);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreatePostScreen()),
+            ).then((value) {
+              if (value == true) {
+                setState(() => _index = 0);
+              }
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        _CreationHubItem(
+          icon: Icons.event_rounded,
+          title: 'Host Something Epic',
+          subtitle: 'Organize workshops, seminars, or cultural meets',
+          gradient: ZynkGradients.forCategory('tech'),
+          onTap: () {
+            Navigator.pop(ctx);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreateEventScreen()),
+            ).then((value) {
+              setState(() => _index = 3);
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        _CreationHubItem(
+          icon: Icons.groups_rounded,
+          title: 'Found a Club',
+          subtitle: 'Build a student community around shared passions',
+          gradient: ZynkGradients.forCategory('cultural'),
+          onTap: () {
+            Navigator.pop(ctx);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreateClubScreen()),
+            ).then((value) {
+              if (value == true) {
+                setState(() => _index = 1);
+              }
+            });
+          },
+        ),
+        if (!isDesktop) const SizedBox(height: 16),
+      ],
+    );
+
+    if (isDesktop) {
+      showGeneralDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: 'Dismiss',
+        barrierColor: Colors.black.withValues(alpha: 0.5),
+        transitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (context, anim1, anim2) {
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: 380,
+              margin: const EdgeInsets.only(left: 100),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: ZynkColors.darkSurface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: ZynkColors.darkBorder),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30, offset: const Offset(0, 10))
+                ]
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: buildContent(context),
+              ),
+            ),
+          );
+        },
+        transitionBuilder: (context, anim1, anim2, child) {
+          return FractionalTranslation(
+            translation: Offset(-0.05 * (1 - anim1.value), 0),
+            child: FadeTransition(opacity: anim1, child: child),
+          );
+        },
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -90,90 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
             border: const Border(top: BorderSide(color: ZynkColors.darkBorder)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: ZynkColors.darkMuted.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Start Something',
-                style: TextStyle(
-                  color: ZynkColors.offWhite,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Choose what you want to share with the campus.',
-                style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 24),
-              _CreationHubItem(
-                icon: Icons.add_comment_rounded,
-                title: 'Share a Post',
-                subtitle: 'Post updates, photos, or banner highlights to feed',
-                gradient: ZynkGradients.forCategory('sports'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CreatePostScreen()),
-                  ).then((value) {
-                    if (value == true) {
-                      setState(() => _index = 0);
-                    }
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              _CreationHubItem(
-                icon: Icons.event_rounded,
-                title: 'Host Something Epic',
-                subtitle: 'Organize workshops, seminars, or cultural meets',
-                gradient: ZynkGradients.forCategory('tech'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CreateEventScreen()),
-                  ).then((value) {
-                    setState(() => _index = 3);
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              _CreationHubItem(
-                icon: Icons.groups_rounded,
-                title: 'Found a Club',
-                subtitle: 'Build a student community around shared passions',
-                gradient: ZynkGradients.forCategory('cultural'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CreateClubScreen()),
-                  ).then((value) {
-                    if (value == true) {
-                      setState(() => _index = 1);
-                    }
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+          child: buildContent(context),
         );
       },
     );

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/widgets/zynk_toast.dart';
 import 'package:zynkup/core/widgets/event_card_widget.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
@@ -123,9 +124,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Event created successfully!')),
-      );
+      ZToast.showSuccess(context, 'Event created', subtitle: 'Your event is ready to be discovered.');
       Navigator.pop(context, true);
     } on ApiException catch (error) {
       _show(error.message);
