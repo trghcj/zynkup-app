@@ -312,8 +312,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 760),
-                      child: content,
+                      constraints: const BoxConstraints(maxWidth: 1280),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: MediaQuery.of(context).size.width > 1200 ? 64 : 40,
+                        ),
+                        child: content,
+                      ),
                     ),
                   ),
                 ),

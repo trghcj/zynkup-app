@@ -130,12 +130,6 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 )
               else ...[
-                SliverToBoxAdapter(
-                  child: _ClubsSection(
-                    clubs: _clubs,
-                    onRefresh: _load,
-                  ),
-                ),
                 _Section(
                   title: 'Featured Events',
                   events: filteredEvents.take(3).toList(),
@@ -145,6 +139,12 @@ class _HomeTabState extends State<HomeTab> {
                   events: upcoming.take(5).toList(),
                 ),
                 _Section(title: 'Trending', events: trending.take(5).toList()),
+                SliverToBoxAdapter(
+                  child: _ClubsSection(
+                    clubs: _clubs,
+                    onRefresh: _load,
+                  ),
+                ),
                 const SliverToBoxAdapter(child: SizedBox(height: 110)),
               ],
             ],
@@ -333,40 +333,70 @@ class _Section extends StatelessWidget {
               ),
             )
           else
-            SizedBox(
-              height: 310,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: events.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 14),
-                itemBuilder: (context, index) => TweenAnimationBuilder<double>(
-                  duration: Duration(milliseconds: 350 + (index * 80)),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 16 * (1.0 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: SizedBox(
-                    width: 270,
-                    child: EventCardWidget(
-                      event: events[index],
-                      onTap: () => showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => EventDetailsScreen(event: events[index]),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth > 800;
+                
+                if (isDesktop) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: events.map((event) {
+                        return SizedBox(
+                          width: 320,
+                          child: EventCardWidget(
+                            event: event,
+                            onTap: () => showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => EventDetailsScreen(event: event),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }
+
+                return SizedBox(
+                  height: 310,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: events.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                    itemBuilder: (context, index) => TweenAnimationBuilder<double>(
+                      duration: Duration(milliseconds: 350 + (index * 80)),
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, child) {
+                        return Transform.translate(
+                          offset: Offset(0, 16 * (1.0 - value)),
+                          child: Opacity(
+                            opacity: value,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: SizedBox(
+                        width: 270,
+                        child: EventCardWidget(
+                          event: events[index],
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => EventDetailsScreen(event: events[index]),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
         ],
       ),

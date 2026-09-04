@@ -228,63 +228,28 @@ class _FeedTabState extends State<FeedTab> {
             onRefresh: _load,
             child: CustomScrollView(
               slivers: [
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Campus Feed',
-                          style: TextStyle(
-                            color: ZynkColors.darkText,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'What\'s buzzing on campus?',
-                          style: TextStyle(color: ZynkColors.darkMuted),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: GestureDetector(
-                      onTap: _createNewPost,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: ZynkColors.darkSurface,
-                          borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                          border: Border.all(color: ZynkColors.darkBorder),
-                        ),
-                        child: Row(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 700),
+                      child: const Padding(
+                        padding: EdgeInsets.fromLTRB(20, 22, 20, 18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundImage: const CachedNetworkImageProvider('https://api.dicebear.com/7.x/avataaars/png?seed=You'),
-                              backgroundColor: ZynkColors.darkSurface2,
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Text(
-                                "What's buzzing right now?",
-                                style: TextStyle(
-                                  color: ZynkColors.darkMuted,
-                                  fontSize: 14,
-                                ),
+                            Text(
+                              'Campus Feed',
+                              style: TextStyle(
+                                color: ZynkColors.darkText,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
                               ),
                             ),
-                            const Icon(
-                              Icons.add_photo_alternate_rounded,
-                              color: ZynkColors.gold,
-                              size: 18,
+                            SizedBox(height: 8),
+                            Text(
+                              'What\'s buzzing on campus?',
+                              style: TextStyle(color: ZynkColors.darkMuted),
                             ),
                           ],
                         ),
@@ -293,41 +258,91 @@ class _FeedTabState extends State<FeedTab> {
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: ZynkColors.darkSurface,
-                            borderRadius: BorderRadius.circular(ZynkRadius.pill),
-                            border: Border.all(color: ZynkColors.darkBorder),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _filter,
-                              dropdownColor: ZynkColors.darkSurface,
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.gold, size: 18),
-                              style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
-                              items: ['All Posts', 'Clubs Only', 'Media Only', 'Text Only'].map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  setState(() {
-                                    _filter = newValue;
-                                  });
-                                }
-                              },
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 700),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        child: GestureDetector(
+                          onTap: _createNewPost,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: ZynkColors.darkSurface,
+                              borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                              border: Border.all(color: ZynkColors.darkBorder),
+                            ),
+                            child: Row(
+                              children: [
+                                const CircleAvatar(
+                                  radius: 16,
+                                  backgroundImage: CachedNetworkImageProvider('https://api.dicebear.com/7.x/avataaars/png?seed=You'),
+                                  backgroundColor: ZynkColors.darkSurface2,
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    "What's buzzing right now?",
+                                    style: TextStyle(
+                                      color: ZynkColors.darkMuted,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.add_photo_alternate_rounded,
+                                  color: ZynkColors.primary,
+                                  size: 18,
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 700),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: ZynkColors.darkSurface,
+                                borderRadius: BorderRadius.circular(ZynkRadius.pill),
+                                border: Border.all(color: ZynkColors.darkBorder),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _filter,
+                                  dropdownColor: ZynkColors.darkSurface,
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
+                                  style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                                  items: ['All Posts', 'Clubs Only', 'Media Only', 'Text Only'].map((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  }).toList(),
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _filter = newValue;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -353,10 +368,16 @@ class _FeedTabState extends State<FeedTab> {
                     ),
                   )
                 else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final post = filteredPosts[index] as Map<String, dynamic>;
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 700),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredPosts.length,
+                          itemBuilder: (context, index) {
+                            final post = filteredPosts[index] as Map<String, dynamic>;
                         return FeedPostCard(
                           post: post,
                           onLike: () async {
@@ -444,8 +465,9 @@ class _FeedTabState extends State<FeedTab> {
                             }
                           },
                         );
-                      },
-                      childCount: filteredPosts.length,
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 const SliverToBoxAdapter(child: SizedBox(height: 110)),

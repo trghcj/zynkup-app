@@ -24,10 +24,10 @@ class ZynkSideNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 90,
-      decoration: BoxDecoration(
-        color: ZynkColors.darkSurface.withValues(alpha: 0.3),
-        border: const Border(
-          right: BorderSide(color: ZynkColors.darkBorder),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F1217),
+        border: Border(
+          right: BorderSide(color: Color(0xFF252B35)),
         ),
       ),
       child: Column(
@@ -40,55 +40,41 @@ class ZynkSideNav extends StatelessWidget {
           return GestureDetector(
             onTap: () => onChanged(index),
             behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
+            child: Container(
               margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               width: 66,
-              height: 72,
+              height: 66,
               decoration: BoxDecoration(
-                color: selected
-                    ? (isCreate
-                        ? ZynkColors.primary.withValues(alpha: 0.18)
-                        : ZynkColors.gold.withValues(alpha: 0.10))
+                color: selected && !isCreate
+                    ? ZynkColors.primary.withValues(alpha: 0.1)
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    decoration: isCreate
-                        ? BoxDecoration(
-                            color: selected
-                                ? ZynkColors.primary
-                                : Colors.white.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                            boxShadow: selected
-                                ? [
-                                    BoxShadow(
-                                      color: ZynkColors.primary.withValues(alpha: 0.3),
-                                      blurRadius: 12,
-                                    ),
-                                  ]
-                                : null,
-                          )
-                        : null,
-                    padding: isCreate
-                        ? const EdgeInsets.all(10)
-                        : EdgeInsets.zero,
-                    child: Icon(
+                  if (isCreate)
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: ZynkColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: ZynkColors.darkSurface,
+                        size: 24,
+                      ),
+                    )
+                  else ...[
+                    Icon(
                       item.$1,
-                      color: isCreate
-                          ? Colors.white
-                          : (selected
-                              ? ZynkColors.gold
-                              : ZynkColors.darkMuted.withValues(alpha: 0.6)),
-                      size: isCreate ? 28 : 26,
+                      color: selected
+                          ? ZynkColors.primary
+                          : const Color(0xFF737984),
+                      size: 26,
                     ),
-                  ),
-                  if (!isCreate) ...[
                     const SizedBox(height: 6),
                     Text(
                       item.$2,
@@ -96,12 +82,10 @@ class ZynkSideNav extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: selected
-                            ? ZynkColors.gold
-                            : ZynkColors.darkMuted.withValues(alpha: 0.5),
+                            ? ZynkColors.primary
+                            : const Color(0xFF737984),
                         fontSize: 11,
-                        fontWeight: selected
-                            ? FontWeight.w800
-                            : FontWeight.w500,
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
                   ],

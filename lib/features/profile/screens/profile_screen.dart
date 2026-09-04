@@ -966,59 +966,36 @@ class _BadgeIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = badge.unlocked ? badge.color : ZynkColors.darkMuted;
+    final color = badge.unlocked ? badge.color : ZynkColors.darkMuted.withValues(alpha: 0.5);
     return SizedBox(
       width: 76,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: badge.unlocked ? 0.16 : 0.08),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: color.withValues(alpha: badge.unlocked ? 0.55 : 0.2),
-                    width: 1.5,
-                  ),
-                  boxShadow: badge.unlocked
-                      ? [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.18),
-                            blurRadius: 14,
-                          ),
-                        ]
-                      : null,
-                ),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: badge.unlocked ? color.withValues(alpha: 0.1) : Colors.transparent,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: badge.unlocked ? color.withValues(alpha: 0.3) : ZynkColors.darkBorder,
               ),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: badge.unlocked
-                      ? color.withValues(alpha: 0.18)
-                      : Colors.black.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(badge.icon, color: color, size: 22),
-              ),
-              if (!badge.unlocked)
-                const Positioned(
-                  right: 10,
-                  bottom: 8,
-                  child: Icon(
-                    Icons.lock_rounded,
-                    color: ZynkColors.darkMuted,
-                    size: 13,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(badge.icon, color: color, size: 24),
+                if (!badge.unlocked)
+                  const Positioned(
+                    right: 4,
+                    bottom: 4,
+                    child: Icon(Icons.lock_rounded, color: ZynkColors.darkMuted, size: 12),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             badge.name,
             maxLines: 2,
@@ -1026,8 +1003,8 @@ class _BadgeIcon extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: badge.unlocked ? ZynkColors.darkText : ZynkColors.darkMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1251,7 +1228,6 @@ class _BadgeTileState extends State<_BadgeTile> with SingleTickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     final badge = widget.badge;
-    final color = badge.unlocked ? badge.color : ZynkColors.darkMuted;
 
     return GestureDetector(
       onTapDown: (_) => _anim.reverse(),
@@ -1262,21 +1238,13 @@ class _BadgeTileState extends State<_BadgeTile> with SingleTickerProviderStateMi
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: ZynkGradients.cardSurface,
+            color: badge.unlocked ? ZynkColors.darkSurface : ZynkColors.darkBg,
             borderRadius: BorderRadius.circular(ZynkRadius.lg),
             border: Border.all(
               color: badge.unlocked
-                  ? color.withValues(alpha: 0.4)
-                  : ZynkColors.darkBorder.withValues(alpha: 0.4),
+                  ? ZynkColors.darkBorder
+                  : ZynkColors.darkBorder.withValues(alpha: 0.5),
             ),
-            boxShadow: badge.unlocked
-                ? [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                    ),
-                  ]
-                : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
