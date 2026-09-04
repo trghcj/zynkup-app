@@ -1,3 +1,4 @@
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -417,24 +418,6 @@ class _HeroImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
-    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
-    final isPast = _event.date.isBefore(now) && !isToday;
-    
-    String urgencyLabel = '';
-    Color urgencyColor = ZynkColors.darkMuted;
-    
-    if (isToday) {
-      urgencyLabel = 'Happening Today';
-      urgencyColor = ZynkColors.error;
-    } else if (isSoon) {
-      urgencyLabel = 'Starts Soon';
-      urgencyColor = ZynkColors.primary;
-    } else if (isPast) {
-      urgencyLabel = 'Past Event';
-      urgencyColor = ZynkColors.darkMuted;
-    }
 
     final image = event.imageUrls.isNotEmpty ? event.imageUrls.first : null;
     if (image == null) {
@@ -506,24 +489,6 @@ class _Info extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
-    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
-    final isPast = _event.date.isBefore(now) && !isToday;
-    
-    String urgencyLabel = '';
-    Color urgencyColor = ZynkColors.darkMuted;
-    
-    if (isToday) {
-      urgencyLabel = 'Happening Today';
-      urgencyColor = ZynkColors.error;
-    } else if (isSoon) {
-      urgencyLabel = 'Starts Soon';
-      urgencyColor = ZynkColors.primary;
-    } else if (isPast) {
-      urgencyLabel = 'Past Event';
-      urgencyColor = ZynkColors.darkMuted;
-    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -597,24 +562,6 @@ class _ActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
-    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
-    final isPast = _event.date.isBefore(now) && !isToday;
-    
-    String urgencyLabel = '';
-    Color urgencyColor = ZynkColors.darkMuted;
-    
-    if (isToday) {
-      urgencyLabel = 'Happening Today';
-      urgencyColor = ZynkColors.error;
-    } else if (isSoon) {
-      urgencyLabel = 'Starts Soon';
-      urgencyColor = ZynkColors.primary;
-    } else if (isPast) {
-      urgencyLabel = 'Past Event';
-      urgencyColor = ZynkColors.darkMuted;
-    }
 
     if (isCreator) {
       return Row(
@@ -679,24 +626,6 @@ class _QrPass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final isToday = _event.date.year == now.year && _event.date.month == now.month && _event.date.day == now.day;
-    final isSoon = _event.date.difference(now).inDays > 0 && _event.date.difference(now).inDays <= 3;
-    final isPast = _event.date.isBefore(now) && !isToday;
-    
-    String urgencyLabel = '';
-    Color urgencyColor = ZynkColors.darkMuted;
-    
-    if (isToday) {
-      urgencyLabel = 'Happening Today';
-      urgencyColor = ZynkColors.error;
-    } else if (isSoon) {
-      urgencyLabel = 'Starts Soon';
-      urgencyColor = ZynkColors.primary;
-    } else if (isPast) {
-      urgencyLabel = 'Past Event';
-      urgencyColor = ZynkColors.darkMuted;
-    }
 
     return Container(
       width: double.infinity,
@@ -752,8 +681,6 @@ class _QrPass extends StatelessWidget {
     );
   }
 }
-
-import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 
 class _EventDetailsSkeleton extends StatelessWidget {
   const _EventDetailsSkeleton();

@@ -1,3 +1,4 @@
+import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 // lib/features/profile/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as fp;
@@ -1486,8 +1487,6 @@ Color _badgeColor(String hex) {
   if (value == null) return ZynkColors.primary;
   return Color(0xFF000000 | value);
 }
-
-import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 
 class _ProfileSkeleton extends StatelessWidget {
   const _ProfileSkeleton();

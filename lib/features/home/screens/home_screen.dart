@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _create() async {
     final isDesktop = MediaQuery.of(context).size.width > 800;
     if (_isGuest) {
-      showLoginPrompt(context, message: \'Sign in to post, host events, and found clubs.\');
+      showLoginPrompt(context, message: 'Sign in to post, host events, and found clubs.');
       return;
     }
     

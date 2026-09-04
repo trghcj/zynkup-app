@@ -172,7 +172,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         iconTheme: const IconThemeData(color: ZynkColors.offWhite),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))
+          ? _buildSkeleton()
           : _error != null
               ? Center(
                   child: Padding(
@@ -185,12 +185,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                   ),
                 )
               : _notifications.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No notifications yet.',
-                        style: TextStyle(color: ZynkColors.darkMuted),
-                      ),
-                    )
+                  ? const ZEmptyState(icon: Icons.notifications_none_rounded, title: 'You\'re all caught up', subtitle: 'Check back later for updates.')
               : ListView.builder(
                   itemCount: _grouped.length,
                   itemBuilder: (context, sectionIndex) {

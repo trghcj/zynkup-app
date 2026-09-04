@@ -160,7 +160,7 @@ class _HomeTabState extends State<HomeTab> {
                     runSpacing: 16,
                     children: matchedClubs.map((club) {
                       return GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id']))),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id'].toString(), clubName: club['name']?.toString() ?? 'Club'))),
                         child: Container(
                           width: isDesktop ? 300 : MediaQuery.of(context).size.width - 40,
                           padding: const EdgeInsets.all(16),
@@ -196,9 +196,9 @@ class _HomeTabState extends State<HomeTab> {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, mainAxisSpacing: 20, crossAxisSpacing: 20, mainAxisExtent: 140),
                         itemCount: matchedEvents.length,
-                        itemBuilder: (context, index) => EventCardWidget(event: matchedEvents[index]),
+                        itemBuilder: (context, index) => EventCardWidget(event: matchedEvents[index], onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: matchedEvents[index])))),
                       )
-                    : Column(children: matchedEvents.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e))).toList()),
+                    : Column(children: matchedEvents.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
                 ]
               ],
             ),
@@ -275,9 +275,9 @@ class _HomeTabState extends State<HomeTab> {
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, mainAxisSpacing: 20, crossAxisSpacing: 20, mainAxisExtent: 140),
                         itemCount: upcoming.length,
-                        itemBuilder: (context, index) => EventCardWidget(event: upcoming[index]),
+                        itemBuilder: (context, index) => EventCardWidget(event: upcoming[index], onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: upcoming[index])))),
                       )
-                    : Column(children: upcoming.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e))).toList()),
+                    : Column(children: upcoming.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
                 ),
               const SizedBox(height: 32),
             ],

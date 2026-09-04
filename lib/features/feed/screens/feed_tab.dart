@@ -231,7 +231,7 @@ class _FeedTabState extends State<FeedTab> {
                     children: [
                       Text('Campus Feed', style: TextStyle(color: ZynkColors.darkText, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
                       SizedBox(height: 8),
-                      Text('What's buzzing on campus?', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15)),
+                      Text("What's buzzing on campus?", style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15)),
                     ],
                   ),
                 ),
@@ -474,7 +474,7 @@ class _FeedTabState extends State<FeedTab> {
   Widget _buildMiniClubCard(dynamic club) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id'])));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id'].toString(), clubName: club['name']?.toString() ?? 'Club')));
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
