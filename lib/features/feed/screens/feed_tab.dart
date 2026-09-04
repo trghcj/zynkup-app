@@ -1,5 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/api/api_service.dart';
@@ -53,9 +53,9 @@ class _FeedTabState extends State<FeedTab> {
     if (mounted) {
       setState(() {
         _currentUserId = int.tryParse(user?['id']?.toString() ?? '');
-        _posts = results[0] as List<dynamic>;
-        _events = results[1] as List<dynamic>;
-        _clubs = results[2] as List<dynamic>;
+        _posts = results[0];
+        _events = results[1];
+        _clubs = results[2];
         _loading = false;
       });
     }

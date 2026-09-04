@@ -414,6 +414,7 @@ class _AvatarBubble extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.events});
 
@@ -537,6 +538,7 @@ class _Section extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ClubsSection extends StatelessWidget {
   final List<dynamic> clubs;
   final VoidCallback onRefresh;

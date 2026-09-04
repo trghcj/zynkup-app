@@ -234,9 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: ZynkColors.gold));
-    }
+    if (_loading) { return const Scaffold(backgroundColor: ZynkColors.darkBg, body: _ProfileSkeleton()); }
 
     final user = _user ?? {};
     final xp = user['xp'] ?? 0;
