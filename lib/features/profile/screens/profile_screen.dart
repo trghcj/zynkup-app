@@ -11,7 +11,7 @@ import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
-import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
+
 import 'package:zynkup/core/widgets/zynk_background.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -26,8 +26,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _user;
   Map<String, int> _heatmapData = {};
-  List<Event> _createdEvents = [];
-  List<Event> _joinedEvents = [];
   List<dynamic> _timeline = [];
   bool _loading = true;
 
@@ -39,7 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _load();
   }
 
@@ -71,12 +69,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final heatmap = (results[1] is Map<String, int>)
         ? results[1] as Map<String, int>
         : <String, int>{};
-    final createdRaw = (results[2] is List)
-        ? results[2] as List<dynamic>
-        : <dynamic>[];
-    final joinedRaw = (results[3] is List)
-        ? results[3] as List<dynamic>
-        : <dynamic>[];
+
     final timelineRaw = (results.length > 4 && results[4] is List)
         ? results[4] as List<dynamic>
         : <dynamic>[];
@@ -84,16 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     setState(() {
       _user = user;
       _heatmapData = heatmap;
-      _createdEvents = createdRaw
-          .whereType<Map<String, dynamic>>()
-          .map(Event.fromJson)
-          .toList();
-      _joinedEvents = joinedRaw
-          .whereType<Map<String, dynamic>>()
-          .map((item) => item['event'])
-          .whereType<Map<String, dynamic>>()
-          .map(Event.fromJson)
-          .toList();
+
       _timeline = timelineRaw;
       _loading = false;
       if (user != null) {
@@ -432,16 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _InlineStat(
-                        count: '${user['events_created'] ?? 0}',
-                        label: 'Events',
-                      ),
-                      Container(
-                        width: 1,
-                        height: 24,
-                        color: ZynkColors.darkBorder,
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                      ),
+
                       _InlineStat(
                         count: '${user['attended'] ?? 0}',
                         label: 'Attended',
@@ -487,7 +462,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 tabs: [
                   const Tab(text: 'Overview'),
                   const Tab(text: 'Timeline'),
-                  const Tab(text: 'Events'),
                   const Tab(text: 'Badges'),
                 ],
               ),
@@ -505,11 +479,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     isMe: widget.userId == null,
                   ),
                   _TimelineTab(timeline: _timeline),
-                  _EventsTab(
-                    createdEvents: _createdEvents,
-                    joinedEvents: _joinedEvents,
-                    onRefresh: _load,
-                  ),
+
                   _BadgesTab(user: user),
                 ][_tabController.index],
               ),
@@ -632,7 +602,7 @@ class _OverviewTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 80,
+            height: 100,
             child: unlockedBadges.isEmpty
                 ? const Align(
                     alignment: Alignment.centerLeft,
@@ -651,13 +621,7 @@ class _OverviewTab extends StatelessWidget {
                     },
                   ),
           ),
-          const SizedBox(height: 30),
-          const Text(
-            'Activity Heatmap',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(height: 120, child: ActivityHeatmap(data: heatmapData)),
+
           if (isMe) ...[
             const SizedBox(height: 24),
             const Text(
@@ -1447,7 +1411,9 @@ class _ProfileBadge {
 
 List<_ProfileBadge> _profileBadges(Map<String, dynamic> user) {
   final raw = user['badges'];
-  if (raw is List && raw.isNotEmpty) {
+  
+  // If badges is a list of Maps (legacy or different format)
+  if (raw is List && raw.isNotEmpty && raw.first is Map) {
     return raw
         .whereType<Map>()
         .map(
@@ -1462,7 +1428,8 @@ List<_ProfileBadge> _profileBadges(Map<String, dynamic> user) {
         .where((badge) => badge.name.isNotEmpty)
         .toList();
   }
-  // Compute unlock states from the user stats we already have
+
+  // Predefined badges
   final eventsCreated = user['events_created'] ?? 0;
   final attended = user['attended'] ?? 0;
   final totalRegistered = user['total_registered'] ?? 0;
@@ -1471,7 +1438,8 @@ List<_ProfileBadge> _profileBadges(Map<String, dynamic> user) {
   final role = (user['role'] ?? 'user').toString();
   final id = user['id'] ?? 999;
   final totalAttendees = user['total_attendees'] ?? 0;
-  return [
+
+  final allBadges = [
     _ProfileBadge(
       name: 'First Event',
       description: 'Register for your first event.',
@@ -1543,6 +1511,21 @@ List<_ProfileBadge> _profileBadges(Map<String, dynamic> user) {
       unlocked: level >= 10,
     ),
   ];
+
+  // If badges is a list of strings (badge names), sync unlocks with that list
+  if (raw is List && raw.isNotEmpty && raw.first is String) {
+    final unlockedNames = raw.map((e) => e.toString()).toSet();
+    return allBadges.map((b) => _ProfileBadge(
+      name: b.name,
+      description: b.description,
+      icon: b.icon,
+      color: b.color,
+      unlocked: unlockedNames.contains(b.name),
+    )).toList();
+  }
+
+  // Fallback to computed stats
+  return allBadges;
 }
 
 IconData _badgeIcon(String icon) {
