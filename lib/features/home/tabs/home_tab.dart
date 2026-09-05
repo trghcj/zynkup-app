@@ -8,6 +8,7 @@ import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
 import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
+import 'package:zynkup/features/events/screens/create_event_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 import 'package:zynkup/core/widgets/zynk_empty_state.dart';
@@ -231,6 +232,7 @@ class _HomeTabState extends State<HomeTab> {
     }).toList();
 
     final upcoming = filteredEvents.where((event) => event.date.isAfter(DateTime.now())).toList();
+    final past = filteredEvents.where((event) => event.date.isBefore(DateTime.now())).toList();
 
     return SliverToBoxAdapter(
       child: Center(
@@ -264,8 +266,33 @@ class _HomeTabState extends State<HomeTab> {
                   ],
                 ),
               ),
+              // Upcoming / Trending Title
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
+                child: Text(
+                  'Upcoming Events',
+                  style: TextStyle(
+                    color: ZynkColors.darkText,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
               if (upcoming.isEmpty)
-                ZEmptyState(icon: Icons.event_busy_rounded, title: 'No upcoming events', subtitle: 'There are no events scheduled right now.', actionLabel: 'Host an Event', onAction: () {})
+                ZEmptyState(
+                  icon: Icons.event_busy_rounded, 
+                  title: 'No upcoming events', 
+                  subtitle: 'There are no events scheduled right now.', 
+                  actionLabel: 'Host an Event', 
+                  onAction: () {
+                    if (!ApiService.hasToken) {
+                      showLoginPrompt(context, message: 'Sign in to host events.');
+                      return;
+                    }
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateEventScreen())).then((_) => _load());
+                  }
+                )
               else
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -279,6 +306,36 @@ class _HomeTabState extends State<HomeTab> {
                       )
                     : Column(children: upcoming.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
                 ),
+              
+              if (past.isNotEmpty) ...[
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 32, 20, 16),
+                  child: Text(
+                    'Previous Events',
+                    style: TextStyle(
+                      color: ZynkColors.darkText,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: isDesktop 
+                    ? GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, mainAxisSpacing: 20, crossAxisSpacing: 20, mainAxisExtent: 140),
+                        itemCount: past.length,
+                        itemBuilder: (context, index) => EventCardWidget(event: past[index], compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: past[index])))),
+                      )
+                    : Column(children: past.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
+                ),
+              ],
+              
+              const SizedBox(height: 32),
+              _ClubsSection(clubs: _clubs, onRefresh: _load),
               const SizedBox(height: 32),
             ],
           ),
@@ -538,7 +595,6 @@ class _Section extends StatelessWidget {
   }
 }
 
-// ignore: unused_element
 class _ClubsSection extends StatelessWidget {
   final List<dynamic> clubs;
   final VoidCallback onRefresh;
