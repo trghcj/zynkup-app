@@ -227,7 +227,8 @@ class _FeedTabState extends State<FeedTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 1000;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 1000;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -552,6 +553,99 @@ class _FeedTabState extends State<FeedTab> {
                 ),
               ),
             ),
+          // Mobile-only: trending events and communities below the feed
+          SliverToBoxAdapter(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 700) return const SizedBox.shrink();
+                return _buildMobileDiscovery();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileDiscovery() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 80),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(color: Color(0xFF252B35), height: 32),
+
+          // ── Trending Events ─────────────────────────────────────────────────
+          Row(
+            children: const [
+              Icon(Icons.local_fire_department_rounded, color: Color(0xFFC7D437), size: 16),
+              SizedBox(width: 8),
+              Text(
+                'Trending Events',
+                style: TextStyle(
+                  color: Color(0xFFF4F5F7),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_loading)
+            Column(
+              children: List.generate(
+                3,
+                (i) => const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: ZSkeleton(width: double.infinity, height: 64, borderRadius: 12),
+                ),
+              ),
+            )
+          else if (_events.isEmpty)
+            const Text(
+              'No trending events right now.',
+              style: TextStyle(color: Color(0xFF969DA8), fontSize: 13),
+            )
+          else
+            ..._events.take(3).map((e) => _buildMiniEventCard(e)),
+
+          const SizedBox(height: 28),
+
+          // ── Active Communities ───────────────────────────────────────────────
+          Row(
+            children: const [
+              Icon(Icons.groups_rounded, color: Color(0xFFC7D437), size: 16),
+              SizedBox(width: 8),
+              Text(
+                'Active Communities',
+                style: TextStyle(
+                  color: Color(0xFFF4F5F7),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_loading)
+            Column(
+              children: List.generate(
+                2,
+                (i) => const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: ZSkeleton(width: double.infinity, height: 60, borderRadius: 12),
+                ),
+              ),
+            )
+          else if (_clubs.isEmpty)
+            const Text(
+              'No communities found.',
+              style: TextStyle(color: Color(0xFF969DA8), fontSize: 13),
+            )
+          else
+            ..._clubs.take(4).map((c) => _buildMiniClubCard(c)),
         ],
       ),
     );
