@@ -10,6 +10,7 @@ import 'package:zynkup/core/widgets/event_card_widget.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
+import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 import 'package:zynkup/features/profile/widgets/activity_heatmap.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 
@@ -102,37 +103,34 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
   }
 
-  Future<void> _showAvatarOptions() async {
-    if (widget.userId != null) return; // Can't change someone else's avatar
-
+  Future<void> _showAvatarOptions(int currentLevel) async {
     showModalBottomSheet(
       context: context,
       backgroundColor: ZynkColors.darkSurface,
-      constraints: const BoxConstraints(maxWidth: 400),
       builder: (ctx) {
         return SafeArea(
-          child: Wrap(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(
-                  Icons.photo_library,
-                  color: ZynkColors.gold,
-                ),
-                title: const Text(
-                  'Upload Photo',
-                  style: TextStyle(color: Colors.white),
-                ),
+                leading: const Icon(Icons.upload, color: ZynkColors.primary),
+                title: const Text('Upload Photo', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickAndUploadAvatar();
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.casino, color: ZynkColors.gold),
-                title: const Text(
-                  'Random Cartoon Avatar',
-                  style: TextStyle(color: Colors.white),
-                ),
+                leading: const Icon(Icons.photo_library, color: ZynkColors.gold),
+                title: const Text('Choose from Avatar Gallery', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => AvatarGalleryScreen(currentLevel: currentLevel))).then((_) => _load());
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.casino, color: ZynkColors.secondaryAccent),
+                title: const Text('Random Cartoon Avatar', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _randomizeAvatar();
@@ -305,7 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Center(
                     child: InkWell(
                       borderRadius: BorderRadius.circular(50),
-                      onTap: widget.userId == null ? _showAvatarOptions : null,
+                      onTap: widget.userId == null ? () => _showAvatarOptions(level) : null,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -377,18 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       fontSize: 14,
                     ),
                   ),
-                  if (user['branch'] != null || user['campus'] != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      '${user['branch'] ?? ''}${user['branch'] != null && user['campus'] != null ? ' • ' : ''}${user['campus'] ?? ''}',
-                      style: const TextStyle(
-                        color: ZynkColors.primary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
+                                    const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -402,9 +389,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Text('⚡ ', style: TextStyle(fontSize: 14)),
+                      const Text('✨ ', style: TextStyle(fontSize: 14)),
                       Text(
-                        '$xp XP',
+                        'Level $level',
                         style: const TextStyle(
                           color: ZynkColors.darkMuted,
                           fontSize: 13,
@@ -412,6 +399,34 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: SizedBox(
+                      width: 160,
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: ZynkColors.darkSurface2,
+                              color: ZynkColors.gold,
+                              minHeight: 4,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${xp - currentLevelXP} / ${nextLevelXP - currentLevelXP} XP to Level ${level + 1}',
+                            style: const TextStyle(
+                              color: ZynkColors.darkMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
