@@ -81,7 +81,7 @@ class _HomeTabState extends State<HomeTab> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 960),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                       child: TextField(
                         controller: _searchController,
                         style: const TextStyle(color: ZynkColors.offWhite),

@@ -75,10 +75,10 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                         const Spacer(),
                         Text(
                           DateFormat('MMM d').format(widget.event.date),
-                          style: TextStyle(
-                            color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+                          style: const TextStyle(
+                            color: ZynkColors.darkMuted,
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -89,10 +89,10 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: ZynkColors.darkText,
+                        color: ZynkColors.offWhite,
                         fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
                         letterSpacing: -0.3,
                       ),
                     ),

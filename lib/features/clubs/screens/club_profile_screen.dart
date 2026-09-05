@@ -562,88 +562,51 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       child: Padding(
                         padding: const EdgeInsets.all(20),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(
-                                    color: ZynkColors.darkSurface,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: ZynkColors.gold, width: 2),
-                                  ),
-                                  child: CircleAvatar(
-                                    radius: 32,
-                                    backgroundImage: CachedNetworkImageProvider(logoImage),
-                                    backgroundColor: ZynkColors.darkSurface2,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: ZynkColors.gold.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(ZynkRadius.pill),
-                                          border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.3)),
-                                        ),
-                                        child: Text(
-                                          (_club?['category'] ?? 'general').toString().toUpperCase(),
-                                          style: const TextStyle(
-                                            color: ZynkColors.gold,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 1.0,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      const Text(
-                                        'Official Student Club',
-                                        style: TextStyle(
-                                          color: ZynkColors.darkMuted,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (_club == null || _currentUser == null || (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
-                                  SizedBox(
-                                    width: 160,
-                                    child: ZynkButton(
-                                      height: 36,
-                                      label: _isMember ? 'Joined' : 'Join',
-                                      outlined: _isMember,
-                                      icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
-                                      onTap: _toggleMembership,
-                                    ),
-                                  ),
-                              ],
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundImage: CachedNetworkImageProvider(logoImage),
+                              backgroundColor: ZynkColors.darkSurface2,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              widget.clubName,
+                              style: const TextStyle(
+                                color: ZynkColors.offWhite,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${_club?['category'] ?? 'Community'} • ${_club?['member_count'] ?? 0} members',
+                              style: const TextStyle(
+                                color: ZynkColors.darkMuted,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             const SizedBox(height: 20),
+                            if (_club == null || _currentUser == null || (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
+                              SizedBox(
+                                width: double.infinity,
+                                child: ZynkButton(
+                                  height: 44,
+                                  label: _isMember ? 'Joined' : 'Join',
+                                  outlined: _isMember,
+                                  icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
+                                  onTap: _toggleMembership,
+                                ),
+                              ),
+                            const SizedBox(height: 24),
                             Text(
                               _club != null && _club!['description'] != null
                                   ? _club!['description']
                                   : 'The official ${widget.clubName} of MAIT. We build, create, and innovate together.',
                               style: const TextStyle(color: ZynkColors.offWhite, fontSize: 14, height: 1.5),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                const Icon(Icons.people_alt_rounded, color: ZynkColors.gold, size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${_club?['member_count'] ?? 0} Members',
-                                  style: const TextStyle(color: ZynkColors.gold, fontWeight: FontWeight.bold),
-                                ),
-                              ],
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),

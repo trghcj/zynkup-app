@@ -43,7 +43,7 @@ class _FeedTabState extends State<FeedTab> {
     if (!mounted) return;
     setState(() => _loading = true);
     final user = ApiService.hasToken ? await ApiService.getCurrentUser() : null;
-    
+
     final results = await Future.wait([
       ApiService.getFeed(),
       ApiService.getEvents(),
@@ -71,7 +71,11 @@ class _FeedTabState extends State<FeedTab> {
       MaterialPageRoute(builder: (_) => const CreatePostScreen()),
     );
     if (result == true) {
-      ZToast.showSuccess(context, 'Post published', subtitle: 'Your update is now live on campus.');
+      ZToast.showSuccess(
+        context,
+        'Post published',
+        subtitle: 'Your update is now live on campus.',
+      );
       _load();
     }
   }
@@ -122,15 +126,24 @@ class _FeedTabState extends State<FeedTab> {
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.flag_outlined, color: ZynkColors.error),
+                leading: const Icon(
+                  Icons.flag_outlined,
+                  color: ZynkColors.error,
+                ),
                 title: const Text(
                   'Report Bad Content',
-                  style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: ZynkColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 onTap: () async {
                   Navigator.pop(sheetContext);
                   if (!ApiService.hasToken) {
-                    showLoginPrompt(context, message: 'Sign in to report unsafe content.');
+                    showLoginPrompt(
+                      context,
+                      message: 'Sign in to report unsafe content.',
+                    );
                     return;
                   }
                   final postId = post['id'] as int?;
@@ -140,31 +153,57 @@ class _FeedTabState extends State<FeedTab> {
                       ZToast.showSuccess(context, 'Reported successfully.');
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Failed to report post.'), backgroundColor: Colors.red),
+                        const SnackBar(
+                          content: Text('Failed to report post.'),
+                          backgroundColor: Colors.red,
+                        ),
                       );
                     }
                   }
                 },
               ),
-              if (_currentUserId != null && post['author_id']?.toString() == _currentUserId.toString()) ...[
+              if (_currentUserId != null &&
+                  post['author_id']?.toString() ==
+                      _currentUserId.toString()) ...[
                 const Divider(color: ZynkColors.darkBorder),
                 ListTile(
-                  leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
-                  title: const Text('Edit Post', style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600)),
+                  leading: const Icon(
+                    Icons.edit_rounded,
+                    color: ZynkColors.offWhite,
+                  ),
+                  title: const Text(
+                    'Edit Post',
+                    style: TextStyle(
+                      color: ZynkColors.offWhite,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
                     final result = await showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => EditPostSheet(postId: post['id'], initialContent: post['content'] ?? ''),
+                      builder: (_) => EditPostSheet(
+                        postId: post['id'],
+                        initialContent: post['content'] ?? '',
+                      ),
                     );
                     if (result != null) _load();
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.delete_rounded, color: ZynkColors.error),
-                  title: const Text('Delete Post', style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600)),
+                  leading: const Icon(
+                    Icons.delete_rounded,
+                    color: ZynkColors.error,
+                  ),
+                  title: const Text(
+                    'Delete Post',
+                    style: TextStyle(
+                      color: ZynkColors.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
                     final success = await ApiService.deleteFeedPost(post['id']);
@@ -172,7 +211,9 @@ class _FeedTabState extends State<FeedTab> {
                       ZToast.showSuccess(context, 'Post deleted');
                       _load();
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete post')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to delete post')),
+                      );
                     }
                   },
                 ),
@@ -210,8 +251,16 @@ class _FeedTabState extends State<FeedTab> {
     final filteredPosts = _posts.where((post) {
       if (_filter == 'All Posts') return true;
       if (_filter == 'Clubs Only') return post['club_id'] != null;
-      if (_filter == 'Media Only') return (post['image_url'] != null && post['image_url'].toString().isNotEmpty) || (post['banner_url'] != null && post['banner_url'].toString().isNotEmpty);
-      if (_filter == 'Text Only') return (post['image_url'] == null || post['image_url'].toString().isEmpty) && (post['banner_url'] == null || post['banner_url'].toString().isEmpty);
+      if (_filter == 'Media Only')
+        return (post['image_url'] != null &&
+                post['image_url'].toString().isNotEmpty) ||
+            (post['banner_url'] != null &&
+                post['banner_url'].toString().isNotEmpty);
+      if (_filter == 'Text Only')
+        return (post['image_url'] == null ||
+                post['image_url'].toString().isEmpty) &&
+            (post['banner_url'] == null ||
+                post['banner_url'].toString().isEmpty);
       return true;
     }).toList();
 
@@ -225,13 +274,27 @@ class _FeedTabState extends State<FeedTab> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
                 child: const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 32, 20, 18),
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Campus Feed', style: TextStyle(color: ZynkColors.darkText, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-                      SizedBox(height: 8),
-                      Text("What's buzzing on campus?", style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15)),
+                      Text(
+                        'Campus Feed',
+                        style: TextStyle(
+                          color: ZynkColors.darkText,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "What's buzzing on campus?",
+                        style: TextStyle(
+                          color: ZynkColors.darkMuted,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -243,21 +306,48 @@ class _FeedTabState extends State<FeedTab> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: GestureDetector(
                     onTap: _createNewPost,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: ZynkColors.darkBorder)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: ZynkColors.darkSurface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: ZynkColors.darkBorder),
+                      ),
                       child: Row(
                         children: [
-                          const CircleAvatar(radius: 18, backgroundImage: CachedNetworkImageProvider('https://api.dicebear.com/7.x/avataaars/png?seed=You'), backgroundColor: ZynkColors.darkSurface2),
+                          const CircleAvatar(
+                            radius: 16,
+                            backgroundImage: CachedNetworkImageProvider(
+                              'https://api.dicebear.com/7.x/avataaars/png?seed=You',
+                            ),
+                            backgroundColor: ZynkColors.darkSurface2,
+                          ),
                           const SizedBox(width: 12),
-                          const Expanded(child: Text("Share something with your campus...", style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15))),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(color: ZynkColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                            child: const Text('Post', style: TextStyle(color: ZynkColors.primary, fontWeight: FontWeight.bold)),
+                          const Expanded(
+                            child: Text(
+                              "Share something with your campus...",
+                              style: TextStyle(
+                                color: ZynkColors.darkMuted,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'Post',
+                              style: TextStyle(
+                                color: ZynkColors.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -272,22 +362,52 @@ class _FeedTabState extends State<FeedTab> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(20), border: Border.all(color: ZynkColors.darkBorder)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: ZynkColors.darkSurface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: ZynkColors.darkBorder),
+                        ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: _filter,
                             dropdownColor: ZynkColors.darkSurface,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
-                            style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
-                            items: ['All Posts', 'Clubs Only', 'Media Only', 'Text Only'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: ZynkColors.primary,
+                              size: 18,
+                            ),
+                            style: const TextStyle(
+                              color: ZynkColors.offWhite,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            items:
+                                [
+                                      'All Posts',
+                                      'Clubs Only',
+                                      'Media Only',
+                                      'Text Only',
+                                    ]
+                                    .map(
+                                      (String value) =>
+                                          DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value),
+                                          ),
+                                    )
+                                    .toList(),
                             onChanged: (newValue) {
-                              if (newValue != null) setState(() => _filter = newValue);
+                              if (newValue != null)
+                                setState(() => _filter = newValue);
                             },
                           ),
                         ),
@@ -304,10 +424,20 @@ class _FeedTabState extends State<FeedTab> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 700),
                   child: Column(
-                    children: List.generate(3, (index) => const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      child: ZSkeleton(width: double.infinity, height: 220, borderRadius: 16),
-                    )),
+                    children: List.generate(
+                      3,
+                      (index) => const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: ZSkeleton(
+                          width: double.infinity,
+                          height: 220,
+                          borderRadius: 16,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -337,7 +467,10 @@ class _FeedTabState extends State<FeedTab> {
                         post: post,
                         onLike: () async {
                           if (!ApiService.hasToken) {
-                            showLoginPrompt(context, message: 'Join the campus to like this post.');
+                            showLoginPrompt(
+                              context,
+                              message: 'Join the campus to like this post.',
+                            );
                             return;
                           }
                           final postId = post['id'] as int?;
@@ -345,7 +478,8 @@ class _FeedTabState extends State<FeedTab> {
                             final isLiked = post['is_liked'] == true;
                             setState(() {
                               post['is_liked'] = !isLiked;
-                              post['likes'] = (post['likes'] ?? 0) + (isLiked ? -1 : 1);
+                              post['likes'] =
+                                  (post['likes'] ?? 0) + (isLiked ? -1 : 1);
                             });
                             await ApiService.likeFeedPost(postId);
                           }
@@ -359,31 +493,46 @@ class _FeedTabState extends State<FeedTab> {
                         onMore: () => _showMoreOptions(post),
                         onReact: (emoji) async {
                           if (!ApiService.hasToken) {
-                            showLoginPrompt(context, message: 'Join the campus to react.');
+                            showLoginPrompt(
+                              context,
+                              message: 'Join the campus to react.',
+                            );
                             return;
                           }
                           final postId = post['id'] as int?;
                           if (postId == null) return;
                           final oldReaction = post['user_reaction'] as String?;
                           setState(() {
-                            post['user_reaction'] = (oldReaction == emoji) ? null : emoji;
-                            final reactions = post['reactions'] as Map<String, dynamic>? ?? {};
-                            if (oldReaction != null) reactions[oldReaction] = (reactions[oldReaction] as int? ?? 1) - 1;
-                            if (oldReaction != emoji) reactions[emoji] = (reactions[emoji] as int? ?? 0) + 1;
+                            post['user_reaction'] = (oldReaction == emoji)
+                                ? null
+                                : emoji;
+                            final reactions =
+                                post['reactions'] as Map<String, dynamic>? ??
+                                {};
+                            if (oldReaction != null)
+                              reactions[oldReaction] =
+                                  (reactions[oldReaction] as int? ?? 1) - 1;
+                            if (oldReaction != emoji)
+                              reactions[emoji] =
+                                  (reactions[emoji] as int? ?? 0) + 1;
                             post['reactions'] = reactions;
                           });
                           await ApiService.reactToFeedPost(postId, emoji);
                         },
                         onVote: (optionIndex) async {
                           if (!ApiService.hasToken) {
-                            showLoginPrompt(context, message: 'Join the campus to vote.');
+                            showLoginPrompt(
+                              context,
+                              message: 'Join the campus to vote.',
+                            );
                             return;
                           }
                           final postId = post['id'] as int?;
                           if (postId == null) return;
                           final poll = post['poll'] as Map<String, dynamic>?;
                           if (poll == null) return;
-                          final votes = poll['votes'] as Map<String, dynamic>? ?? {};
+                          final votes =
+                              poll['votes'] as Map<String, dynamic>? ?? {};
                           final userIdStr = _currentUserId?.toString() ?? '0';
                           if (votes.containsKey(userIdStr)) return;
                           setState(() {
@@ -409,23 +558,67 @@ class _FeedTabState extends State<FeedTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Trending Events', style: TextStyle(color: ZynkColors.offWhite, fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Trending Events',
+            style: TextStyle(
+              color: ZynkColors.offWhite,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 16),
           if (_loading)
-            Column(children: List.generate(3, (index) => const Padding(padding: EdgeInsets.only(bottom: 12), child: ZSkeleton(width: double.infinity, height: 72, borderRadius: 12))))
+            Column(
+              children: List.generate(
+                3,
+                (index) => const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: ZSkeleton(
+                    width: double.infinity,
+                    height: 72,
+                    borderRadius: 12,
+                  ),
+                ),
+              ),
+            )
           else if (_events.isEmpty)
-            const Text('No upcoming events right now.', style: TextStyle(color: ZynkColors.darkMuted))
+            const Text(
+              'No upcoming events right now.',
+              style: TextStyle(color: ZynkColors.darkMuted),
+            )
           else
             ..._events.take(3).map((e) => _buildMiniEventCard(e)),
-            
+
           const SizedBox(height: 48),
-          
-          const Text('Active Communities', style: TextStyle(color: ZynkColors.offWhite, fontSize: 16, fontWeight: FontWeight.bold)),
+
+          const Text(
+            'Active Communities',
+            style: TextStyle(
+              color: ZynkColors.offWhite,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 16),
           if (_loading)
-            Column(children: List.generate(3, (index) => const Padding(padding: EdgeInsets.only(bottom: 12), child: ZSkeleton(width: double.infinity, height: 64, borderRadius: 12))))
+            Column(
+              children: List.generate(
+                3,
+                (index) => const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: ZSkeleton(
+                    width: double.infinity,
+                    height: 64,
+                    borderRadius: 12,
+                  ),
+                ),
+              ),
+            )
           else if (_clubs.isEmpty)
-            const Text('No communities found.', style: TextStyle(color: ZynkColors.darkMuted))
+            const Text(
+              'No communities found.',
+              style: TextStyle(color: ZynkColors.darkMuted),
+            )
           else
             ..._clubs.take(4).map((c) => _buildMiniClubCard(c)),
         ],
@@ -436,12 +629,21 @@ class _FeedTabState extends State<FeedTab> {
   Widget _buildMiniEventCard(dynamic event) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: Event.fromJson(event))));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EventDetailsScreen(event: Event.fromJson(event)),
+          ),
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: ZynkColors.darkBorder)),
+        decoration: BoxDecoration(
+          color: ZynkColors.darkSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: ZynkColors.darkBorder),
+        ),
         child: Row(
           children: [
             Container(
@@ -450,18 +652,44 @@ class _FeedTabState extends State<FeedTab> {
               decoration: BoxDecoration(
                 color: ZynkColors.darkSurface2,
                 borderRadius: BorderRadius.circular(8),
-                image: event['cover_url'] != null ? DecorationImage(image: CachedNetworkImageProvider(event['cover_url']), fit: BoxFit.cover) : null,
+                image: event['cover_url'] != null
+                    ? DecorationImage(
+                        image: CachedNetworkImageProvider(event['cover_url']),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: event['cover_url'] == null ? const Icon(Icons.event_rounded, color: ZynkColors.darkMuted, size: 20) : null,
+              child: event['cover_url'] == null
+                  ? const Icon(
+                      Icons.event_rounded,
+                      color: ZynkColors.darkMuted,
+                      size: 20,
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(event['title'] ?? 'Unnamed Event', style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    event['title'] ?? 'Unnamed Event',
+                    style: const TextStyle(
+                      color: ZynkColors.offWhite,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
-                  Text(event['category'] ?? 'Event', style: const TextStyle(color: ZynkColors.primary, fontSize: 12)),
+                  Text(
+                    event['category'] ?? 'Event',
+                    style: const TextStyle(
+                      color: ZynkColors.primary,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -474,28 +702,60 @@ class _FeedTabState extends State<FeedTab> {
   Widget _buildMiniClubCard(dynamic club) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id'].toString(), clubName: club['name']?.toString() ?? 'Club')));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ClubProfileScreen(
+              clubId: club['id'].toString(),
+              clubName: club['name']?.toString() ?? 'Club',
+            ),
+          ),
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: ZynkColors.darkBorder)),
+        decoration: BoxDecoration(
+          color: ZynkColors.darkSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: ZynkColors.darkBorder),
+        ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 20,
               backgroundColor: ZynkColors.darkSurface2,
-              backgroundImage: club['logo_url'] != null ? CachedNetworkImageProvider(club['logo_url']) : null,
-              child: club['logo_url'] == null ? const Icon(Icons.groups_rounded, color: ZynkColors.darkMuted, size: 20) : null,
+              backgroundImage: club['logo_url'] != null
+                  ? CachedNetworkImageProvider(club['logo_url'])
+                  : null,
+              child: club['logo_url'] == null
+                  ? const Icon(
+                      Icons.groups_rounded,
+                      color: ZynkColors.darkMuted,
+                      size: 20,
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(club['name'] ?? 'Unnamed Club', style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    club['name'] ?? 'Unnamed Club',
+                    style: const TextStyle(
+                      color: ZynkColors.offWhite,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
-                  const Text('Campus Community', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                  const Text(
+                    'Campus Community',
+                    style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
+                  ),
                 ],
               ),
             ),
@@ -575,13 +835,17 @@ class FeedPostCard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FullScreenImageViewer(imageUrl: bannerUrl),
+                    builder: (context) =>
+                        FullScreenImageViewer(imageUrl: bannerUrl),
                   ),
                 );
               },
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(ZynkRadius.lg - 1)),
-                child: CachedNetworkImage(imageUrl: bannerUrl,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(ZynkRadius.lg - 1),
+                ),
+                child: CachedNetworkImage(
+                  imageUrl: bannerUrl,
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -642,7 +906,11 @@ class FeedPostCard extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 2),
                             child: Row(
                               children: [
-                                const Icon(Icons.group_rounded, size: 12, color: ZynkColors.gold),
+                                const Icon(
+                                  Icons.group_rounded,
+                                  size: 12,
+                                  color: ZynkColors.gold,
+                                ),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
@@ -680,7 +948,10 @@ class FeedPostCard extends StatelessWidget {
                     ),
                   ),
                 IconButton(
-                  icon: const Icon(Icons.more_vert_rounded, color: ZynkColors.darkMuted),
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: ZynkColors.darkMuted,
+                  ),
                   onPressed: onMore,
                 ),
               ],
@@ -694,11 +965,13 @@ class FeedPostCard extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FullScreenImageViewer(imageUrl: imageUrl),
+                    builder: (context) =>
+                        FullScreenImageViewer(imageUrl: imageUrl),
                   ),
                 );
               },
-              child: CachedNetworkImage(imageUrl: imageUrl,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
                 height: 240,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -726,8 +999,12 @@ class FeedPostCard extends StatelessWidget {
                 GestureDetector(
                   onTap: onLike,
                   child: ActionIcon(
-                    icon: isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    iconColor: isLiked ? ZynkColors.orange : ZynkColors.darkMuted,
+                    icon: isLiked
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    iconColor: isLiked
+                        ? ZynkColors.orange
+                        : ZynkColors.darkMuted,
                     label: '$likes',
                   ),
                 ),
@@ -742,14 +1019,20 @@ class FeedPostCard extends StatelessWidget {
                 const Spacer(),
                 GestureDetector(
                   onTap: onShare,
-                  child: const ActionIcon(icon: Icons.share_rounded, label: 'Share'),
+                  child: const ActionIcon(
+                    icon: Icons.share_rounded,
+                    label: 'Share',
+                  ),
                 ),
               ],
             ),
           ),
 
           if (post['poll'] != null)
-            PollWidget(poll: post['poll'] as Map<String, dynamic>, onVote: onVote),
+            PollWidget(
+              poll: post['poll'] as Map<String, dynamic>,
+              onVote: onVote,
+            ),
           ReactionStrip(
             reactions: post['reactions'] as Map<String, dynamic>? ?? {},
             userReaction: userReaction,
@@ -787,7 +1070,13 @@ class PollWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(question, style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold)),
+            Text(
+              question,
+              style: const TextStyle(
+                color: ZynkColors.offWhite,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 12),
             ...List.generate(options.length, (index) {
               final optionText = options[index].toString();
@@ -816,13 +1105,28 @@ class PollWidget extends StatelessWidget {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(optionText, style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13)),
+                            Text(
+                              optionText,
+                              style: const TextStyle(
+                                color: ZynkColors.offWhite,
+                                fontSize: 13,
+                              ),
+                            ),
                             if (totalVotes > 0)
-                              Text('${(percent * 100).toStringAsFixed(0)}%', style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                              Text(
+                                '${(percent * 100).toStringAsFixed(0)}%',
+                                style: const TextStyle(
+                                  color: ZynkColors.darkMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -831,7 +1135,10 @@ class PollWidget extends StatelessWidget {
                 ),
               );
             }),
-            Text('$totalVotes votes', style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 11)),
+            Text(
+              '$totalVotes votes',
+              style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
+            ),
           ],
         ),
       ),
@@ -844,7 +1151,12 @@ class ReactionStrip extends StatelessWidget {
   final String? userReaction;
   final Function(String) onReact;
 
-  const ReactionStrip({super.key, required this.reactions, this.userReaction, required this.onReact});
+  const ReactionStrip({
+    super.key,
+    required this.reactions,
+    this.userReaction,
+    required this.onReact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -858,19 +1170,30 @@ class ReactionStrip extends StatelessWidget {
           return GestureDetector(
             onTap: () => onReact(emoji),
             child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? ZynkColors.primary.withValues(alpha: 0.2) : ZynkColors.darkSurface2,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? ZynkColors.primary : ZynkColors.darkBorder),
-              ),
+              margin: const EdgeInsets.only(right: 12),
               child: Row(
                 children: [
-                  Text(emoji, style: const TextStyle(fontSize: 14)),
+                  Text(
+                    emoji,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isSelected ? Colors.white : Colors.white54,
+                    ),
+                  ),
                   if (count > 0) ...[
                     const SizedBox(width: 4),
-                    Text('$count', style: const TextStyle(color: ZynkColors.offWhite, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        color: isSelected
+                            ? ZynkColors.primary
+                            : ZynkColors.darkMuted,
+                        fontSize: 12,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
                   ],
                 ],
               ),
