@@ -128,31 +128,31 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.asset('assets/logos/zynkup_logo.jpg', height: 44, width: 44),
+                          child: Image.asset('assets/logos/zynkup_logo.jpg', height: 38, width: 38),
                         ),
                         const SizedBox(width: 12),
                         const Text(
                           'ZynkUp',
                           style: TextStyle(
                             color: _textPrimary,
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.5,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 28),
 
                     // HERO TEXT
                     const Text(
                       'Your Campus,\nConnected.',
                       style: TextStyle(
                         color: _textPrimary,
-                        fontSize: 54,
+                        fontSize: 48,
                         fontWeight: FontWeight.w700,
-                        height: 0.98,
-                        letterSpacing: -1.5,
+                        height: 1.0,
+                        letterSpacing: -1.2,
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -178,7 +178,31 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     const SizedBox(height: 14),
                     _buildFeatureRow('Networking'),
                     
-                    const SizedBox(height: 44),
+                    const SizedBox(height: 28),
+
+                    // CTA TRANSITION
+                    Row(
+                      children: [
+                        Container(
+                          width: 3,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: _primaryAccent,
+                            borderRadius: BorderRadius.circular(1.5),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Ready to join your campus?',
+                          style: TextStyle(
+                            color: _textSecondary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
 
                     // CTA
                     _buildGoogleButton(),
@@ -215,7 +239,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
           text,
           style: const TextStyle(
             color: _textPrimary,
-            fontSize: 16,
+            fontSize: 17,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -226,15 +250,18 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
   Widget _buildGoogleButton() {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: _googleLogin,
-        child: Container(
-          height: 56,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: _btnBg,
-            borderRadius: BorderRadius.circular(14),
-          ),
+      child: Material(
+        color: _btnBg,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: _googleLogin,
+          borderRadius: BorderRadius.circular(14),
+          highlightColor: Colors.black.withValues(alpha: 0.05),
+          splashColor: Colors.black.withValues(alpha: 0.05),
+          child: Container(
+            height: 54,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
           child: _loading
               ? const Center(
                   child: SizedBox(
@@ -267,6 +294,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     ),
                   ],
                 ),
+        ),
         ),
       ),
     );
