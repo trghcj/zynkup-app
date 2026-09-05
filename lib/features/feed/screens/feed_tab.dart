@@ -40,7 +40,7 @@ class _FeedTabState extends State<FeedTab> {
   }
 
   Future<void> _load() async {
-    if (!mounted) return;
+    if (!mounted) { return; }
     setState(() => _loading = true);
     final user = ApiService.hasToken ? await ApiService.getCurrentUser() : null;
 
@@ -86,7 +86,7 @@ class _FeedTabState extends State<FeedTab> {
       return;
     }
     final postId = post['id'] as int?;
-    if (postId == null) return;
+    if (postId == null) { return; }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -189,7 +189,7 @@ class _FeedTabState extends State<FeedTab> {
                         initialContent: post['content'] ?? '',
                       ),
                     );
-                    if (result != null) _load();
+                    if (result != null) { _load(); }
                   },
                 ),
                 ListTile(
@@ -249,18 +249,20 @@ class _FeedTabState extends State<FeedTab> {
 
   Widget _buildMainFeed() {
     final filteredPosts = _posts.where((post) {
-      if (_filter == 'All Posts') return true;
-      if (_filter == 'Clubs Only') return post['club_id'] != null;
-      if (_filter == 'Media Only')
+      if (_filter == 'All Posts') { return true; }
+      if (_filter == 'Clubs Only') { return post['club_id'] != null; }
+      if (_filter == 'Media Only') {
         return (post['image_url'] != null &&
                 post['image_url'].toString().isNotEmpty) ||
             (post['banner_url'] != null &&
                 post['banner_url'].toString().isNotEmpty);
-      if (_filter == 'Text Only')
+      }
+      if (_filter == 'Text Only') {
         return (post['image_url'] == null ||
                 post['image_url'].toString().isEmpty) &&
             (post['banner_url'] == null ||
                 post['banner_url'].toString().isEmpty);
+      }
       return true;
     }).toList();
 
@@ -406,8 +408,9 @@ class _FeedTabState extends State<FeedTab> {
                                     )
                                     .toList(),
                             onChanged: (newValue) {
-                              if (newValue != null)
+                              if (newValue != null) {
                                 setState(() => _filter = newValue);
+                              }
                             },
                           ),
                         ),
@@ -487,7 +490,7 @@ class _FeedTabState extends State<FeedTab> {
                         onReply: () => _showComments(post),
                         onShare: () async {
                           final text = post['content'] ?? '';
-                          if (text.isEmpty) return;
+                          if (text.isEmpty) { return; }
                           await Share.share(text);
                         },
                         onMore: () => _showMoreOptions(post),
@@ -500,7 +503,7 @@ class _FeedTabState extends State<FeedTab> {
                             return;
                           }
                           final postId = post['id'] as int?;
-                          if (postId == null) return;
+                          if (postId == null) { return; }
                           final oldReaction = post['user_reaction'] as String?;
                           setState(() {
                             post['user_reaction'] = (oldReaction == emoji)
@@ -509,12 +512,14 @@ class _FeedTabState extends State<FeedTab> {
                             final reactions =
                                 post['reactions'] as Map<String, dynamic>? ??
                                 {};
-                            if (oldReaction != null)
+                            if (oldReaction != null) {
                               reactions[oldReaction] =
                                   (reactions[oldReaction] as int? ?? 1) - 1;
-                            if (oldReaction != emoji)
+                            }
+                            if (oldReaction != emoji) {
                               reactions[emoji] =
                                   (reactions[emoji] as int? ?? 0) + 1;
+                            }
                             post['reactions'] = reactions;
                           });
                           await ApiService.reactToFeedPost(postId, emoji);
@@ -528,13 +533,13 @@ class _FeedTabState extends State<FeedTab> {
                             return;
                           }
                           final postId = post['id'] as int?;
-                          if (postId == null) return;
+                          if (postId == null) { return; }
                           final poll = post['poll'] as Map<String, dynamic>?;
-                          if (poll == null) return;
+                          if (poll == null) { return; }
                           final votes =
                               poll['votes'] as Map<String, dynamic>? ?? {};
                           final userIdStr = _currentUserId?.toString() ?? '0';
-                          if (votes.containsKey(userIdStr)) return;
+                          if (votes.containsKey(userIdStr)) { return; }
                           setState(() {
                             votes[userIdStr] = optionIndex;
                             poll['votes'] = votes;
@@ -787,13 +792,13 @@ class FeedPostCard extends StatelessWidget {
   });
 
   String _timeAgo(String? dateTimeStr) {
-    if (dateTimeStr == null) return 'some time ago';
+    if (dateTimeStr == null) { return 'some time ago'; }
     try {
       final dt = DateTime.parse(dateTimeStr).toLocal();
       final diff = DateTime.now().difference(dt);
-      if (diff.inDays > 0) return '${diff.inDays}d ago';
-      if (diff.inHours > 0) return '${diff.inHours}h ago';
-      if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+      if (diff.inDays > 0) { return '${diff.inDays}d ago'; }
+      if (diff.inHours > 0) { return '${diff.inHours}h ago'; }
+      if (diff.inMinutes > 0) { return '${diff.inMinutes}m ago'; }
       return 'just now';
     } catch (_) {
       return 'some time ago';
