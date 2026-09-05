@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="release/Zynkup.apk"><img src="https://img.shields.io/badge/-%E2%AC%87%20DOWNLOAD%20APK-4CAF50?style=for-the-badge" alt="Download APK"></a>
-  <img src="https://img.shields.io/badge/VERSION-1.4.3-0088cc?style=for-the-badge" alt="Version 1.4.3">
+  <img src="https://img.shields.io/badge/VERSION-1.5.0-0088cc?style=for-the-badge" alt="Version 1.5.0">
   <img src="https://img.shields.io/badge/PLATFORM-ANDROID-4CAF50?style=for-the-badge" alt="Platform Android">
   <img src="https://img.shields.io/badge/BUILT%20WITH-FLUTTER-02569B?style=for-the-badge" alt="Built with Flutter">
 </p>
@@ -13,8 +13,7 @@
 
 ---
 
-ZynkUp is a smart networking and event management platform built using **Flutter** and a **FastAPI backend**.
-It helps users connect, interact, and manage events efficiently through a modern and scalable system.
+**ZynkUp** is a mature, content-first campus social network and event management platform. Built with **Flutter** and powered by a robust **FastAPI & Supabase** backend, ZynkUp helps students connect, discover communities, and manage campus events seamlessly through a premium dark-themed interface.
 
 ## Architecture
 
@@ -30,15 +29,14 @@ graph TD
 ```
 
 ## Features
-- **🔐 Secure User Authentication:** Seamless login and session management natively handled by Firebase Auth.
-- **🧭 Event Management:** Create, register, and manage campus events with QR passes and dynamic ticketing.
-- **🤝 Campus Clubs:** Create clubs, join communities, and manage members with Role-based access (Admin/Member).
-- **💬 Real-Time Interactions:** Instantly chat and see live updates (like/follower counts) powered by Supabase Realtime WebSockets.
-- **🔔 Automated Push Notifications:** Supabase Database Webhooks instantly trigger Deno Edge Functions to fire targeted push notifications to users via Firebase Cloud Messaging.
-- **🧑‍🤝‍🧑 Friend Connections:** Send, accept, and manage friend requests.
-- **🏆 Gamified XP System:** Earn XP and level up by engaging with the platform.
-- **🖼️ Cloud Media:** Seamless image uploads and hosting natively integrated with Supabase Storage buckets.
-- **🪶 Premium Responsive UI:** Beautiful, minimal, dark aesthetic (Linear/Spotify-style) tailored for both Android and Web.
+- **🎨 Content-First Dark UI:** A mature, refined, and responsive dark aesthetic (Linear/Spotify-inspired) with clean editorial typography and a minimalist Zynkup lime interaction system.
+- **📅 Event Management:** Discover, host, and manage campus events with dynamic ticketing and QR-code passes.
+- **🤝 Campus Communities:** Discover and found campus clubs, manage members with role-based access, and engage in club-specific events and chats.
+- **💬 Social Campus Feed:** Share updates, photos, and polls directly to the campus timeline with real-time likes, replies, and reactions.
+- **🔔 Automated Push Notifications:** Supabase Database Webhooks trigger Deno Edge Functions to fire targeted push notifications to users via Firebase Cloud Messaging.
+- **🏆 Student Identity & Gamification:** Personalize your profile with an activity heatmap, inline statistics, customizable avatars, and a progression system (XP, Streaks, and Badges).
+- **🔒 Secure Authentication:** Seamless login and session management powered by Firebase Auth.
+- **☁️ Cloud Media:** Seamless image uploads and robust media hosting integrated with Supabase Storage.
 
 ## Tech Stack
 - **Frontend:** Flutter (Dart)
