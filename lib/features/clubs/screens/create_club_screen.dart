@@ -125,6 +125,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
       ('sports', Icons.sports_basketball_rounded),
       ('workshop', Icons.build_rounded),
       ('seminar', Icons.record_voice_over_rounded),
+      ('general', Icons.public_rounded),
     ];
 
     final formElements = <Widget>[
