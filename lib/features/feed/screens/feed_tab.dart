@@ -1,3 +1,4 @@
+import 'package:zynkup/features/clubs/screens/all_clubs_screen.dart';
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -246,6 +247,45 @@ class _FeedTabState extends State<FeedTab> {
         ),
       ),
     );
+  }
+
+  List<dynamic> get _trendingEvents {
+    if (_events.isEmpty) return [];
+    final now = DateTime.now();
+
+    // 1. Filter active or upcoming events
+    final active = _events.where((e) {
+      if (e is! Map) return true;
+      final dateStr = e['date'];
+      if (dateStr == null) return true;
+      final dt = DateTime.tryParse(dateStr.toString());
+      if (dt == null) return true;
+      return dt.isAfter(now.subtract(const Duration(hours: 12)));
+    }).toList();
+
+    final pool = active.isNotEmpty ? List<dynamic>.from(active) : List<dynamic>.from(_events);
+
+    // 2. Sort by registration / attendee count descending
+    pool.sort((a, b) {
+      final countA = (a is Map)
+          ? ((a['attendee_count'] as int?) ??
+              ((a['registered_users'] as List?)?.length) ?? 0)
+          : 0;
+      final countB = (b is Map)
+          ? ((b['attendee_count'] as int?) ??
+              ((b['registered_users'] as List?)?.length) ?? 0)
+          : 0;
+
+      if (countB != countA) {
+        return countB.compareTo(countA);
+      }
+
+      final dtA = DateTime.tryParse((a is Map ? a['date'] : '')?.toString() ?? '') ?? now;
+      final dtB = DateTime.tryParse((b is Map ? b['date'] : '')?.toString() ?? '') ?? now;
+      return dtA.compareTo(dtB);
+    });
+
+    return pool.take(3).toList();
   }
 
   Widget _buildMainFeed() {
@@ -608,22 +648,43 @@ class _FeedTabState extends State<FeedTab> {
               style: TextStyle(color: Color(0xFF969DA8), fontSize: 13),
             )
           else
-            ..._events.take(3).map((e) => _buildMiniEventCard(e)),
+            ..._trendingEvents.map((e) => _buildMiniEventCard(e)),
 
           const SizedBox(height: 28),
 
-          // ── Active Communities ───────────────────────────────────────────────
+          // ── Active Clubs ─────────────────────────────────────────────────────
           Row(
-            children: const [
-              Icon(Icons.groups_rounded, color: Color(0xFFC7D437), size: 16),
-              SizedBox(width: 8),
-              Text(
-                'Active Communities',
-                style: TextStyle(
-                  color: Color(0xFFF4F5F7),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.groups_rounded, color: Color(0xFFC7D437), size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'Active Clubs',
+                    style: TextStyle(
+                      color: Color(0xFFF4F5F7),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AllClubsScreen()),
+                  );
+                },
+                child: const Text(
+                  'Clubs →',
+                  style: TextStyle(
+                    color: Color(0xFFC7D437),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -686,17 +747,38 @@ class _FeedTabState extends State<FeedTab> {
               style: TextStyle(color: ZynkColors.darkMuted),
             )
           else
-            ..._events.take(3).map((e) => _buildMiniEventCard(e)),
+            ..._trendingEvents.map((e) => _buildMiniEventCard(e)),
 
           const SizedBox(height: 48),
 
-          const Text(
-            'Active Communities',
-            style: TextStyle(
-              color: ZynkColors.offWhite,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Active Clubs',
+                style: TextStyle(
+                  color: ZynkColors.offWhite,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AllClubsScreen()),
+                  );
+                },
+                child: const Text(
+                  'Clubs →',
+                  style: TextStyle(
+                    color: ZynkColors.primary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           if (_loading)
@@ -782,12 +864,48 @@ class _FeedTabState extends State<FeedTab> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    event['category'] ?? 'Event',
-                    style: const TextStyle(
-                      color: ZynkColors.primary,
-                      fontSize: 12,
-                    ),
+                  Builder(
+                    builder: (context) {
+                      final attendeeCount = (event['attendee_count'] as int?) ??
+                          ((event['registered_users'] as List?)?.length) ?? 0;
+                      return Row(
+                        children: [
+                          Text(
+                            event['category'] ?? 'Event',
+                            style: const TextStyle(
+                              color: ZynkColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (attendeeCount > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: ZynkColors.warmAccent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.local_fire_department_rounded, color: ZynkColors.warmAccent, size: 10),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '$attendeeCount registered',
+                                    style: const TextStyle(
+                                      color: ZynkColors.warmAccent,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -852,7 +970,7 @@ class _FeedTabState extends State<FeedTab> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Campus Community',
+                    'Campus Club',
                     style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
                   ),
                 ],

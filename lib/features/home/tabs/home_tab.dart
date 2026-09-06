@@ -1,3 +1,5 @@
+import 'package:zynkup/features/clubs/screens/all_clubs_screen.dart';
+import 'package:zynkup/features/events/screens/past_events_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -5,7 +7,6 @@ import 'package:zynkup/core/widgets/event_card_widget.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/clubs/screens/club_profile_screen.dart';
-import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
@@ -233,6 +234,8 @@ class _HomeTabState extends State<HomeTab> {
 
     final upcoming = filteredEvents.where((event) => event.date.isAfter(DateTime.now())).toList();
     final past = filteredEvents.where((event) => event.date.isBefore(DateTime.now())).toList();
+    past.sort((a, b) => b.date.compareTo(a.date));
+    final displayedPast = isDesktop ? past.take(3).toList() : past.take(2).toList();
 
     return SliverToBoxAdapter(
       child: Center(
@@ -308,16 +311,47 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               
               if (past.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 32, 20, 16),
-                  child: Text(
-                    'Previous Events',
-                    style: TextStyle(
-                      color: ZynkColors.darkText,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Previous Events',
+                        style: TextStyle(
+                          color: ZynkColors.darkText,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      if (past.length > displayedPast.length)
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PastEventsScreen(initialEvents: _events),
+                              ),
+                            );
+                          },
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View All',
+                                style: TextStyle(
+                                  color: ZynkColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward_rounded, size: 14, color: ZynkColors.primary),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -327,11 +361,36 @@ class _HomeTabState extends State<HomeTab> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, mainAxisSpacing: 20, crossAxisSpacing: 20, mainAxisExtent: 190),
-                        itemCount: past.length,
-                        itemBuilder: (context, index) => EventCardWidget(event: past[index], compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: past[index])))),
+                        itemCount: displayedPast.length,
+                        itemBuilder: (context, index) => EventCardWidget(event: displayedPast[index], compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: displayedPast[index])))),
                       )
-                    : Column(children: past.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
+                    : Column(children: displayedPast.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
                 ),
+                if (past.length > displayedPast.length)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Center(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PastEventsScreen(initialEvents: _events),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.history_rounded, size: 16, color: ZynkColors.primary),
+                        label: Text(
+                          'View All Past Events (${past.length}) →',
+                          style: const TextStyle(
+                            color: ZynkColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
               
               const SizedBox(height: 32),
@@ -625,28 +684,27 @@ class _ClubsSection extends StatelessWidget {
                   ),
                 ],
               ),
-              TextButton.icon(
-                onPressed: () async {
-                  if (!ApiService.hasToken) {
-                    showLoginPrompt(context, message: 'Sign in to found a campus club.');
-                    return;
-                  }
-                  final result = await Navigator.push(
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const CreateClubScreen()),
+                    MaterialPageRoute(builder: (_) => const AllClubsScreen()),
                   );
-                  if (result == true) {
-                    onRefresh();
-                  }
                 },
-                icon: const Icon(Icons.add_rounded, size: 18, color: ZynkColors.primary),
-                label: const Text(
-                  'Create',
-                  style: TextStyle(
-                    color: ZynkColors.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Clubs',
+                      style: TextStyle(
+                        color: ZynkColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_rounded, size: 14, color: ZynkColors.primary),
+                  ],
                 ),
               ),
             ],
@@ -665,7 +723,7 @@ class _ClubsSection extends StatelessWidget {
               ),
               child: const Center(
                 child: Text(
-                  'No clubs founded yet. Tap Create to start one!',
+                  'No clubs founded yet.',
                   style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
                 ),
               ),
