@@ -20,7 +20,18 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
   bool _loading = true;
   List<dynamic> _clubs = [];
   String _searchQuery = '';
+  String _categoryFilter = 'All Clubs';
   final TextEditingController _searchController = TextEditingController();
+
+  static const _clubCategories = [
+    'All Clubs',
+    'tech',
+    'cultural',
+    'sports',
+    'workshop',
+    'seminar',
+    'general',
+  ];
 
   @override
   void initState() {
@@ -63,12 +74,15 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
   @override
   Widget build(BuildContext context) {
     final filtered = _clubs.where((club) {
+      final cat = (club['category'] ?? 'general').toString().toLowerCase();
+      if (_categoryFilter != 'All Clubs' && cat != _categoryFilter.toLowerCase()) {
+        return false;
+      }
       if (_searchQuery.isEmpty) {
         return true;
       }
       final name = (club['name'] ?? '').toString().toLowerCase();
       final desc = (club['description'] ?? '').toString().toLowerCase();
-      final cat = (club['category'] ?? '').toString().toLowerCase();
       return name.contains(_searchQuery) ||
           desc.contains(_searchQuery) ||
           cat.contains(_searchQuery);
@@ -151,6 +165,41 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                                   color: ZynkColors.darkMuted,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: ZynkColors.darkSurface,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: ZynkColors.darkBorder),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _categoryFilter,
+                                    dropdownColor: ZynkColors.darkSurface,
+                                    icon: const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: ZynkColors.primary,
+                                      size: 18,
+                                    ),
+                                    style: const TextStyle(
+                                      color: ZynkColors.offWhite,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    items: _clubCategories.map((String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                    onChanged: (newValue) {
+                                      if (newValue != null) {
+                                        setState(() => _categoryFilter = newValue);
+                                      }
+                                    },
+                                  ),
                                 ),
                               ),
                             ],
