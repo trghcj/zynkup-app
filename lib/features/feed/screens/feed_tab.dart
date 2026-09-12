@@ -422,7 +422,7 @@ class _FeedTabState extends State<FeedTab> {
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: _filter,
-                            dropdownColor: ZynkColors.darkSurface,
+                            dropdownColor: Theme.of(context).colorScheme.surface,
                             icon: const Icon(
                               Icons.keyboard_arrow_down_rounded,
                               color: ZynkColors.primary,
@@ -444,7 +444,14 @@ class _FeedTabState extends State<FeedTab> {
                                       (String value) =>
                                           DropdownMenuItem<String>(
                                             value: value,
-                                            child: Text(value),
+                                            child: Text(
+                                              value,
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                     )
                                     .toList(),

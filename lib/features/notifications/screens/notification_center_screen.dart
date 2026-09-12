@@ -150,7 +150,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       case 'XP_GAINED':
         return ZynkColors.orange;
       default:
-        return ZynkColors.offWhite;
+        return ZynkColors.primary;
     }
   }
 
@@ -161,15 +161,24 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        title: const Text('Notifications', style: TextStyle(color: ZynkColors.offWhite)),
+        title: Text(
+          'Notifications',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.done_all_rounded, color: ZynkColors.darkMuted),
+            icon: Icon(
+              Icons.done_all_rounded,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
+            ),
             onPressed: _markAllRead,
             tooltip: 'Mark all as read',
           )
         ],
-        iconTheme: const IconThemeData(color: ZynkColors.offWhite),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
       ),
       body: _loading
           ? _buildSkeleton()
@@ -178,7 +187,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Text(
-                      'Failed to load notifications:\\n\\n$_error',
+                      'Failed to load notifications:\n\n$_error',
                       style: const TextStyle(color: ZynkColors.error, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
@@ -197,7 +206,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
                           child: Text(
                             group.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: ZynkColors.gold,
                               fontWeight: FontWeight.w900,
                               fontSize: 14,
@@ -226,7 +235,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              tileColor: isRead ? Colors.transparent : ZynkColors.darkSurface,
+                              tileColor: isRead
+                                  ? Colors.transparent
+                                  : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
                               leading: CircleAvatar(
                                 backgroundColor: _getColorForType(notif['type']).withValues(alpha: 0.15),
                                 child: Icon(
@@ -238,7 +249,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                               title: Text(
                                 notif['title'] ?? 'Notification',
                                 style: TextStyle(
-                                  color: isRead ? ZynkColors.offWhite : Colors.white,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
                                 ),
                               ),
@@ -249,14 +260,14 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                                   Text(
                                     notif['body'] ?? notif['content'] ?? '',
                                     style: TextStyle(
-                                      color: isRead ? ZynkColors.darkMuted : ZynkColors.offWhite,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: isRead ? 0.6 : 0.85),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
                                     _timeAgo(createdAt),
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                                       fontSize: 12,
                                     ),
                                   ),

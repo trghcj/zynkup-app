@@ -256,10 +256,10 @@ class _HomeTabState extends State<HomeTab> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _filter,
-                          dropdownColor: ZynkColors.darkSurface,
+                          dropdownColor: Theme.of(context).colorScheme.surface,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600),
-                          items: ['All Events', 'tech', 'cultural', 'sports', 'workshop', 'seminar'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+                          items: ['All Events', 'tech', 'cultural', 'sports', 'workshop', 'seminar'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
                           onChanged: (newValue) {
                             if (newValue != null) setState(() => _filter = newValue);
                           },

@@ -100,13 +100,20 @@ class _MyEventsTabState extends State<MyEventsTab> {
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: _filter,
-                                  dropdownColor: ZynkColors.darkSurface,
+                                  dropdownColor: Theme.of(context).colorScheme.surface,
                                   icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
                                   style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600),
                                   items: ['All Events', 'Tech', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map((String value) {
                                     return DropdownMenuItem<String>(
                                       value: value,
-                                      child: Text(value),
+                                      child: Text(
+                                        value,
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     );
                                   }).toList(),
                                   onChanged: (String? newValue) {
@@ -188,11 +195,11 @@ class _MyEventsTabState extends State<MyEventsTab> {
                                   child: EventCardWidget(
                                     event: event,
                                     onTap: () async {
-                                      await showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (_) => EventDetailsScreen(event: event),
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => EventDetailsScreen(event: event),
+                                        ),
                                       );
                                       await _load();
                                     },
@@ -210,11 +217,11 @@ class _MyEventsTabState extends State<MyEventsTab> {
                             itemBuilder: (context, index) => EventCardWidget(
                               event: events[index],
                               onTap: () async {
-                                await showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (_) => EventDetailsScreen(event: events[index]),
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EventDetailsScreen(event: events[index]),
+                                  ),
                                 );
                                 await _load();
                               },

@@ -174,7 +174,7 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _filter,
-                                    dropdownColor: ZynkColors.darkSurface,
+                                    dropdownColor: Theme.of(context).colorScheme.surface,
                                     icon: const Icon(
                                       Icons.keyboard_arrow_down_rounded,
                                       color: ZynkColors.primary,
@@ -188,7 +188,14 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                                     items: _categories.map((String value) {
                                       return DropdownMenuItem<String>(
                                         value: value,
-                                        child: Text(value),
+                                        child: Text(
+                                          value,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurface,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       );
                                     }).toList(),
                                     onChanged: (newValue) {

@@ -177,7 +177,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _categoryFilter,
-                                    dropdownColor: ZynkColors.darkSurface,
+                                    dropdownColor: Theme.of(context).colorScheme.surface,
                                     icon: const Icon(
                                       Icons.keyboard_arrow_down_rounded,
                                       color: ZynkColors.primary,
@@ -191,7 +191,14 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                                     items: _clubCategories.map((String value) {
                                       return DropdownMenuItem<String>(
                                         value: value,
-                                        child: Text(value),
+                                        child: Text(
+                                          value,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurface,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       );
                                     }).toList(),
                                     onChanged: (newValue) {
