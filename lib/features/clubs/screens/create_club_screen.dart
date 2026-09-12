@@ -129,19 +129,19 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
     ];
 
     final formElements = <Widget>[
-      const Text(
+       Text(
         'Start a New Club',
         style: TextStyle(
-          color: ZynkColors.offWhite,
+          color: Theme.of(context).colorScheme.onSurface,
           fontSize: 36,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
         ),
       ),
       const SizedBox(height: 12),
-      const Text(
+       Text(
         'Unite the campus around shared passions. Create custom logos and banner posters.',
-        style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 15),
       ),
       const SizedBox(height: 32),
 
@@ -153,10 +153,10 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
       const SizedBox(height: 8),
       TextFormField(
         controller: _nameController,
-        style: const TextStyle(color: ZynkColors.offWhite, fontSize: 16),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16),
         decoration: InputDecoration(
           hintText: 'Enter your club name',
-          hintStyle: const TextStyle(color: ZynkColors.darkMuted),
+          hintStyle: TextStyle(color: ZynkColors.darkMuted),
           filled: true,
           fillColor: ZynkColors.darkSurface,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -165,11 +165,11 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -185,20 +185,20 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
       TextFormField(
         controller: _descriptionController,
         maxLines: 5,
-        style: const TextStyle(color: ZynkColors.offWhite, fontSize: 16, height: 1.4),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, height: 1.4),
         decoration: InputDecoration(
           hintText: 'Tell students what your club is about...',
-          hintStyle: const TextStyle(color: ZynkColors.darkMuted),
+          hintStyle: TextStyle(color: ZynkColors.darkMuted),
           filled: true,
           fillColor: ZynkColors.darkSurface,
           contentPadding: const EdgeInsets.all(16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -335,14 +335,14 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title:  Text(
           'Found a Club',
-          style: TextStyle(color: ZynkColors.offWhite, fontSize: 16),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: ZynkColors.offWhite),
@@ -350,7 +350,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.close_rounded, color: ZynkColors.offWhite, size: 24),
+            icon:  Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface, size: 24),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -414,9 +414,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: ZynkColors.darkSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ZynkColors.darkBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,9 +425,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
             children: [
               const Icon(Icons.remove_red_eye_rounded, size: 16, color: ZynkColors.darkMuted),
               const SizedBox(width: 8),
-              const Text(
+               Text(
                 'Live Preview',
-                style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -443,9 +443,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
               height: 120,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: ZynkColors.darkBg,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: ZynkColors.darkBorder, style: BorderStyle.solid),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, style: BorderStyle.solid),
               ),
               child: const Center(child: Icon(Icons.view_headline_rounded, color: ZynkColors.darkMuted)),
             ),
@@ -463,9 +463,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                   height: 64,
                   width: 64,
                   decoration: BoxDecoration(
-                    color: ZynkColors.darkBg,
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: ZynkColors.darkBorder),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: const Center(child: Icon(Icons.group, color: ZynkColors.darkMuted)),
                 ),
@@ -476,14 +476,14 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                   children: [
                     Text(
                       name.isEmpty ? 'Club Name' : name,
-                      style: const TextStyle(color: ZynkColors.offWhite, fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '$catName • Campus Club',
-                      style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13),
                     ),
                   ],
                 ),
@@ -530,11 +530,11 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
         const SizedBox(height: 4),
         Text(
           title,
-          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.w600),
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 14)),
+          Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 14)),
         ],
       ],
     );
@@ -546,7 +546,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
       children: [
         Text(
           text,
-          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
         ),
         if (isValid) ...[
           const SizedBox(width: 8),
@@ -567,7 +567,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(color: ZynkColors.offWhite, fontSize: 14, fontWeight: FontWeight.w600)),
+        Text(title, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: onTap,
@@ -575,7 +575,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
             height: height,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: ZynkColors.darkSurface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: bytes != null ? ZynkColors.primary.withValues(alpha: 0.5) : ZynkColors.darkBorder),
             ),
@@ -616,7 +616,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                           onTap: onClear,
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: Colors.black54,
                               shape: BoxShape.circle,
                             ),
@@ -629,12 +629,12 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, color: ZynkColors.darkMuted, size: 28),
+                      Icon(icon, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), size: 28),
                       const SizedBox(height: 8),
-                      const Text(
+                       Text(
                         'Upload Image',
                         style: TextStyle(
-                          color: ZynkColors.offWhite,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),

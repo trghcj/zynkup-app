@@ -62,10 +62,10 @@ class _ExploreTabState extends State<ExploreTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Explore',
                       style: TextStyle(
-                        color: ZynkColors.darkText,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 28,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
@@ -170,8 +170,8 @@ class _ExploreTabState extends State<ExploreTab> {
                             ? 'Be the first to host something.'
                             // ignore: unnecessary_brace_in_string_interps
                             : 'No ${_category} events yet.',
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontWeight: FontWeight.w600,
                         ),
                       ),

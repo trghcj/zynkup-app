@@ -358,9 +358,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+               Text(
                 'Give this member a role in the club. You can type anything (e.g. Co-Founder, Treasurer, Organizer) or select a preset.',
-                style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -500,7 +500,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         child: Scaffold(
-          backgroundColor: ZynkColors.darkBg,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: ZynkBackground(
             child: _loading
                 ? const _ClubProfileSkeleton()
@@ -510,13 +510,13 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     SliverAppBar(
                       expandedHeight: 280,
                       pinned: true,
-                      backgroundColor: ZynkColors.darkBg,
+                      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                       flexibleSpace: FlexibleSpaceBar(
                         title: Text(
                           widget.clubName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w900,
-                            color: ZynkColors.offWhite,
+                            color: Theme.of(context).colorScheme.onSurface,
                             shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
                           ),
                         ),
@@ -572,8 +572,8 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             const SizedBox(height: 16),
                             Text(
                               widget.clubName,
-                              style: const TextStyle(
-                                color: ZynkColors.offWhite,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -582,8 +582,8 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             const SizedBox(height: 8),
                             Text(
                               '${_club?['category'] ?? 'Community'} • ${_club?['member_count'] ?? 0} members',
-                              style: const TextStyle(
-                                color: ZynkColors.darkMuted,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -605,7 +605,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                               _club != null && _club!['description'] != null
                                   ? _club!['description']
                                   : 'The official ${widget.clubName} of MAIT. We build, create, and innovate together.',
-                              style: const TextStyle(color: ZynkColors.offWhite, fontSize: 14, height: 1.5),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, height: 1.5),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -661,9 +661,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
         
         return Container(
           decoration: BoxDecoration(
-            color: ZynkColors.darkSurface2,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: ZynkColors.darkBorder),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           child: Column(
@@ -680,9 +680,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
               const SizedBox(height: 20),
               ListTile(
                 leading: const Icon(Icons.chat_bubble_outline_rounded, color: ZynkColors.gold),
-                title: const Text(
+                title:  Text(
                   'Watch Full Feed / View Discussion',
-                  style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600),
                 ),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -702,7 +702,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   );
                 },
               ),
-              const Divider(color: ZynkColors.darkBorder),
+               Divider(color: Theme.of(context).colorScheme.outlineVariant),
               ListTile(
                 leading: const Icon(Icons.flag_outlined, color: ZynkColors.error),
                 title: const Text(
@@ -746,12 +746,12 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 },
               ),
               if (isAuthor) ...[
-                const Divider(color: ZynkColors.darkBorder),
+                 Divider(color: Theme.of(context).colorScheme.outlineVariant),
                 ListTile(
                   leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
-                  title: const Text(
+                  title:  Text(
                     'Edit Post',
-                    style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600),
                   ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
@@ -841,9 +841,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: ZynkColors.darkSurface2,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                      border: Border.all(color: ZynkColors.darkBorder),
+                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                     ),
                     child: Row(
                       children: [
@@ -1022,9 +1022,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     children: [
                       Icon(Icons.event_busy_rounded, size: 48, color: ZynkColors.darkMuted.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
-                      const Text(
+                       Text(
                         'Your next campus moment starts here',
-                        style: TextStyle(color: ZynkColors.darkMuted, fontSize: 15, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -1099,7 +1099,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     backgroundImage: CachedNetworkImageProvider(avatarUrl),
                     backgroundColor: ZynkColors.darkSurface2,
                   ),
-                  title: Text(name, style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold)),
+                  title: Text(name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
                   subtitle: Text(
                     isSelfCreator ? 'CLUB CREATOR' : 'ROLE: $role',
                     style: TextStyle(
@@ -1165,7 +1165,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     onTap: _uploadGalleryImage,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: ZynkColors.darkSurface2,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(ZynkRadius.md),
                         border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.4), style: BorderStyle.solid),
                       ),
@@ -1209,7 +1209,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                   children: [
                                     Container(
                                       decoration: BoxDecoration(
-                                        color: ZynkColors.darkSurface2,
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                         borderRadius: BorderRadius.circular(ZynkRadius.md),
                                       ),
                                       child: const Center(
@@ -1290,7 +1290,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                   children: [
                                     Container(
                                       decoration: BoxDecoration(
-                                        color: ZynkColors.darkSurface2,
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                         borderRadius: BorderRadius.circular(ZynkRadius.md),
                                       ),
                                       child: const Center(
@@ -1350,7 +1350,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: ZynkColors.darkSurface2,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(ZynkRadius.md),
                       ),
                       child: const Center(
@@ -1413,7 +1413,7 @@ class _ClubEventCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: ZynkGradients.cardSurface,
           borderRadius: BorderRadius.circular(ZynkRadius.lg),
-          border: Border.all(color: ZynkColors.darkBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
@@ -1466,8 +1466,8 @@ class _ClubEventCard extends StatelessWidget {
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: ZynkColors.offWhite,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1482,8 +1482,8 @@ class _ClubEventCard extends StatelessWidget {
                           venue,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: ZynkColors.darkMuted,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                             fontSize: 12,
                           ),
                         ),
@@ -1529,10 +1529,10 @@ class _ClubProfileSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        const SliverAppBar(
+         SliverAppBar(
           expandedHeight: 280,
           pinned: true,
-          backgroundColor: ZynkColors.darkBg,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           flexibleSpace: FlexibleSpaceBar(
             background: ZSkeleton(width: double.infinity, height: 280, borderRadius: 0),
           ),

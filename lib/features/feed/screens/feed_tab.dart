@@ -109,9 +109,9 @@ class _FeedTabState extends State<FeedTab> {
       builder: (sheetContext) {
         return Container(
           decoration: BoxDecoration(
-            color: ZynkColors.darkSurface2,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: ZynkColors.darkBorder),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           child: Column(
@@ -166,16 +166,16 @@ class _FeedTabState extends State<FeedTab> {
               if (_currentUserId != null &&
                   post['author_id']?.toString() ==
                       _currentUserId.toString()) ...[
-                const Divider(color: ZynkColors.darkBorder),
+                 Divider(color: Theme.of(context).colorScheme.outlineVariant),
                 ListTile(
-                  leading: const Icon(
+                  leading:  Icon(
                     Icons.edit_rounded,
-                    color: ZynkColors.offWhite,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
-                  title: const Text(
+                  title:  Text(
                     'Edit Post',
                     style: TextStyle(
-                      color: ZynkColors.offWhite,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -316,7 +316,7 @@ class _FeedTabState extends State<FeedTab> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
-                child: const Padding(
+                child:  Padding(
                   padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,7 +324,7 @@ class _FeedTabState extends State<FeedTab> {
                       Text(
                         'Campus Feed',
                         style: TextStyle(
-                          color: ZynkColors.darkText,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
@@ -334,7 +334,7 @@ class _FeedTabState extends State<FeedTab> {
                       Text(
                         "What's buzzing on campus?",
                         style: TextStyle(
-                          color: ZynkColors.darkMuted,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontSize: 14,
                         ),
                       ),
@@ -358,9 +358,9 @@ class _FeedTabState extends State<FeedTab> {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: ZynkColors.darkSurface,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: ZynkColors.darkBorder),
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       child: Row(
                         children: [
@@ -372,11 +372,11 @@ class _FeedTabState extends State<FeedTab> {
                             backgroundColor: ZynkColors.darkSurface2,
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                           Expanded(
                             child: Text(
                               "Share something with your campus...",
                               style: TextStyle(
-                                color: ZynkColors.darkMuted,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                 fontSize: 14,
                               ),
                             ),
@@ -415,9 +415,9 @@ class _FeedTabState extends State<FeedTab> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: ZynkColors.darkSurface,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: ZynkColors.darkBorder),
+                          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -428,8 +428,8 @@ class _FeedTabState extends State<FeedTab> {
                               color: ZynkColors.primary,
                               size: 18,
                             ),
-                            style: const TextStyle(
-                              color: ZynkColors.offWhite,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
@@ -718,10 +718,10 @@ class _FeedTabState extends State<FeedTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+           Text(
             'Trending Events',
             style: TextStyle(
-              color: ZynkColors.offWhite,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
@@ -754,10 +754,10 @@ class _FeedTabState extends State<FeedTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+               Text(
                 'Active Clubs',
                 style: TextStyle(
-                  color: ZynkColors.offWhite,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -821,9 +821,9 @@ class _FeedTabState extends State<FeedTab> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: ZynkColors.darkBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -831,7 +831,7 @@ class _FeedTabState extends State<FeedTab> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: ZynkColors.darkSurface2,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
                 image: event['cover_url'] != null
                     ? DecorationImage(
@@ -841,9 +841,9 @@ class _FeedTabState extends State<FeedTab> {
                     : null,
               ),
               child: event['cover_url'] == null
-                  ? const Icon(
+                  ?  Icon(
                       Icons.event_rounded,
-                      color: ZynkColors.darkMuted,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       size: 20,
                     )
                   : null,
@@ -855,8 +855,8 @@ class _FeedTabState extends State<FeedTab> {
                 children: [
                   Text(
                     event['title'] ?? 'Unnamed Event',
-                    style: const TextStyle(
-                      color: ZynkColors.offWhite,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -933,9 +933,9 @@ class _FeedTabState extends State<FeedTab> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: ZynkColors.darkBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -946,9 +946,9 @@ class _FeedTabState extends State<FeedTab> {
                   ? CachedNetworkImageProvider(club['logo_url'])
                   : null,
               child: club['logo_url'] == null
-                  ? const Icon(
+                  ?  Icon(
                       Icons.groups_rounded,
-                      color: ZynkColors.darkMuted,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       size: 20,
                     )
                   : null,
@@ -960,8 +960,8 @@ class _FeedTabState extends State<FeedTab> {
                 children: [
                   Text(
                     club['name'] ?? 'Unnamed Club',
-                    style: const TextStyle(
-                      color: ZynkColors.offWhite,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -969,9 +969,9 @@ class _FeedTabState extends State<FeedTab> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                   Text(
                     'Campus Club',
-                    style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 12),
                   ),
                 ],
               ),
@@ -1037,9 +1037,9 @@ class FeedPostCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       decoration: BoxDecoration(
-        color: ZynkColors.darkSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(ZynkRadius.lg),
-        border: Border.all(color: ZynkColors.darkBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1100,8 +1100,8 @@ class FeedPostCard extends StatelessWidget {
                     children: [
                       Text(
                         authorName,
-                        style: const TextStyle(
-                          color: ZynkColors.offWhite,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -1148,8 +1148,8 @@ class FeedPostCard extends StatelessWidget {
                       else
                         Text(
                           timeStr,
-                          style: const TextStyle(
-                            color: ZynkColors.darkMuted,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                             fontSize: 12,
                           ),
                         ),
@@ -1159,15 +1159,15 @@ class FeedPostCard extends StatelessWidget {
                 if (post['club_id'] != null)
                   Text(
                     timeStr,
-                    style: const TextStyle(
-                      color: ZynkColors.darkMuted,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       fontSize: 12,
                     ),
                   ),
                 IconButton(
-                  icon: const Icon(
+                  icon:  Icon(
                     Icons.more_vert_rounded,
-                    color: ZynkColors.darkMuted,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                   ),
                   onPressed: onMore,
                 ),
@@ -1200,8 +1200,8 @@ class FeedPostCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               content,
-              style: const TextStyle(
-                color: ZynkColors.offWhite,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 14,
                 height: 1.4,
               ),
@@ -1280,17 +1280,17 @@ class PollWidget extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface2,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: ZynkColors.darkBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               question,
-              style: const TextStyle(
-                color: ZynkColors.offWhite,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1306,9 +1306,9 @@ class PollWidget extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 8),
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    color: ZynkColors.darkSurface,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: ZynkColors.darkBorder),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: Stack(
                     children: [
@@ -1331,16 +1331,16 @@ class PollWidget extends StatelessWidget {
                           children: [
                             Text(
                               optionText,
-                              style: const TextStyle(
-                                color: ZynkColors.offWhite,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 13,
                               ),
                             ),
                             if (totalVotes > 0)
                               Text(
                                 '${(percent * 100).toStringAsFixed(0)}%',
-                                style: const TextStyle(
-                                  color: ZynkColors.darkMuted,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                   fontSize: 12,
                                 ),
                               ),
@@ -1354,7 +1354,7 @@ class PollWidget extends StatelessWidget {
             }),
             Text(
               '$totalVotes votes',
-              style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 11),
             ),
           ],
         ),
@@ -1442,8 +1442,8 @@ class ActionIcon extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
-            color: ZynkColors.darkMuted,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),

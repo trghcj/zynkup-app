@@ -62,7 +62,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: Text('Scan ${widget.event.title}')),
       body: kIsWeb ? _webFallback() : _mobileScanner(),
     );
@@ -78,10 +78,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           const Icon(Icons.qr_code_scanner_rounded,
               color: ZynkColors.primary, size: 80),
           const SizedBox(height: 20),
-          const Text(
+           Text(
             'QR scanning requires the mobile app.\n\nOn web, paste the attendee QR code manually:',
             textAlign: TextAlign.center,
-            style: TextStyle(color: ZynkColors.darkMuted, height: 1.6),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), height: 1.6),
           ),
           const SizedBox(height: 8),
           Container(

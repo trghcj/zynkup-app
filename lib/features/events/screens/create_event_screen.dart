@@ -159,7 +159,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -238,7 +238,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         children: [
           Text(
             'Step ${_step + 1} of 5',
-            style: const TextStyle(
+            style: TextStyle(
               color: ZynkColors.primary,
               fontWeight: FontWeight.w700,
               fontSize: 14,
@@ -250,7 +250,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             child: Container(
               height: 4,
               decoration: BoxDecoration(
-                color: ZynkColors.darkSurface2,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(2),
               ),
               child: FractionallySizedBox(
@@ -276,8 +276,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            color: ZynkColors.offWhite,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 32,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
@@ -303,8 +303,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       children: [
         TextFormField(
           controller: _title,
-          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 18, fontWeight: FontWeight.w700),
-          decoration: const InputDecoration(
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.w700),
+          decoration: InputDecoration(
             labelText: 'Event Title',
             hintText: 'e.g. Syntx Launch 2025',
           ),
@@ -314,7 +314,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         TextFormField(
           controller: _description,
           maxLines: 6,
-          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 15),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
           decoration: const InputDecoration(
             labelText: 'Event Description',
             hintText: 'What is this event about? Who should attend?',
@@ -330,8 +330,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       children: [
         TextFormField(
           controller: _venue,
-          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 16),
-          decoration: const InputDecoration(
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16),
+          decoration: InputDecoration(
             labelText: 'Venue / Location',
             prefixIcon: Icon(Icons.location_on_rounded, color: ZynkColors.darkMuted),
           ),
@@ -345,18 +345,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: ZynkColors.darkSurface,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                    border: Border.all(color: ZynkColors.darkBorder),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Date', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                       Text('Date', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 12)),
                       const SizedBox(height: 4),
                       Text(
                         DateFormat('MMM d, yyyy').format(_date),
-                        style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -370,18 +370,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: ZynkColors.darkSurface,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                    border: Border.all(color: ZynkColors.darkBorder),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Time', style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12)),
+                       Text('Time', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 12)),
                       const SizedBox(height: 4),
                       Text(
                         _time.format(context),
-                        style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w700),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -451,9 +451,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Container(
             height: 200,
             decoration: BoxDecoration(
-              color: ZynkColors.darkSurface.withValues(alpha: 0.5),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(ZynkRadius.lg),
-              border: Border.all(color: ZynkColors.darkBorder),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: _pickedBytes != null
                 ? ClipRRect(
@@ -481,21 +481,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         child: const Icon(Icons.cloud_upload_rounded, color: ZynkColors.primary, size: 32),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                       Text(
                         'Tap to upload poster',
-                        style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.w800),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                       Text(
                         'PNG, JPG up to 5MB',
-                        style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 12),
                       ),
                     ],
                   ),
           ),
         ),
         const SizedBox(height: 24),
-        const Center(child: Text('— OR —', style: TextStyle(color: ZynkColors.darkMuted, fontWeight: FontWeight.w800))),
+         Center(child: Text('— OR —', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontWeight: FontWeight.w800))),
         const SizedBox(height: 24),
         TextFormField(
           controller: _imageUrl,
@@ -551,7 +551,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       decoration: BoxDecoration(
         color: ZynkColors.darkBg.withValues(alpha: 0.9),
-        border: Border(top: BorderSide(color: ZynkColors.darkBorder.withValues(alpha: 0.5))),
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5))),
       ),
       child: Row(
         children: [

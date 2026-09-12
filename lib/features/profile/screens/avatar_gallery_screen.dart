@@ -19,7 +19,7 @@ class AvatarGalleryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Avatar Gallery'),
         backgroundColor: Colors.transparent,
@@ -97,7 +97,7 @@ class AvatarGalleryScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: ZynkColors.darkSurface,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: locked ? Colors.white10 : ZynkColors.primary.withValues(alpha: 0.3),

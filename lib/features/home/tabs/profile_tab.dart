@@ -59,7 +59,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   backgroundColor: ZynkColors.primary.withValues(alpha: 0.15),
                   child: Text(
                     name.characters.first.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
                     ),
@@ -69,8 +69,8 @@ class _ProfileTabState extends State<ProfileTab> {
                 Text(
                   name,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: ZynkColors.darkText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                   ),
@@ -121,9 +121,9 @@ class _StatsGrid extends StatelessWidget {
       itemBuilder: (_, index) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: ZynkColors.darkBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +131,7 @@ class _StatsGrid extends StatelessWidget {
           children: [
             Text(
               items[index].$2.toString(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: ZynkColors.primary,
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
@@ -140,8 +140,8 @@ class _StatsGrid extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               items[index].$1,
-              style: const TextStyle(
-                color: ZynkColors.darkMuted,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                 fontWeight: FontWeight.w700,
               ),
             ),

@@ -44,7 +44,7 @@ class _EventCardWidgetState extends State<EventCardWidget> {
           child: ClipRRect(
           child: Container(
             decoration: BoxDecoration(
-              color: ZynkColors.darkSurface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(ZynkRadius.xl),
               border: Border.all(
                 color: _hovering ? ZynkColors.primary.withValues(alpha: 0.5) : ZynkColors.darkBorder,
@@ -75,8 +75,8 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                         const Spacer(),
                         Text(
                           DateFormat('MMM d').format(widget.event.date),
-                          style: const TextStyle(
-                            color: ZynkColors.darkMuted,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -88,8 +88,8 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                       widget.event.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: ZynkColors.offWhite,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         height: 1.2,
@@ -137,18 +137,18 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: ZynkColors.darkSurface,
+                                        color: Theme.of(context).colorScheme.surface,
                                         width: 1.5,
                                       ),
-                                      color: ZynkColors.darkSurface2,
+                                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                     ),
                                     child: ClipOval(
                                       child: CachedNetworkImage(imageUrl: 'https://api.dicebear.com/7.x/avataaars/png?seed=${widget.event.id}_$index',
                                         fit: BoxFit.cover,
-                                        errorWidget: (_, __, ___) => const Icon(
+                                        errorWidget: (_, __, ___) =>  Icon(
                                           Icons.person,
                                           size: 14,
-                                          color: ZynkColors.darkMuted,
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                         ),
                                       ),
                                     ),
@@ -238,7 +238,7 @@ class _Banner extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    ZynkColors.darkSurface.withValues(alpha: 0.6),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,

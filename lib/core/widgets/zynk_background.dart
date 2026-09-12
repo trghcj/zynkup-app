@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:zynkup/core/theme/app_theme.dart';
 
 class ZynkBackground extends StatelessWidget {
   final Widget child;
@@ -13,7 +12,7 @@ class ZynkBackground extends StatelessWidget {
       children: [
         // Base dark background
         Container(
-          color: ZynkColors.darkBg,
+          color: Theme.of(context).scaffoldBackgroundColor,
         ),
         
         // Very subtle warm orange glow near top/selected areas
@@ -21,7 +20,7 @@ class ZynkBackground extends StatelessWidget {
           top: -150,
           left: -150,
           child: _Orb(
-            color: const Color(0xFFFF8A1F).withValues(alpha: 0.04), // Extremely subtle
+            color: Color(0xFFFF8A1F).withValues(alpha: 0.04), // Extremely subtle
             size: 500,
           ),
         ),
@@ -31,7 +30,7 @@ class ZynkBackground extends StatelessWidget {
           bottom: -200,
           right: -100,
           child: _Orb(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.03), // Extremely subtle
+            color: Color(0xFF8B5CF6).withValues(alpha: 0.03), // Extremely subtle
             size: 600,
           ),
         ),

@@ -67,10 +67,10 @@ class _MyEventsTabState extends State<MyEventsTab> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                         Text(
                           'My Events',
                           style: TextStyle(
-                            color: ZynkColors.darkText,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
@@ -93,16 +93,16 @@ class _MyEventsTabState extends State<MyEventsTab> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: ZynkColors.darkSurface,
+                                color: Theme.of(context).colorScheme.surface,
                                 borderRadius: BorderRadius.circular(ZynkRadius.md),
-                                border: Border.all(color: ZynkColors.darkBorder),
+                                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: _filter,
                                   dropdownColor: ZynkColors.darkSurface,
                                   icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
-                                  style: const TextStyle(color: ZynkColors.darkText, fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600),
                                   items: ['All Events', 'Tech', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map((String value) {
                                     return DropdownMenuItem<String>(
                                       value: value,
@@ -160,8 +160,8 @@ class _MyEventsTabState extends State<MyEventsTab> {
                             ? 'Be the first to host something.'
                             : 'Join an event and your QR pass appears here.',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontWeight: FontWeight.w600,
                         ),
                       ),

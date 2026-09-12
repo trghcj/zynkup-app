@@ -34,13 +34,14 @@ class ZynkColors {
   static const darkText = Color(0xFFF4F5F7);
   static const darkMuted = Color(0xFF969DA8);
 
-  // ── Light surfaces (mapped to dark for this redesign)
-  static const lightBg = darkBg;
-  static const lightSurface = darkSurface;
-  static const lightSurf2 = darkSurface2;
-  static const lightBorder = darkBorder;
-  static const lightText = darkText;
-  static const lightMuted = darkMuted;
+  // ── Light surfaces ────────────────────────────────────────────────────
+  static const lightBg = Color(0xFFFAFAFA);
+  static const lightSurface = Color(0xFFFFFFFF);
+  static const lightSurf2 = Color(0xFFF2F4F7);
+  static const lightBorder = Color(0xFFE2E5EA);
+  static const lightText = Color(0xFF0E1117);
+  static const lightMuted = Color(0xFF6B7280);
+  static const lightElevated = Color(0xFFEAECF0);
 
   // ── Semantic ──────────────────────────────────────────────────────
   static const success = Color(0xFFC7D437);
@@ -377,7 +378,85 @@ class AppTheme {
     );
   }
 
-  static ThemeData get light => dark; // Forces dark theme for simplicity in this exercise, as instructed.
+  static ThemeData get light {
+    final baseTextTheme = ThemeData.light().textTheme;
+    return ThemeData(
+      brightness: Brightness.light,
+      useMaterial3: true,
+      textTheme: GoogleFonts.interTextTheme(baseTextTheme).copyWith(
+        displayLarge: GoogleFonts.inter(textStyle: baseTextTheme.displayLarge, fontWeight: FontWeight.w700),
+        displayMedium: GoogleFonts.inter(textStyle: baseTextTheme.displayMedium, fontWeight: FontWeight.w700),
+        displaySmall: GoogleFonts.inter(textStyle: baseTextTheme.displaySmall, fontWeight: FontWeight.w700),
+        headlineLarge: GoogleFonts.inter(textStyle: baseTextTheme.headlineLarge, fontWeight: FontWeight.w700),
+        headlineMedium: GoogleFonts.inter(textStyle: baseTextTheme.headlineMedium, fontWeight: FontWeight.w600),
+        headlineSmall: GoogleFonts.inter(textStyle: baseTextTheme.headlineSmall, fontWeight: FontWeight.w600),
+        titleLarge: GoogleFonts.inter(textStyle: baseTextTheme.titleLarge, fontWeight: FontWeight.w600),
+        titleMedium: GoogleFonts.inter(textStyle: baseTextTheme.titleMedium, fontWeight: FontWeight.w600),
+        titleSmall: GoogleFonts.inter(textStyle: baseTextTheme.titleSmall, fontWeight: FontWeight.w600),
+        bodyLarge: GoogleFonts.inter(textStyle: baseTextTheme.bodyLarge, fontWeight: FontWeight.w400),
+        bodyMedium: GoogleFonts.inter(textStyle: baseTextTheme.bodyMedium, fontWeight: FontWeight.w400),
+        bodySmall: GoogleFonts.inter(textStyle: baseTextTheme.bodySmall, fontWeight: FontWeight.w400),
+      ),
+      colorScheme: const ColorScheme.light(
+        primary: ZynkColors.primary,
+        secondary: ZynkColors.secondaryAccent,
+        surface: ZynkColors.lightSurface,
+        error: ZynkColors.error,
+        onPrimary: ZynkColors.darkSurface,
+        onSurface: ZynkColors.lightText,
+        onSecondary: Colors.white,
+      ),
+      scaffoldBackgroundColor: ZynkColors.lightBg,
+      appBarTheme: _appBar(false),
+      cardTheme: _card(false),
+      inputDecorationTheme: _input(false),
+      elevatedButtonTheme: _btn,
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ZynkColors.primary,
+          side: const BorderSide(color: ZynkColors.lightBorder, width: 1),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.lg)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        ),
+      ),
+      textButtonTheme: _textBtn,
+      tabBarTheme: _tabBar(false),
+      dialogTheme: _dialog(false),
+      chipTheme: _chip(false),
+      dividerColor: ZynkColors.lightBorder,
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: ZynkColors.lightSurface,
+        contentTextStyle: const TextStyle(color: ZynkColors.lightText, fontWeight: FontWeight.w400),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ZynkRadius.md),
+          side: const BorderSide(color: ZynkColors.lightBorder),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return ZynkColors.lightSurf2;
+            return ZynkColors.lightBg;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return ZynkColors.primary;
+            return ZynkColors.lightMuted;
+          }),
+          side: WidgetStateProperty.all(
+            const BorderSide(color: ZynkColors.lightBorder),
+          ),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZynkRadius.md)),
+          ),
+          textStyle: WidgetStateProperty.all(
+            const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class ZynkButton extends StatelessWidget {
@@ -480,17 +559,18 @@ class CategoryBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: ZynkColors.darkSurface2,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(ZynkRadius.sm),
-        border: Border.all(color: ZynkColors.darkBorder),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Text(
         category,
-        style: const TextStyle(
-          color: ZynkColors.darkMuted,
+        style: TextStyle(
+          color: cs.onSurface.withValues(alpha: 0.6),
           fontSize: 10,
           fontWeight: FontWeight.w600,
         ),
@@ -505,22 +585,23 @@ class ZynkDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const c = ZynkColors.darkBorder;
-    if (label == null) return const Divider(color: c, height: 1);
+    final c = Theme.of(context).dividerColor;
+    final muted = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
+    if (label == null) return Divider(color: c, height: 1);
     return Row(
       children: [
-        const Expanded(child: Divider(color: c)),
+        Expanded(child: Divider(color: c)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             label!,
-            style: const TextStyle(
-              color: ZynkColors.darkMuted,
+            style: TextStyle(
+              color: muted,
               fontSize: 12,
             ),
           ),
         ),
-        const Expanded(child: Divider(color: c)),
+        Expanded(child: Divider(color: c)),
       ],
     );
   }
@@ -542,13 +623,14 @@ class ZynkGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: padding ?? const EdgeInsets.all(ZynkSpacing.md),
       decoration: BoxDecoration(
-        color: ZynkColors.darkSurface,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: borderColor ?? ZynkColors.darkBorder,
+          color: borderColor ?? cs.outlineVariant,
           width: 1,
         ),
         boxShadow: ZynkShadows.card,

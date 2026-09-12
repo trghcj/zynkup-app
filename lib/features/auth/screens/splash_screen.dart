@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -43,10 +43,10 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Image.asset('assets/logos/zynkup_logo.jpg', width: 100, height: 100),
             ),
             const SizedBox(height: 14),
-            const Text(
+             Text(
               'ZYNKUP',
               style: TextStyle(
-                color: ZynkColors.darkText,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 34,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 3,

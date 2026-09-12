@@ -51,7 +51,7 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
   Widget build(BuildContext context) {
     final events = _filtered;
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -116,10 +116,10 @@ class _Hero extends StatelessWidget {
                 child: Image.asset('assets/logos/zynkup_logo.jpg', height: 36, width: 36),
               ),
               const SizedBox(width: 8),
-              const Text(
+               Text(
                 'ZYNKUP',
                 style: TextStyle(
-                  color: ZynkColors.darkText,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 2,
                 ),
@@ -129,19 +129,19 @@ class _Hero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
+           Text(
             'Find what is happening on campus.',
             style: TextStyle(
-              color: ZynkColors.darkText,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 34,
               fontWeight: FontWeight.w900,
               height: 1,
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
+           Text(
             'Browse featured, nearby, latest, and category events. Login to participate.',
-            style: TextStyle(color: ZynkColors.darkMuted, height: 1.5),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), height: 1.5),
           ),
         ],
       ),

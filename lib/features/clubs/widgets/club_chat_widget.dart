@@ -369,7 +369,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                       Expanded(child: Divider(color: ZynkColors.darkMuted.withValues(alpha: 0.3))),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(msg['text'], style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        child: Text(msg['text'], style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ),
                       Expanded(child: Divider(color: ZynkColors.darkMuted.withValues(alpha: 0.3))),
                     ],
@@ -520,8 +520,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: ZynkColors.darkBg,
-            border: Border(top: BorderSide(color: ZynkColors.darkBorder)),
+            color: Theme.of(context).scaffoldBackgroundColor,
+            border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
           ),
           child: Row(
             children: [
@@ -533,12 +533,12 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
               Expanded(
                 child: TextField(
                   controller: _messageController,
-                  style: const TextStyle(color: ZynkColors.offWhite),
+                  style: TextStyle(color: ZynkColors.offWhite),
                   decoration: InputDecoration(
                     hintText: 'Type a message...',
-                    hintStyle: const TextStyle(color: ZynkColors.darkMuted),
+                    hintStyle: TextStyle(color: ZynkColors.darkMuted),
                     filled: true,
-                    fillColor: ZynkColors.darkSurface2,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(ZynkRadius.pill),

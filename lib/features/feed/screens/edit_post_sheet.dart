@@ -60,7 +60,7 @@ class _EditPostSheetState extends State<EditPostSheet> {
         decoration: BoxDecoration(
           color: ZynkColors.darkBg.withValues(alpha: 0.98),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: const Border(top: BorderSide(color: ZynkColors.darkBorder)),
+          border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
@@ -70,10 +70,10 @@ class _EditPostSheetState extends State<EditPostSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Edit Post',
                   style: TextStyle(
-                    color: ZynkColors.offWhite,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),

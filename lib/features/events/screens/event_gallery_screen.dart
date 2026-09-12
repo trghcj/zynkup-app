@@ -173,7 +173,7 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Gallery'),
         actions: [
@@ -229,8 +229,8 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
                     widget.canUpload
                         ? 'Upload the first event memory.'
                         : 'Photos will appear after the event.',
-                    style: const TextStyle(
-                      color: ZynkColors.darkMuted,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -291,7 +291,7 @@ class _GalleryTile extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: ZynkGradients.cardSurface,
             borderRadius: BorderRadius.circular(ZynkRadius.md),
-            border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.4)),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4)),
           ),
           child: const Icon(
             Icons.play_circle_fill_rounded,
@@ -305,7 +305,7 @@ class _GalleryTile extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: ZynkGradients.cardSurface,
           borderRadius: BorderRadius.circular(ZynkRadius.md),
-          border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.4)),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4)),
         ),
         child: const Icon(
           Icons.picture_as_pdf_rounded,

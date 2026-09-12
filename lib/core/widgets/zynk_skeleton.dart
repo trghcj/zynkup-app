@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:zynkup/core/theme/app_theme.dart';
 
 class ZSkeleton extends StatefulWidget {
   final double width;
@@ -51,7 +50,7 @@ class _ZSkeletonState extends State<ZSkeleton> with SingleTickerProviderStateMix
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: ZynkColors.darkSurface.withValues(alpha: _animation.value),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: _animation.value),
             shape: widget.isCircle ? BoxShape.circle : BoxShape.rectangle,
             borderRadius: widget.isCircle ? null : BorderRadius.circular(widget.borderRadius),
           ),

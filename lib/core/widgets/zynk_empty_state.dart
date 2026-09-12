@@ -28,17 +28,17 @@ class ZEmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: ZynkColors.darkSurface,
+                color: Theme.of(context).colorScheme.surface,
                 shape: BoxShape.circle,
-                border: Border.all(color: ZynkColors.darkBorder),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
               child: Icon(icon, size: 48, color: ZynkColors.darkMuted),
             ),
             const SizedBox(height: 24),
             Text(
               title,
-              style: const TextStyle(
-                color: ZynkColors.offWhite,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 letterSpacing: -0.5,
@@ -48,8 +48,8 @@ class ZEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: const TextStyle(
-                color: ZynkColors.darkMuted,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                 fontSize: 15,
               ),
               textAlign: TextAlign.center,
@@ -63,7 +63,7 @@ class ZEmptyState extends StatelessWidget {
                   backgroundColor: ZynkColors.darkSurface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: ZynkColors.darkBorder),
+                    side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                 ),
                 child: Text(

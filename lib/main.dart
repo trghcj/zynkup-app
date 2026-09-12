@@ -5,6 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'core/api/api_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
+import 'core/widgets/theme_page_turn.dart';
 
 import 'features/auth/screens/splash_screen.dart';
 import 'firebase_options.dart';
@@ -12,7 +14,7 @@ import 'services/push_notification_service.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint(
-    'Background notification: ${message.notification?.title ?? 'Zynkup'}',
+    'Background notification: ${message.notification?.title ?? "Zynkup"}',
   );
 }
 
@@ -28,7 +30,7 @@ Future<void> main() async {
 
     await PushNotificationService.initialize();
   } catch (error) {
-    debugPrint('Firebase init skipped: $error');
+    debugPrint('Firebase init skipped: \$error');
   }
 
   runApp(const ZynkupApp());
@@ -50,19 +52,24 @@ class ZynkupApp extends StatefulWidget {
   State<ZynkupApp> createState() => _ZynkupAppState();
 }
 
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class _ZynkupAppState extends State<ZynkupApp> {
   @override
   void initState() {
     super.initState();
-    
+
+    // Rebuild when theme changes so MaterialApp picks up the new ThemeMode
+    themeProvider.addListener(_onThemeChange);
+
     ApiService.latestNotification.addListener(() {
       final notif = ApiService.latestNotification.value;
       if (notif != null) {
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(
-            content: Text("${notif['title'] ?? 'Notification'}: ${notif['body'] ?? ''}"),
+            content: Text(
+                "\${notif['title'] ?? 'Notification'}: \${notif['body'] ?? ''}"),
             behavior: SnackBarBehavior.floating,
             backgroundColor: ZynkColors.error,
             duration: const Duration(seconds: 4),
@@ -70,6 +77,16 @@ class _ZynkupAppState extends State<ZynkupApp> {
         );
       }
     });
+  }
+
+  void _onThemeChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    themeProvider.removeListener(_onThemeChange);
+    super.dispose();
   }
 
   @override
@@ -80,8 +97,11 @@ class _ZynkupAppState extends State<ZynkupApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      themeMode: themeProvider.themeMode,
       scrollBehavior: CustomScrollBehavior(),
+      builder: (context, child) {
+        return ThemePageTurn(child: child ?? const SizedBox.shrink());
+      },
       home: const SplashScreen(),
     );
   }
