@@ -156,9 +156,11 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
         style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16),
         decoration: InputDecoration(
           hintText: 'Enter your club name',
-          hintStyle: TextStyle(color: ZynkColors.darkMuted),
+          hintStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+          ),
           filled: true,
-          fillColor: ZynkColors.darkSurface,
+          fillColor: Theme.of(context).colorScheme.surface,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           suffixIcon: isNameValid 
               ? const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20) 
@@ -173,7 +175,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: ZynkColors.primary),
+            borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
           ),
         ),
         validator: (v) => v == null || v.trim().isEmpty ? 'Give your club a name' : null,
@@ -188,9 +190,11 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
         style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, height: 1.4),
         decoration: InputDecoration(
           hintText: 'Tell students what your club is about...',
-          hintStyle: TextStyle(color: ZynkColors.darkMuted),
+          hintStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+          ),
           filled: true,
-          fillColor: ZynkColors.darkSurface,
+          fillColor: Theme.of(context).colorScheme.surface,
           contentPadding: const EdgeInsets.all(16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -202,7 +206,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: ZynkColors.primary),
+            borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
           ),
         ),
         validator: (v) => v == null || v.trim().isEmpty ? 'Description is required' : null,
@@ -219,28 +223,43 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           final cat = item.$1;
           final icon = item.$2;
           final selected = _category == cat;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          
+          final chipBg = selected
+              ? (isDark
+                  ? ZynkColors.primary.withValues(alpha: 0.15)
+                  : const Color(0xFFF7FEE7))
+              : Theme.of(context).colorScheme.surface;
+          final chipBorder = selected
+              ? (isDark ? ZynkColors.primary : const Color(0xFF65A30D))
+              : Theme.of(context).colorScheme.outlineVariant;
+          final chipContentColor = selected
+              ? (isDark ? ZynkColors.primary : const Color(0xFF3F6212))
+              : Theme.of(context).colorScheme.onSurface;
+
           return GestureDetector(
             onTap: () => setState(() => _category = cat),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: selected ? ZynkColors.primary.withValues(alpha: 0.1) : ZynkColors.darkSurface,
+                color: chipBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: selected ? ZynkColors.primary : ZynkColors.darkBorder,
+                  color: chipBorder,
+                  width: selected ? 1.5 : 1.0,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, color: selected ? ZynkColors.primary : ZynkColors.darkMuted, size: 18),
+                  Icon(icon, color: chipContentColor, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     cat[0].toUpperCase() + cat.substring(1),
                     style: TextStyle(
-                      color: selected ? ZynkColors.primary : ZynkColors.darkMuted,
-                      fontWeight: FontWeight.w600,
+                      color: chipContentColor,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                       fontSize: 14,
                     ),
                   ),
@@ -518,14 +537,24 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
             Text(
               number,
               style: TextStyle(
-                color: isComplete ? ZynkColors.primary : ZynkColors.darkMuted,
+                color: isComplete
+                    ? (Theme.of(context).brightness == Brightness.light
+                        ? const Color(0xFF65A30D)
+                        : ZynkColors.primary)
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
               ),
             ),
             if (isComplete) ...[
               const SizedBox(width: 6),
-              const Icon(Icons.check_circle_rounded, color: ZynkColors.primary, size: 14),
+              Icon(
+                Icons.check_circle_rounded,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? const Color(0xFF65A30D)
+                    : ZynkColors.primary,
+                size: 14,
+              ),
             ]
           ],
         ),
@@ -579,7 +608,11 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: bytes != null ? ZynkColors.primary.withValues(alpha: 0.5) : ZynkColors.darkBorder),
+              border: Border.all(
+                color: bytes != null
+                    ? ZynkColors.primary.withValues(alpha: 0.5)
+                    : Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
             child: bytes != null
                 ? Stack(
