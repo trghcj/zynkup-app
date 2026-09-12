@@ -365,7 +365,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
-                style: const TextStyle(color: ZynkColors.offWhite),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 decoration: const InputDecoration(
                   labelText: 'Role Name',
                   hintText: 'e.g. Moderator',
@@ -748,7 +748,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
               if (isAuthor) ...[
                  Divider(color: Theme.of(context).colorScheme.outlineVariant),
                 ListTile(
-                  leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
+                  leading: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSurface),
                   title:  Text(
                     'Edit Post',
                     style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600),
@@ -780,9 +780,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (c) => AlertDialog(
-                        backgroundColor: ZynkColors.darkSurface2,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
                         title: const Text('Delete Post', style: TextStyle(color: ZynkColors.error)),
-                        content: const Text('Are you sure you want to delete this post?', style: TextStyle(color: ZynkColors.offWhite)),
+                        content: Text('Are you sure you want to delete this post?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(c, false),

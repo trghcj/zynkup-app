@@ -58,7 +58,7 @@ class _EditPostSheetState extends State<EditPostSheet> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: ZynkColors.darkBg.withValues(alpha: 0.98),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
         ),
@@ -79,7 +79,10 @@ class _EditPostSheetState extends State<EditPostSheet> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: ZynkColors.darkMuted),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
                   onPressed: () => Navigator.pop(context),
                 )
               ],
@@ -87,17 +90,23 @@ class _EditPostSheetState extends State<EditPostSheet> {
             const SizedBox(height: 16),
             TextField(
               controller: _controller,
-              style: const TextStyle(color: ZynkColors.offWhite),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               maxLines: 5,
               minLines: 2,
               decoration: InputDecoration(
                 hintText: 'Update your post...',
-                hintStyle: const TextStyle(color: ZynkColors.darkMuted),
+                hintStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                ),
                 filled: true,
-                fillColor: ZynkColors.darkSurface,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
               ),
             ),
@@ -114,18 +123,22 @@ class _EditPostSheetState extends State<EditPostSheet> {
                   ),
                 ),
                 child: _saving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Theme.of(context).brightness == Brightness.light
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Save Changes',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Theme.of(context).brightness == Brightness.light
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

@@ -166,7 +166,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
 
             // Original Post Summary
             Container(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
               padding: const EdgeInsets.all(16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +185,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                     child: CircleAvatar(
                       radius: 16,
                       backgroundImage: CachedNetworkImageProvider(primaryAvatar),
-                      backgroundColor: ZynkColors.darkSurface2,
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -195,8 +195,10 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                       children: [
                         Text(
                           widget.authorName,
-                          style: const TextStyle(
-                            color: ZynkColors.gold,
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.light
+                                ? Theme.of(context).colorScheme.primary
+                                : ZynkColors.gold,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -207,7 +209,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: ZynkColors.offWhite.withValues(alpha: 0.9),
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 13,
                             height: 1.4,
                           ),
@@ -289,7 +291,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                                     child: CircleAvatar(
                                       radius: 16,
                                       backgroundImage: CachedNetworkImageProvider(avatarUrl),
-                                      backgroundColor: ZynkColors.darkSurface2,
+                                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -297,12 +299,12 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                                     child: Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: ZynkColors.darkSurface2
-                                            .withValues(alpha: 0.5),
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? ZynkColors.darkSurface2.withValues(alpha: 0.5)
+                                            : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
                                         borderRadius: BorderRadius.circular(14),
                                         border: Border.all(
-                                          color: ZynkColors.darkBorder
-                                              .withValues(alpha: 0.5),
+                                          color: Theme.of(context).colorScheme.outlineVariant,
                                         ),
                                       ),
                                       child: Column(
@@ -364,7 +366,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                       decoration: InputDecoration(
                         hintText: 'Add a reply...',
                         hintStyle: TextStyle(
-                          color: ZynkColors.darkMuted.withValues(alpha: 0.6),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -399,17 +401,21 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                         shape: BoxShape.circle,
                       ),
                       child: _submitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Theme.of(context).brightness == Brightness.light
+                                    ? const Color(0xFF1E293B)
+                                    : Colors.white,
                               ),
                             )
-                          : const Icon(
+                          : Icon(
                               Icons.send_rounded,
-                              color: Colors.white,
+                              color: Theme.of(context).brightness == Brightness.light
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
                               size: 18,
                             ),
                     ),

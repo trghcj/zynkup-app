@@ -120,7 +120,7 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                           // Search field
                           TextField(
                             controller: _searchController,
-                            style: const TextStyle(color: ZynkColors.offWhite),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                             decoration: InputDecoration(
                               hintText: 'Search past events by title, venue...',

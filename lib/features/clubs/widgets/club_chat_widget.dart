@@ -533,10 +533,12 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
               Expanded(
                 child: TextField(
                   controller: _messageController,
-                  style: TextStyle(color: ZynkColors.offWhite),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   decoration: InputDecoration(
                     hintText: 'Type a message...',
-                    hintStyle: TextStyle(color: ZynkColors.darkMuted),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                    ),
                     filled: true,
                     fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

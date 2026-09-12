@@ -21,13 +21,6 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
   static const _webClientId =
       '659234851207-o80f3633j9f09j79d0ml7376o7v4iv58.apps.googleusercontent.com';
 
-  static const Color _bgColor = Color(0xFF090B0F);
-  static const Color _textPrimary = Color(0xFFF4F5F7);
-  static const Color _textSecondary = Color(0xFF969DA8);
-  static const Color _primaryAccent = Color(0xFFC7D437);
-  static const Color _btnBg = Color(0xFFF4F5F7);
-  static const Color _btnText = Color(0xFF090B0F);
-
   Future<void> _googleLogin() async {
     // Prevent duplicate popup if already loading
     if (_loading) return;
@@ -111,8 +104,17 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = Theme.of(context).colorScheme.onSurface;
+    final textSecondary = isDark
+        ? const Color(0xFF969DA8)
+        : const Color(0xFF4B5563);
+    final primaryAccent = isDark
+        ? const Color(0xFFC7D437)
+        : const Color(0xFF65A30D);
+
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: ZynkBackground(
         child: SafeArea(
           child: Center(
@@ -131,10 +133,10 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                           child: Image.asset('assets/logos/zynkup_logo.jpg', height: 38, width: 38),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           'ZynkUp',
                           style: TextStyle(
-                            color: _textPrimary,
+                            color: textPrimary,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.5,
@@ -145,10 +147,10 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     const SizedBox(height: 28),
 
                     // HERO TEXT
-                    const Text(
+                    Text(
                       'Your Campus,\nConnected.',
                       style: TextStyle(
-                        color: _textPrimary,
+                        color: textPrimary,
                         fontSize: 48,
                         fontWeight: FontWeight.w700,
                         height: 1.0,
@@ -158,10 +160,10 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     const SizedBox(height: 18),
 
                     // DESCRIPTION
-                    const Text(
+                    Text(
                       'Discover events, join communities, find opportunities, and build meaningful campus connections.',
                       style: TextStyle(
-                        color: _textSecondary,
+                        color: textSecondary,
                         fontSize: 18,
                         fontWeight: FontWeight.w400,
                         height: 1.45,
@@ -170,13 +172,13 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     const SizedBox(height: 32),
 
                     // FEATURE LIST
-                    _buildFeatureRow('Campus Events'),
+                    _buildFeatureRow('Campus Events', textPrimary, primaryAccent),
                     const SizedBox(height: 14),
-                    _buildFeatureRow('Student Communities'),
+                    _buildFeatureRow('Student Communities', textPrimary, primaryAccent),
                     const SizedBox(height: 14),
-                    _buildFeatureRow('Opportunities'),
+                    _buildFeatureRow('Opportunities', textPrimary, primaryAccent),
                     const SizedBox(height: 14),
-                    _buildFeatureRow('Networking'),
+                    _buildFeatureRow('Networking', textPrimary, primaryAccent),
                     
                     const SizedBox(height: 28),
 
@@ -187,15 +189,15 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                           width: 3,
                           height: 14,
                           decoration: BoxDecoration(
-                            color: _primaryAccent,
+                            color: primaryAccent,
                             borderRadius: BorderRadius.circular(1.5),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Ready to join your campus?',
                           style: TextStyle(
-                            color: _textSecondary,
+                            color: textSecondary,
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                           ),
@@ -205,7 +207,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     const SizedBox(height: 14),
 
                     // CTA
-                    _buildGoogleButton(),
+                    _buildGoogleButton(isDark),
                     
                     const SizedBox(height: 32),
 
@@ -213,11 +215,11 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildFooterLink('Terms'),
-                        _buildFooterDot(),
-                        _buildFooterLink('Privacy'),
-                        _buildFooterDot(),
-                        _buildFooterLink('Contact'),
+                        _buildFooterLink('Terms', textSecondary),
+                        _buildFooterDot(textSecondary),
+                        _buildFooterLink('Privacy', textSecondary),
+                        _buildFooterDot(textSecondary),
+                        _buildFooterLink('Contact', textSecondary),
                       ],
                     ),
                   ],
@@ -230,15 +232,15 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
     );
   }
 
-  Widget _buildFeatureRow(String text) {
+  Widget _buildFeatureRow(String text, Color textPrimary, Color primaryAccent) {
     return Row(
       children: [
-        const Icon(Icons.check_circle_rounded, color: _primaryAccent, size: 20),
+        Icon(Icons.check_circle_rounded, color: primaryAccent, size: 20),
         const SizedBox(width: 12),
         Text(
           text,
-          style: const TextStyle(
-            color: _textPrimary,
+          style: TextStyle(
+            color: textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w500,
           ),
@@ -247,11 +249,14 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
     );
   }
 
-  Widget _buildGoogleButton() {
+  Widget _buildGoogleButton(bool isDark) {
+    final btnBg = isDark ? const Color(0xFFF4F5F7) : Colors.white;
+    final btnText = isDark ? const Color(0xFF090B0F) : const Color(0xFF1F2937);
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Material(
-        color: _btnBg,
+        color: btnBg,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: _googleLogin,
@@ -261,60 +266,75 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
           child: Container(
             height: 54,
             width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: isDark
+                  ? null
+                  : Border.all(color: const Color(0xFFD1D5DB), width: 1.2),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: _loading
-              ? const Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(_btnText),
-                    ),
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/google_logo.png',
-                      height: 24,
+            child: _loading
+                ? Center(
+                    child: SizedBox(
                       width: 24,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.g_mobiledata, color: _btnText, size: 32),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Continue with Google',
-                      style: TextStyle(
-                        color: _btnText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(btnText),
                       ),
                     ),
-                  ],
-                ),
-        ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/google_logo.png',
+                        height: 24,
+                        width: 24,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Icon(Icons.g_mobiledata, color: btnText, size: 32),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          color: btnText,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFooterLink(String text) {
+  Widget _buildFooterLink(String text, Color textSecondary) {
     return Text(
       text,
-      style: const TextStyle(
-        color: _textSecondary,
+      style: TextStyle(
+        color: textSecondary,
         fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
     );
   }
 
-  Widget _buildFooterDot() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 10),
-      child: Text('•', style: TextStyle(color: _textSecondary, fontSize: 14)),
+  Widget _buildFooterDot(Color textSecondary) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text('•', style: TextStyle(color: textSecondary, fontSize: 14)),
     );
   }
 }
