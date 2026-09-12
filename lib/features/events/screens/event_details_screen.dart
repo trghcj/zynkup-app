@@ -198,78 +198,161 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final joined = _event.attendeeCount > 0
         ? _event.attendeeCount
         : _event.registeredUsers.length;
-    return FractionallySizedBox(
-      heightFactor: 0.92,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: ZynkBackground(
-            child: _loading
-                ? const _EventDetailsSkeleton()
-                : CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  pinned: true,
-                  expandedHeight: 280,
-                  backgroundColor: ZynkColors.darkSurface,
-                  actions: [
-                    IconButton(
-                      onPressed: _toggleSave,
-                      icon: Icon(_isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, color: _isSaved ? ZynkColors.primary : ZynkColors.offWhite),
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: ZynkBackground(
+        child: _loading
+            ? const _EventDetailsSkeleton()
+            : CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 280,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              leading: Center(
+                child: Container(
+                  margin: const EdgeInsets.only(left: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
-                    IconButton(
-                      onPressed: _share,
-                      icon: const Icon(Icons.ios_share_rounded),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.arrow_back_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    if (_isCreator) ...[
-                      IconButton(
-                        icon: const Icon(Icons.qr_code_scanner_rounded),
-                        onPressed: _openScanner,
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                  ),
+                ),
+              ),
+              actions: [
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: IconButton(
+                    onPressed: _toggleSave,
+                    icon: Icon(
+                      _isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                      size: 20,
+                      color: _isSaved ? ZynkColors.primary : Theme.of(context).colorScheme.onSurface,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: IconButton(
+                    onPressed: _share,
+                    icon: Icon(
+                      Icons.ios_share_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                  ),
+                ),
+                if (_isCreator) ...[
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
                       ),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert_rounded),
-                        color: Theme.of(context).colorScheme.surface,
-                        onSelected: (value) {
-                          if (value == 'participants') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EventParticipantsScreen(
-                                  eventId: _event.id,
-                                  eventTitle: _event.title,
-                                ),
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.qr_code_scanner_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      onPressed: _openScanner,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(left: 4, right: 12, top: 8, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                      color: Theme.of(context).colorScheme.surface,
+                      onSelected: (value) {
+                        if (value == 'participants') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EventParticipantsScreen(
+                                eventId: _event.id,
+                                eventTitle: _event.title,
                               ),
-                            );
-                          } else if (value == 'delete') {
-                            _deleteEvent();
-                          }
-                        },
-                        itemBuilder: (context) => [
-                           PopupMenuItem(
-                            value: 'participants',
-                            child: Row(
-                              children: [
-                                Icon(Icons.people_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
-                                SizedBox(width: 12),
-                                Text('View Participants', style: TextStyle(color: ZynkColors.offWhite)),
-                              ],
                             ),
+                          );
+                        } else if (value == 'delete') {
+                          _deleteEvent();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'participants',
+                          child: Row(
+                            children: [
+                              Icon(Icons.people_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
+                              const SizedBox(width: 12),
+                              Text('View Participants', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                            ],
                           ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_rounded, color: ZynkColors.error, size: 20),
-                                SizedBox(width: 12),
-                                Text('Delete Event', style: TextStyle(color: ZynkColors.error)),
-                              ],
-                            ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_rounded, color: ZynkColors.error, size: 20),
+                              SizedBox(width: 12),
+                              Text('Delete Event', style: TextStyle(color: ZynkColors.error)),
+                            ],
                           ),
-                        ],
-                      ),
-                    ],
-                  ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else
+                  const SizedBox(width: 8),
+              ],
                   flexibleSpace: FlexibleSpaceBar(
                     background: _HeroImage(event: _event),
                   ),
@@ -364,7 +447,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         Text(
                           _event.description,
                           style: TextStyle(
-                            color: ZynkColors.darkMuted.withValues(alpha: 0.9),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
                             height: 1.6,
                             fontSize: 14,
                           ),
@@ -406,9 +489,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
+        );
   }
 }
 
@@ -494,7 +575,7 @@ class _Info extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: ZynkGradients.cardSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(ZynkRadius.lg),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
@@ -517,7 +598,7 @@ class _Info extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: ZynkColors.darkMuted.withValues(alpha: 0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.3,
@@ -631,13 +712,13 @@ class _QrPass extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: ZynkGradients.cardSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(ZynkRadius.xl),
-        border: Border.all(color: ZynkColors.gold.withValues(alpha: 0.3)),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: ZynkColors.gold.withValues(alpha: 0.06),
-            blurRadius: 24,
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
           ),
         ],
       ),
@@ -672,7 +753,7 @@ class _QrPass extends StatelessWidget {
           Text(
             'Show this to the organizer for check-in',
             style: TextStyle(
-              color: ZynkColors.darkMuted.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
               fontSize: 12,
             ),
           ),

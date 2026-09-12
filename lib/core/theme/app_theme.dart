@@ -482,6 +482,8 @@ class ZynkButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (outlined) {
+      final onSurface = Theme.of(context).colorScheme.onSurface;
+      final outline = Theme.of(context).colorScheme.outlineVariant;
       return SizedBox(
         width: double.infinity,
         height: height,
@@ -489,13 +491,13 @@ class ZynkButton extends StatelessWidget {
           onPressed: isLoading ? null : onTap,
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            foregroundColor: ZynkColors.darkText,
-            side: const BorderSide(color: ZynkColors.darkBorder, width: 1),
+            foregroundColor: onSurface,
+            side: BorderSide(color: outline, width: 1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(ZynkRadius.lg),
             ),
           ),
-          child: _inner(ZynkColors.darkText),
+          child: _inner(onSurface),
         ),
       );
     }

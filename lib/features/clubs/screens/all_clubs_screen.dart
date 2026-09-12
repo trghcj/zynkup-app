@@ -177,7 +177,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _categoryFilter,
-                                    dropdownColor: ZynkColors.darkSurface,
+                                    dropdownColor: Theme.of(context).colorScheme.surface,
                                     icon: const Icon(
                                       Icons.keyboard_arrow_down_rounded,
                                       color: ZynkColors.primary,
