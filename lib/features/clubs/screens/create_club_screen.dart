@@ -345,7 +345,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: ZynkColors.offWhite),
+          icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -495,7 +495,9 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           Text(
             desc.isEmpty ? 'Your club description will appear here...' : desc,
             style: TextStyle(
-              color: desc.isEmpty ? ZynkColors.darkMuted : ZynkColors.offWhite, 
+              color: desc.isEmpty
+                  ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45)
+                  : Theme.of(context).colorScheme.onSurface, 
               fontSize: 14, 
               height: 1.4
             ),

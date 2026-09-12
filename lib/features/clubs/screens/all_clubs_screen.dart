@@ -124,7 +124,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                         children: [
                           TextField(
                             controller: _searchController,
-                            style: const TextStyle(color: ZynkColors.offWhite),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                             decoration: InputDecoration(
                               hintText: 'Search clubs by name, category or topic...',

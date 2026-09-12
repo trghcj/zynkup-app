@@ -85,7 +85,7 @@ class _HomeTabState extends State<HomeTab> {
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(color: ZynkColors.offWhite),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                         decoration: InputDecoration(
                           hintText: 'Search events, clubs, or topics...',

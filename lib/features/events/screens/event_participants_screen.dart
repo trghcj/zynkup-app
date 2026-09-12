@@ -68,7 +68,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
             ),
           ],
         ),
-        iconTheme: const IconThemeData(color: ZynkColors.offWhite),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: ZynkColors.gold))

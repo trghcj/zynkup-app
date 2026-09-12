@@ -365,7 +365,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
-                style: const TextStyle(color: ZynkColors.offWhite),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 decoration: const InputDecoration(
                   labelText: 'Role Name',
                   hintText: 'e.g. Moderator',
@@ -511,50 +511,93 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       expandedHeight: 280,
                       pinned: true,
                       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                      flexibleSpace: FlexibleSpaceBar(
-                        title: Text(
-                          widget.clubName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).colorScheme.onSurface,
-                            shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
+                      leading: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: CircleAvatar(
+                          backgroundColor: Colors.black.withValues(alpha: 0.35),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                            onPressed: () => Navigator.pop(context),
                           ),
                         ),
-                        background: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CachedNetworkImage(imageUrl: bannerImage,
-                              fit: BoxFit.cover,
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.transparent,
-                                    ZynkColors.darkBg.withValues(alpha: 0.8),
-                                    ZynkColors.darkBg,
-                                  ],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
+                      ),
+                      flexibleSpace: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isCollapsed = constraints.biggest.height <=
+                              (kToolbarHeight + MediaQuery.of(context).padding.top + 30);
+                          return FlexibleSpaceBar(
+                            title: Text(
+                              widget.clubName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: isCollapsed
+                                    ? Theme.of(context).colorScheme.onSurface
+                                    : Colors.white,
+                                shadows: isCollapsed
+                                    ? null
+                                    : const [
+                                        Shadow(
+                                          color: Colors.black,
+                                          blurRadius: 12,
+                                          offset: Offset(0, 1),
+                                        ),
+                                        Shadow(
+                                          color: Colors.black87,
+                                          blurRadius: 6,
+                                        ),
+                                      ],
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
+                            centerTitle: true,
+                            background: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CachedNetworkImage(
+                                  imageUrl: bannerImage,
+                                  fit: BoxFit.cover,
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.45),
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.45),
+                                        Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.85),
+                                        Theme.of(context).scaffoldBackgroundColor,
+                                      ],
+                                      stops: const [0.0, 0.35, 0.65, 0.88, 1.0],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                       actions: [
                         if (_club != null && _currentUser != null && _club!['creator_id']?.toString() == _currentUser!['id']?.toString())
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, color: ZynkColors.darkText),
-                            onSelected: (val) {
-                              if (val == 'delete') _deleteClub();
-                            },
-                            itemBuilder: (ctx) => [
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Delete Club', style: TextStyle(color: ZynkColors.error)),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.black.withValues(alpha: 0.35),
+                              child: PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+                                onSelected: (val) {
+                                  if (val == 'delete') _deleteClub();
+                                },
+                                itemBuilder: (ctx) => [
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text('Delete Club', style: TextStyle(color: ZynkColors.error)),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                       ],
                     ),
@@ -617,9 +660,13 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       delegate: _SliverAppBarDelegate(
                         TabBar(
                           controller: _tabController,
-                          indicatorColor: ZynkColors.gold,
-                          labelColor: ZynkColors.gold,
-                          unselectedLabelColor: ZynkColors.darkMuted,
+                          indicatorColor: Theme.of(context).brightness == Brightness.light
+                              ? const Color(0xFF65A30D)
+                              : ZynkColors.gold,
+                          labelColor: Theme.of(context).brightness == Brightness.light
+                              ? const Color(0xFF3F6212)
+                              : ZynkColors.gold,
+                          unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           dividerColor: Colors.transparent,
                           isScrollable: true,
                           tabs: const [
@@ -748,7 +795,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
               if (isAuthor) ...[
                  Divider(color: Theme.of(context).colorScheme.outlineVariant),
                 ListTile(
-                  leading: const Icon(Icons.edit_rounded, color: ZynkColors.offWhite),
+                  leading: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSurface),
                   title:  Text(
                     'Edit Post',
                     style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600),
@@ -780,9 +827,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (c) => AlertDialog(
-                        backgroundColor: ZynkColors.darkSurface2,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
                         title: const Text('Delete Post', style: TextStyle(color: ZynkColors.error)),
-                        content: const Text('Are you sure you want to delete this post?', style: TextStyle(color: ZynkColors.offWhite)),
+                        content: Text('Are you sure you want to delete this post?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(c, false),
