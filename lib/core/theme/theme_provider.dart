@@ -24,9 +24,15 @@ class ThemeProvider extends ChangeNotifier {
     _loadTheme();
   }
 
+  bool _isTransitioning = false;
+
+  /// Optional pre-transition hook to snapshot the screen before theme changes.
+  Future<void> Function()? onBeforeThemeChange;
+
   AppThemeMode get currentTheme => _themeMode;
   ThemeMode get themeMode => _themeMode.toThemeMode();
   bool get isDark => _themeMode == AppThemeMode.dark;
+  bool get isTransitioning => _isTransitioning;
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,10 +47,19 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   Future<void> setTheme(AppThemeMode mode) async {
+    if (mode == _themeMode || _isTransitioning) return;
+    _isTransitioning = true;
+    try {
+      if (onBeforeThemeChange != null) {
+        await onBeforeThemeChange!();
+      }
+    } catch (_) {}
+
     _themeMode = mode;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, mode.toString());
+    _isTransitioning = false;
   }
 
   Future<void> toggle() async {
