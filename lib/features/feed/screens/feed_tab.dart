@@ -444,7 +444,14 @@ class _FeedTabState extends State<FeedTab> {
                                       (String value) =>
                                           DropdownMenuItem<String>(
                                             value: value,
-                                            child: Text(value),
+                                            child: Text(
+                                              value,
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                     )
                                     .toList(),

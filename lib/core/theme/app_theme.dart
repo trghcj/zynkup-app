@@ -347,12 +347,24 @@ class AppTheme {
       dividerColor: ZynkColors.darkBorder,
       snackBarTheme: SnackBarThemeData(
         backgroundColor: ZynkColors.darkSurface2,
-        contentTextStyle: const TextStyle(color: ZynkColors.darkText, fontWeight: FontWeight.w400),
+        behavior: SnackBarBehavior.floating,
+      ),
+      canvasColor: ZynkColors.darkSurface,
+      popupMenuTheme: PopupMenuThemeData(
+        color: ZynkColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+        textStyle: const TextStyle(color: ZynkColors.darkText),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(ZynkRadius.md),
           side: const BorderSide(color: ZynkColors.darkBorder),
         ),
-        behavior: SnackBarBehavior.floating,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: ZynkColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
@@ -433,6 +445,23 @@ class AppTheme {
           side: const BorderSide(color: ZynkColors.lightBorder),
         ),
         behavior: SnackBarBehavior.floating,
+      ),
+      canvasColor: ZynkColors.lightSurface,
+      popupMenuTheme: PopupMenuThemeData(
+        color: ZynkColors.lightSurface,
+        surfaceTintColor: Colors.transparent,
+        textStyle: const TextStyle(color: ZynkColors.lightText),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ZynkRadius.md),
+          side: const BorderSide(color: ZynkColors.lightBorder),
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: ZynkColors.lightSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(

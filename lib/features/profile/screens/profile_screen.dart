@@ -1076,13 +1076,40 @@ class _EventsTabState extends State<_EventsTab> {
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'All', child: Text('All')),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'All',
+                        child: Text(
+                          'All',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                       DropdownMenuItem(
                         value: 'Created',
-                        child: Text('Created'),
+                        child: Text(
+                          'Created',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      DropdownMenuItem(value: 'Joined', child: Text('Joined')),
+                      DropdownMenuItem(
+                        value: 'Joined',
+                        child: Text(
+                          'Joined',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => _selectedFilter = val);

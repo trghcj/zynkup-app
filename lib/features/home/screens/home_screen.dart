@@ -209,17 +209,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (BuildContext context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: ZynkColors.darkBg.withValues(alpha: 0.98),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+        return SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              24,
+              20,
+              24,
+              MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: buildContent(context),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-          child: buildContent(context),
         );
       },
     );
@@ -441,9 +449,16 @@ class _CreationHubItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(ZynkRadius.lg),
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -472,14 +487,17 @@ class _CreationHubItem extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: ZynkColors.darkMuted),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
           ],
         ),
       ),
