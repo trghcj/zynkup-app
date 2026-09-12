@@ -288,7 +288,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         Text(
           subtitle,
           style: TextStyle(
-            color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
             fontSize: 15,
           ),
         ),
@@ -333,7 +333,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16),
           decoration: InputDecoration(
             labelText: 'Venue / Location',
-            prefixIcon: Icon(Icons.location_on_rounded, color: ZynkColors.darkMuted),
+            prefixIcon: Icon(
+              Icons.location_on_rounded,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+            ),
           ),
         ),
         const SizedBox(height: 24),
@@ -403,6 +406,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       ('seminar', Icons.record_voice_over_rounded),
     ];
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -410,28 +415,42 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         final cat = item.$1;
         final icon = item.$2;
         final selected = _category == cat;
+
+        final chipBg = selected
+            ? (isDark
+                ? ZynkColors.primary.withValues(alpha: 0.15)
+                : const Color(0xFFF7FEE7))
+            : Theme.of(context).colorScheme.surface;
+        final chipBorder = selected
+            ? (isDark ? ZynkColors.primary : const Color(0xFF65A30D))
+            : Theme.of(context).colorScheme.outlineVariant;
+        final chipContentColor = selected
+            ? (isDark ? ZynkColors.primary : const Color(0xFF3F6212))
+            : Theme.of(context).colorScheme.onSurface;
+
         return GestureDetector(
           onTap: () => setState(() => _category = cat),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: selected ? ZynkColors.primary.withValues(alpha: 0.1) : ZynkColors.darkSurface,
+              color: chipBg,
               borderRadius: BorderRadius.circular(ZynkRadius.pill),
               border: Border.all(
-                color: selected ? ZynkColors.primary : ZynkColors.darkBorder,
+                color: chipBorder,
+                width: selected ? 1.5 : 1.0,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, color: selected ? ZynkColors.primary : ZynkColors.darkMuted, size: 20),
+                Icon(icon, color: chipContentColor, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   cat[0].toUpperCase() + cat.substring(1),
                   style: TextStyle(
-                    color: selected ? ZynkColors.primary : ZynkColors.darkMuted,
-                    fontWeight: FontWeight.w700,
+                    color: chipContentColor,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                   ),
                 ),
               ],
@@ -547,11 +566,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Widget _buildBottomBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       decoration: BoxDecoration(
-        color: ZynkColors.darkBg.withValues(alpha: 0.9),
-        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5))),
+        color: isDark
+            ? ZynkColors.darkBg.withValues(alpha: 0.95)
+            : Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
       ),
       child: Row(
         children: [

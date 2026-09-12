@@ -120,8 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: ZynkGradients.forCategory('sports'),
           onTap: () {
             Navigator.pop(ctx);
-            Navigator.push(
-              context,
+            Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(builder: (_) => const CreatePostScreen()),
             ).then((value) {
               if (value == true) {
@@ -138,8 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: ZynkGradients.forCategory('tech'),
           onTap: () {
             Navigator.pop(ctx);
-            Navigator.push(
-              context,
+            Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(builder: (_) => const CreateEventScreen()),
             ).then((value) {
               setState(() => _index = 3);
@@ -154,8 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
           gradient: ZynkGradients.forCategory('cultural'),
           onTap: () {
             Navigator.pop(ctx);
-            Navigator.push(
-              context,
+            Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute(builder: (_) => const CreateClubScreen()),
             ).then((value) {
               if (value == true) {
