@@ -620,17 +620,23 @@ class _FeedTabState extends State<FeedTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(color: Color(0xFF252B35), height: 32),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 32),
 
           // ── Trending Events ─────────────────────────────────────────────────
           Row(
-            children: const [
-              Icon(Icons.local_fire_department_rounded, color: Color(0xFFC7D437), size: 16),
-              SizedBox(width: 8),
+            children: [
+              Icon(
+                Icons.local_fire_department_rounded,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? const Color(0xFF65A30D)
+                    : ZynkColors.primary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
               Text(
                 'Trending Events',
                 style: TextStyle(
-                  color: Color(0xFFF4F5F7),
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
@@ -650,9 +656,12 @@ class _FeedTabState extends State<FeedTab> {
               ),
             )
           else if (_events.isEmpty)
-            const Text(
+            Text(
               'No trending events right now.',
-              style: TextStyle(color: Color(0xFF969DA8), fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                fontSize: 13,
+              ),
             )
           else
             ..._trendingEvents.map((e) => _buildMiniEventCard(e)),
@@ -664,13 +673,19 @@ class _FeedTabState extends State<FeedTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: const [
-                  Icon(Icons.groups_rounded, color: Color(0xFFC7D437), size: 16),
-                  SizedBox(width: 8),
+                children: [
+                  Icon(
+                    Icons.groups_rounded,
+                    color: Theme.of(context).brightness == Brightness.light
+                        ? const Color(0xFF65A30D)
+                        : ZynkColors.primary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'Active Clubs',
+                    'Active Communities',
                     style: TextStyle(
-                      color: Color(0xFFF4F5F7),
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -685,12 +700,14 @@ class _FeedTabState extends State<FeedTab> {
                     MaterialPageRoute(builder: (_) => const AllClubsScreen()),
                   );
                 },
-                child: const Text(
+                child: Text(
                   'Clubs →',
                   style: TextStyle(
-                    color: Color(0xFFC7D437),
+                    color: Theme.of(context).brightness == Brightness.light
+                        ? const Color(0xFF65A30D)
+                        : ZynkColors.primary,
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -708,9 +725,12 @@ class _FeedTabState extends State<FeedTab> {
               ),
             )
           else if (_clubs.isEmpty)
-            const Text(
+            Text(
               'No communities found.',
-              style: TextStyle(color: Color(0xFF969DA8), fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                fontSize: 13,
+              ),
             )
           else
             ..._clubs.take(4).map((c) => _buildMiniClubCard(c)),

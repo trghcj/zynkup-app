@@ -32,7 +32,11 @@ class ZEmptyState extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
-              child: Icon(icon, size: 48, color: ZynkColors.darkMuted),
+              child: Icon(
+                icon,
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+              ),
             ),
             const SizedBox(height: 24),
             Text(
@@ -56,19 +60,24 @@ class ZEmptyState extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 24),
-              TextButton(
+              ElevatedButton(
                 onPressed: onAction,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  backgroundColor: ZynkColors.darkSurface,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                  backgroundColor: ZynkColors.primary,
+                  foregroundColor: const Color(0xFF1F242F),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                 ),
                 child: Text(
                   actionLabel!,
-                  style: const TextStyle(color: ZynkColors.primary, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Color(0xFF1F242F),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ]

@@ -21,15 +21,23 @@ class ZynkBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final navBg = isDark ? const Color(0xFF0F1217) : Theme.of(context).scaffoldBackgroundColor;
+    final navBorder = isDark ? const Color(0xFF252B35) : Theme.of(context).colorScheme.outlineVariant;
+    final activeColor = isDark ? ZynkColors.primary : const Color(0xFF65A30D);
+    final inactiveColor = isDark
+        ? const Color(0xFF737984)
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF0F1217),
-        border: Border(top: BorderSide(color: Color(0xFF252B35), width: 1)),
+      decoration: BoxDecoration(
+        color: navBg,
+        border: Border(top: BorderSide(color: navBorder, width: 1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(0, -2),
+            color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
@@ -51,14 +59,21 @@ class ZynkBottomNav extends StatelessWidget {
                   child: Container(
                     width: 44,
                     height: 44,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: ZynkColors.primary,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x33C7D437),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child:  Icon(
+                    child: const Icon(
                       Icons.add_rounded,
-                      color: Theme.of(context).colorScheme.surface,
-                      size: 24,
+                      color: Color(0xFF1F242F),
+                      size: 26,
                     ),
                   ),
                 );
@@ -73,9 +88,7 @@ class ZynkBottomNav extends StatelessWidget {
                     children: [
                       Icon(
                         item.$1,
-                        color: selected
-                            ? ZynkColors.primary
-                            : const Color(0xFF737984),
+                        color: selected ? activeColor : inactiveColor,
                         size: 24,
                       ),
                       const SizedBox(height: 4),
@@ -84,13 +97,9 @@ class ZynkBottomNav extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: selected
-                              ? ZynkColors.primary
-                              : const Color(0xFF737984),
+                          color: selected ? activeColor : inactiveColor,
                           fontSize: 10,
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                     ],
