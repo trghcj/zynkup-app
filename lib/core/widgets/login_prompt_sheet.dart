@@ -16,7 +16,7 @@ class LoginPromptSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: ZynkColors.darkBg.withValues(alpha: 0.98),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: const Border(top: BorderSide(color: ZynkColors.darkBorder)),
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Column(
@@ -33,10 +33,10 @@ class LoginPromptSheet extends StatelessWidget {
           const SizedBox(height: 24),
           const Icon(Icons.lock_rounded, size: 48, color: ZynkColors.primary),
           const SizedBox(height: 16),
-          const Text(
+           Text(
             'Authentication Required',
             style: TextStyle(
-              color: ZynkColors.offWhite,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 22,
               fontWeight: FontWeight.w900,
             ),
@@ -45,7 +45,7 @@ class LoginPromptSheet extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 14),
           ),
           const SizedBox(height: 32),
           SizedBox(

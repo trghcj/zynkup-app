@@ -157,9 +157,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: ZynkColors.darkBg,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: const Text('Notifications', style: TextStyle(color: ZynkColors.offWhite)),
         actions: [
@@ -197,7 +197,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
                           child: Text(
                             group.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: ZynkColors.gold,
                               fontWeight: FontWeight.w900,
                               fontSize: 14,
@@ -209,8 +209,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: group.items.length,
-                          separatorBuilder: (_, __) => const Divider(
-                            color: ZynkColors.darkBorder,
+                          separatorBuilder: (_, __) =>  Divider(
+                            color: Theme.of(context).colorScheme.outlineVariant,
                             height: 1,
                           ),
                           itemBuilder: (context, itemIndex) {
@@ -255,8 +255,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                                   const SizedBox(height: 6),
                                   Text(
                                     _timeAgo(createdAt),
-                                    style: const TextStyle(
-                                      color: ZynkColors.darkMuted,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                       fontSize: 12,
                                     ),
                                   ),

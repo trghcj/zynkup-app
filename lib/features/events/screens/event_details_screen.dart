@@ -125,15 +125,15 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         backgroundColor: ZynkColors.darkSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(ZynkRadius.xl),
-          side: const BorderSide(color: ZynkColors.darkBorder),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
-        title: const Text(
+        title:  Text(
           'Delete event?',
-          style: TextStyle(color: ZynkColors.darkText, fontWeight: FontWeight.w800),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w800),
         ),
         content: Text(
           'This will permanently remove "${_event.title}" and all registrations.',
-          style: const TextStyle(color: ZynkColors.darkMuted, height: 1.5),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), height: 1.5),
         ),
         actions: [
           TextButton(
@@ -203,7 +203,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         child: Scaffold(
-          backgroundColor: ZynkColors.darkBg,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: ZynkBackground(
             child: _loading
                 ? const _EventDetailsSkeleton()
@@ -229,7 +229,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       ),
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert_rounded),
-                        color: ZynkColors.darkSurface,
+                        color: Theme.of(context).colorScheme.surface,
                         onSelected: (value) {
                           if (value == 'participants') {
                             Navigator.push(
@@ -246,11 +246,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           }
                         },
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                           PopupMenuItem(
                             value: 'participants',
                             child: Row(
                               children: [
-                                Icon(Icons.people_rounded, color: ZynkColors.offWhite, size: 20),
+                                Icon(Icons.people_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
                                 SizedBox(width: 12),
                                 Text('View Participants', style: TextStyle(color: ZynkColors.offWhite)),
                               ],
@@ -303,8 +303,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         const SizedBox(height: 14),
                         Text(
                           _event.title,
-                          style: const TextStyle(
-                            color: ZynkColors.darkText,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 30,
                             fontWeight: FontWeight.w900,
                             height: 1.05,
@@ -352,10 +352,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           value: _event.venue,
                         ),
                         const SizedBox(height: 22),
-                        const Text(
+                         Text(
                           'About',
                           style: TextStyle(
-                            color: ZynkColors.darkText,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
                           ),
@@ -430,7 +430,7 @@ class _HeroImage extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 Colors.transparent,
-                ZynkColors.darkSurface.withValues(alpha: 0.5),
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -469,7 +469,7 @@ class _HeroImage extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 Colors.transparent,
-                ZynkColors.darkSurface.withValues(alpha: 0.7),
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -496,7 +496,7 @@ class _Info extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: ZynkGradients.cardSurface,
         borderRadius: BorderRadius.circular(ZynkRadius.lg),
-        border: Border.all(color: ZynkColors.darkBorder.withValues(alpha: 0.5)),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -526,8 +526,8 @@ class _Info extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: ZynkColors.darkText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
@@ -649,10 +649,10 @@ class _QrPass extends StatelessWidget {
               Icon(Icons.confirmation_number_rounded,
                   color: ZynkColors.gold.withValues(alpha: 0.7), size: 18),
               const SizedBox(width: 8),
-              const Text(
+               Text(
                 'Your QR Pass',
                 style: TextStyle(
-                  color: ZynkColors.darkText,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w900,
                   fontSize: 15,
                 ),

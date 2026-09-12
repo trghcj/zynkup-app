@@ -100,7 +100,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: const Text('Share an Update'),
@@ -121,20 +121,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(24),
                   children: [
-                    const Text(
+                     Text(
                       'What\'s buzzing on campus?',
                       style: TextStyle(
-                        color: ZynkColors.darkText,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 32,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.8,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                     Text(
                       'Share an update, moment, or announcement with the campus.',
                       style: TextStyle(
-                        color: ZynkColors.darkMuted,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                         fontSize: 14,
                       ),
                     ),
@@ -143,28 +143,28 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     // Content editor
                     Container(
                       decoration: BoxDecoration(
-                        color: ZynkColors.darkSurface,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                        border: Border.all(color: ZynkColors.darkBorder),
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       padding: const EdgeInsets.all(16),
                       child: TextFormField(
                         controller: _contentController,
                         maxLines: 5,
                         maxLength: 600,
-                        style: const TextStyle(
-                          color: ZynkColors.darkText,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 15,
                           height: 1.4,
                         ),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Write your update here...',
                           hintStyle: TextStyle(color: ZynkColors.darkMuted),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
                           filled: false,
-                          counterStyle: TextStyle(color: ZynkColors.darkMuted, fontSize: 11),
+                          counterStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 11),
                         ),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Share a bit of text with the campus'
@@ -248,10 +248,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       child: Container(
         height: 100,
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(ZynkRadius.md),
           border: Border.all(
-            color: ZynkColors.darkBorder,
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: bytes != null
@@ -286,12 +286,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: ZynkColors.darkMuted, size: 24),
+                  Icon(icon, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), size: 24),
                   const SizedBox(height: 6),
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: ZynkColors.darkText,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
@@ -299,8 +299,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: ZynkColors.darkMuted,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       fontSize: 10,
                     ),
                   ),

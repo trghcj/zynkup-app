@@ -57,13 +57,13 @@ class ZynkSideNav extends StatelessWidget {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: ZynkColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child:  Icon(
                         Icons.add_rounded,
-                        color: ZynkColors.darkSurface,
+                        color: Theme.of(context).colorScheme.surface,
                         size: 24,
                       ),
                     )

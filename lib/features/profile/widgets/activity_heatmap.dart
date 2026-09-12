@@ -14,9 +14,9 @@ class ActivityHeatmap extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ZynkColors.darkSurface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ZynkColors.darkBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,7 +82,7 @@ class _LegendItem extends StatelessWidget {
     return Row(
       children: [
         if (label.isNotEmpty) ...[
-          Text(label, style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 10)),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 10)),
           const SizedBox(width: 4),
         ],
         Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),

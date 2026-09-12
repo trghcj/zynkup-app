@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppThemeMode { dark, light, system }
+enum AppThemeMode { dark, light }
 
 extension AppThemeModeExtension on AppThemeMode {
   ThemeMode toThemeMode() {
@@ -10,15 +10,15 @@ extension AppThemeModeExtension on AppThemeMode {
         return ThemeMode.dark;
       case AppThemeMode.light:
         return ThemeMode.light;
-      case AppThemeMode.system:
-        return ThemeMode.system;
     }
   }
 }
 
 class ThemeProvider extends ChangeNotifier {
   static const String _key = 'app_theme';
-  AppThemeMode _themeMode = AppThemeMode.system;
+
+  // Default to dark (the approved visual identity)
+  AppThemeMode _themeMode = AppThemeMode.dark;
 
   ThemeProvider() {
     _loadTheme();
@@ -26,6 +26,7 @@ class ThemeProvider extends ChangeNotifier {
 
   AppThemeMode get currentTheme => _themeMode;
   ThemeMode get themeMode => _themeMode.toThemeMode();
+  bool get isDark => _themeMode == AppThemeMode.dark;
 
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,7 +34,7 @@ class ThemeProvider extends ChangeNotifier {
     if (themeStr != null) {
       _themeMode = AppThemeMode.values.firstWhere(
         (e) => e.toString() == themeStr,
-        orElse: () => AppThemeMode.system,
+        orElse: () => AppThemeMode.dark,
       );
       notifyListeners();
     }
@@ -44,6 +45,10 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, mode.toString());
+  }
+
+  Future<void> toggle() async {
+    await setTheme(isDark ? AppThemeMode.light : AppThemeMode.dark);
   }
 }
 

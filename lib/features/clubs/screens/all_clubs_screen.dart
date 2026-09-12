@@ -89,12 +89,12 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title:  Text(
           'Campus Clubs',
           style: TextStyle(
-            color: ZynkColors.offWhite,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -143,11 +143,11 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                               fillColor: ZynkColors.darkSurface,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -161,8 +161,8 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                             children: [
                               Text(
                                 '${filtered.length} ${filtered.length == 1 ? "Club" : "Clubs"} Found',
-                                style: const TextStyle(
-                                  color: ZynkColors.darkMuted,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -170,9 +170,9 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: ZynkColors.darkSurface,
+                                  color: Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: ZynkColors.darkBorder),
+                                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -183,8 +183,8 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                                       color: ZynkColors.primary,
                                       size: 18,
                                     ),
-                                    style: const TextStyle(
-                                      color: ZynkColors.offWhite,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -322,9 +322,9 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: ZynkColors.darkBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -338,7 +338,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                 errorWidget: (_, __, ___) => Container(
                   width: 56,
                   height: 56,
-                  color: ZynkColors.darkSurface2,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: const Icon(Icons.groups_rounded, color: ZynkColors.darkMuted),
                 ),
               ),
@@ -356,8 +356,8 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                           clubName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: ZynkColors.darkText,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
                           ),
@@ -388,8 +388,8 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                     description.isNotEmpty ? description : 'Campus Club • $memberCount ${memberCount == 1 ? "member" : "members"}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: ZynkColors.darkMuted,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       fontSize: 12,
                     ),
                   ),
@@ -397,9 +397,9 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
+             Icon(
               Icons.arrow_forward_ios_rounded,
-              color: ZynkColors.darkMuted,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
               size: 14,
             ),
           ],

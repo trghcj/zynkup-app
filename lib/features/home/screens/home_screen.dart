@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/theme/theme_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/zynk_bottom_nav.dart';
@@ -97,19 +98,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
         ],
-        const Text(
+         Text(
           'Start Something',
           style: TextStyle(
-            color: ZynkColors.offWhite,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 22,
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+         Text(
           'Choose what you want to share with the campus.',
-          style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13),
         ),
         const SizedBox(height: 24),
         _CreationHubItem(
@@ -182,9 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
               margin: const EdgeInsets.only(left: 100),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: ZynkColors.darkSurface,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: ZynkColors.darkBorder),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 boxShadow: [
                   BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30, offset: const Offset(0, 10))
                 ]
@@ -215,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: BoxDecoration(
             color: ZynkColors.darkBg.withValues(alpha: 0.98),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: const Border(top: BorderSide(color: ZynkColors.darkBorder)),
+            border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           child: buildContent(context),
@@ -266,7 +267,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: ZynkColors.darkBg,
       appBar: AppBar(
         title: Row(
           children: [
@@ -286,8 +286,32 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          // ── Theme toggle ──────────────────────────────────────
+          AnimatedBuilder(
+            animation: themeProvider,
+            builder: (context, _) {
+              return IconButton(
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, anim) => RotationTransition(
+                    turns: anim,
+                    child: FadeTransition(opacity: anim, child: child),
+                  ),
+                  child: Icon(
+                    themeProvider.isDark
+                        ? Icons.wb_sunny_rounded
+                        : Icons.dark_mode_rounded,
+                    key: ValueKey(themeProvider.isDark),
+                    size: 22,
+                  ),
+                ),
+                tooltip: themeProvider.isDark ? 'Switch to Light' : 'Switch to Dark',
+                onPressed: () => themeProvider.toggle(),
+              );
+            },
+          ),
           IconButton(
-            icon: const Icon(Icons.group_add_outlined, size: 22, color: ZynkColors.offWhite),
+            icon: const Icon(Icons.group_add_outlined, size: 22),
             tooltip: 'Found a Club',
             onPressed: () async {
               if (_isGuest) {
@@ -417,9 +441,9 @@ class _CreationHubItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: ZynkColors.darkSurface.withValues(alpha: 0.4),
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(ZynkRadius.lg),
-          border: Border.all(color: ZynkColors.darkBorder),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -438,8 +462,8 @@ class _CreationHubItem extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: ZynkColors.offWhite,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),

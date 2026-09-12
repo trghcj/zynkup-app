@@ -131,9 +131,9 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
     return Container(
       padding: EdgeInsets.only(bottom: keyboardPadding),
       decoration: BoxDecoration(
-        color: ZynkColors.darkBg,
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border.all(color: ZynkColors.darkBorder),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: FractionallySizedBox(
         heightFactor: 0.85,
@@ -152,21 +152,21 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
             const SizedBox(height: 16),
 
             // Discussion Title
-            const Text(
+             Text(
               'Discussion Thread',
               style: TextStyle(
-                color: ZynkColors.offWhite,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 16),
-            const Divider(color: ZynkColors.darkBorder, height: 1),
+             Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 1),
 
             // Original Post Summary
             Container(
-              color: ZynkColors.darkSurface.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
               padding: const EdgeInsets.all(16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +218,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                 ],
               ),
             ),
-            const Divider(color: ZynkColors.darkBorder, height: 1),
+             Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 1),
 
             // Comments List
             Expanded(
@@ -227,20 +227,20 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                       child: CircularProgressIndicator(color: ZynkColors.gold),
                     )
                   : _comments.isEmpty
-                      ? const Center(
+                      ?  Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 Icons.chat_bubble_outline_rounded,
-                                color: ZynkColors.darkMuted,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                 size: 36,
                               ),
                               SizedBox(height: 12),
                               Text(
                                 'No replies yet.',
                                 style: TextStyle(
-                                  color: ZynkColors.offWhite,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -248,7 +248,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                               Text(
                                 'Be the first to start the discussion!',
                                 style: TextStyle(
-                                  color: ZynkColors.darkMuted,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                   fontSize: 12,
                                 ),
                               ),
@@ -315,16 +315,16 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                                             children: [
                                               Text(
                                                 name,
-                                                style: const TextStyle(
-                                                  color: ZynkColors.offWhite,
+                                                style: TextStyle(
+                                                  color: Theme.of(context).colorScheme.onSurface,
                                                   fontWeight: FontWeight.w700,
                                                   fontSize: 12,
                                                 ),
                                               ),
                                               Text(
                                                 time,
-                                                style: const TextStyle(
-                                                  color: ZynkColors.darkMuted,
+                                                style: TextStyle(
+                                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                                   fontSize: 10,
                                                 ),
                                               ),
@@ -333,8 +333,8 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                                           const SizedBox(height: 6),
                                           Text(
                                             content,
-                                            style: const TextStyle(
-                                              color: ZynkColors.offWhite,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
                                               fontSize: 13,
                                               height: 1.3,
                                             ),
@@ -351,16 +351,16 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
             ),
 
             // Message Composer Area
-            const Divider(color: ZynkColors.darkBorder, height: 1),
+             Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 1),
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              color: ZynkColors.darkSurface,
+              color: Theme.of(context).colorScheme.surface,
               child: Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _commentController,
-                      style: const TextStyle(color: ZynkColors.offWhite, fontSize: 14),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Add a reply...',
                         hintStyle: TextStyle(
@@ -371,14 +371,14 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
                           vertical: 12,
                         ),
                         filled: true,
-                        fillColor: ZynkColors.darkSurface2,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),

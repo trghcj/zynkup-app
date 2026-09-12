@@ -3,21 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/theme_provider.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 
-/// A widget that allows the user to toggle between Dark, Light, and System theme modes.
+/// A profile-page tile that lets the user switch Dark vs Light theme.
 class ThemeToggleTile extends StatelessWidget {
   const ThemeToggleTile({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: themeProvider,
       builder: (context, _) {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: ZynkColors.darkSurface2,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: ZynkColors.darkBorder),
+            border: Border.all(color: cs.outlineVariant),
           ),
           child: Wrap(
             spacing: 16,
@@ -34,33 +35,47 @@ class ThemeToggleTile extends StatelessWidget {
                       color: ZynkColors.primary.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.palette_rounded, color: ZynkColors.primary, size: 20),
+                    child: const Icon(Icons.palette_rounded,
+                        color: ZynkColors.primary, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'Theme Mode',
-                    style: TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: cs.onSurface, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
               SegmentedButton<AppThemeMode>(
                 segments: const [
-                  ButtonSegment(value: AppThemeMode.dark, label: Text('Dark')),
-                  ButtonSegment(value: AppThemeMode.light, label: Text('Light')),
-                  ButtonSegment(value: AppThemeMode.system, label: Text('System')),
+                  ButtonSegment(
+                    value: AppThemeMode.dark,
+                    label: Text('Dark'),
+                    icon: Icon(Icons.dark_mode_rounded, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: AppThemeMode.light,
+                    label: Text('Light'),
+                    icon: Icon(Icons.light_mode_rounded, size: 16),
+                  ),
                 ],
                 selected: {themeProvider.currentTheme},
-                onSelectionChanged: (selection) => themeProvider.setTheme(selection.first),
+                onSelectionChanged: (selection) =>
+                    themeProvider.setTheme(selection.first),
                 style: ButtonStyle(
                   visualDensity: VisualDensity.compact,
                   foregroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected) ? ZynkColors.darkBg : ZynkColors.darkMuted,
+                    (states) => states.contains(WidgetState.selected)
+                        ? ZynkColors.darkSurface
+                        : cs.onSurface.withValues(alpha: 0.5),
                   ),
                   backgroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected) ? ZynkColors.gold : ZynkColors.darkSurface,
+                    (states) => states.contains(WidgetState.selected)
+                        ? ZynkColors.primary
+                        : cs.surface,
                   ),
                   side: WidgetStateProperty.all(
-                    BorderSide(color: ZynkColors.darkBorder.withValues(alpha: 0.8)),
+                    BorderSide(color: cs.outlineVariant),
                   ),
                 ),
               ),

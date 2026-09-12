@@ -104,11 +104,11 @@ class _HomeTabState extends State<HomeTab> {
                           fillColor: ZynkColors.darkSurface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -155,7 +155,7 @@ class _HomeTabState extends State<HomeTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (matchedClubs.isNotEmpty) ...[
-                  const Text('Clubs', style: TextStyle(color: ZynkColors.offWhite, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                   Text('Clubs', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
                   const SizedBox(height: 16),
                   Wrap(
                     spacing: 16,
@@ -166,7 +166,7 @@ class _HomeTabState extends State<HomeTab> {
                         child: Container(
                           width: isDesktop ? 300 : MediaQuery.of(context).size.width - 40,
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: ZynkColors.darkBorder)),
+                          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
                           child: Row(
                             children: [
                               CircleAvatar(radius: 24, backgroundColor: ZynkColors.darkSurface2, backgroundImage: club['logo_url'] != null ? CachedNetworkImageProvider(club['logo_url']) : null, child: club['logo_url'] == null ? const Icon(Icons.groups_rounded, color: ZynkColors.darkMuted) : null),
@@ -175,9 +175,9 @@ class _HomeTabState extends State<HomeTab> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(club['name'] ?? 'Club', style: const TextStyle(color: ZynkColors.offWhite, fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    Text(club['name'] ?? 'Club', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                                     const SizedBox(height: 4),
-                                    Text(club['category'] ?? 'Community', style: const TextStyle(color: ZynkColors.primary, fontSize: 12)),
+                                    Text(club['category'] ?? 'Community', style: TextStyle(color: ZynkColors.primary, fontSize: 12)),
                                   ],
                                 ),
                               )
@@ -190,7 +190,7 @@ class _HomeTabState extends State<HomeTab> {
                   const SizedBox(height: 32),
                 ],
                 if (matchedEvents.isNotEmpty) ...[
-                  const Text('Events', style: TextStyle(color: ZynkColors.offWhite, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                   Text('Events', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
                   const SizedBox(height: 16),
                   isDesktop 
                     ? GridView.builder(
@@ -252,13 +252,13 @@ class _HomeTabState extends State<HomeTab> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(color: ZynkColors.darkSurface, borderRadius: BorderRadius.circular(16), border: Border.all(color: ZynkColors.darkBorder)),
+                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _filter,
                           dropdownColor: ZynkColors.darkSurface,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: ZynkColors.primary, size: 18),
-                          style: const TextStyle(color: ZynkColors.offWhite, fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600),
                           items: ['All Events', 'tech', 'cultural', 'sports', 'workshop', 'seminar'].map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
                           onChanged: (newValue) {
                             if (newValue != null) setState(() => _filter = newValue);
@@ -270,12 +270,12 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
               // Upcoming / Trending Title
-              const Padding(
+               Padding(
                 padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
                 child: Text(
                   'Upcoming Events',
                   style: TextStyle(
-                    color: ZynkColors.darkText,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     letterSpacing: -0.5,
@@ -316,10 +316,10 @@ class _HomeTabState extends State<HomeTab> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                       Text(
                         'Previous Events',
                         style: TextStyle(
-                          color: ZynkColors.darkText,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           letterSpacing: -0.5,
@@ -422,10 +422,10 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+           Text(
             'What is happening\naround you?',
             style: TextStyle(
-              color: ZynkColors.darkText,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 26,
               fontWeight: FontWeight.w700,
               height: 1.1,
@@ -433,10 +433,10 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
+           Text(
             'Create, register, scan QR passes, and relive campus moments.',
             style: TextStyle(
-              color: ZynkColors.darkMuted,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
               height: 1.5,
               fontSize: 14,
             ),
@@ -446,9 +446,9 @@ class _Header extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: ZynkColors.darkSurface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(ZynkRadius.lg),
-              border: Border.all(color: ZynkColors.darkBorder),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Row(
               children: [
@@ -467,16 +467,16 @@ class _Header extends StatelessWidget {
                     children: [
                       Text(
                         '$activeStudents+ students active now',
-                        style: const TextStyle(
-                          color: ZynkColors.darkText,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
                       ),
                       Text(
                         '$eventsThisWeek events happening this week',
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontSize: 11,
                         ),
                       ),
@@ -517,8 +517,8 @@ class _AvatarBubble extends StatelessWidget {
       height: 28,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: ZynkColors.darkSurface, width: 2),
-        color: ZynkColors.darkSurface2,
+        border: Border.all(color: Theme.of(context).colorScheme.surface, width: 2),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       child: ClipOval(
         child: CachedNetworkImage(imageUrl: url,
@@ -562,8 +562,8 @@ class _Section extends StatelessWidget {
                 ),
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: ZynkColors.darkText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.3,
@@ -669,14 +669,14 @@ class _ClubsSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+               Row(
                 children: [
                   Icon(Icons.groups_rounded, color: ZynkColors.primary, size: 20),
                   SizedBox(width: 8),
                   Text(
                     'Campus Clubs',
                     style: TextStyle(
-                      color: ZynkColors.darkText,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -717,14 +717,14 @@ class _ClubsSection extends StatelessWidget {
               height: 100,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: ZynkColors.darkSurface,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                border: Border.all(color: ZynkColors.darkBorder),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
-              child: const Center(
+              child:  Center(
                 child: Text(
                   'No clubs founded yet.',
-                  style: TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13),
                 ),
               ),
             ),
@@ -776,9 +776,9 @@ class _ClubsSection extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: ZynkColors.darkSurface,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(ZynkRadius.lg),
-                        border: Border.all(color: ZynkColors.darkBorder),
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -797,8 +797,8 @@ class _ClubsSection extends StatelessWidget {
                             clubName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: ZynkColors.darkText,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),
@@ -808,8 +808,8 @@ class _ClubsSection extends StatelessWidget {
                             'Campus Club',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: ZynkColors.darkMuted,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                               fontSize: 11,
                             ),
                           ),

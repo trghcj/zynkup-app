@@ -49,20 +49,20 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: ZynkColors.darkBg,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+             Text(
               'Participants',
-              style: TextStyle(color: ZynkColors.offWhite, fontSize: 18),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18),
             ),
             Text(
               widget.eventTitle,
-              style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -76,7 +76,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
               ? Center(
                   child: Text(
                     _error!,
-                    style: const TextStyle(color: Colors.redAccent),
+                    style: TextStyle(color: Colors.redAccent),
                   ),
                 )
               : _participants.isEmpty
@@ -89,8 +89,8 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: _participants.length,
-                      separatorBuilder: (context, index) => const Divider(
-                        color: ZynkColors.darkBorder,
+                      separatorBuilder: (context, index) =>  Divider(
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         height: 1,
                       ),
                       itemBuilder: (context, index) {
@@ -111,14 +111,14 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
                           ),
                           title: Text(
                             p['name'] ?? 'Unknown',
-                            style: const TextStyle(
-                              color: ZynkColors.offWhite,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           subtitle: Text(
                             p['email'] ?? '',
-                            style: const TextStyle(color: ZynkColors.darkMuted, fontSize: 13),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13),
                           ),
                           trailing: attended
                               ? Container(
@@ -144,9 +144,9 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
                                     ],
                                   ),
                                 )
-                              : const Text(
+                              :  Text(
                                   'Registered',
-                                  style: TextStyle(color: ZynkColors.darkMuted, fontSize: 12),
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 12),
                                 ),
                         );
                       },

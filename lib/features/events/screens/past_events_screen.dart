@@ -91,12 +91,12 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title:  Text(
           'Previous Events',
           style: TextStyle(
-            color: ZynkColors.offWhite,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -139,11 +139,11 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                               fillColor: ZynkColors.darkSurface,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: ZynkColors.darkBorder),
+                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -158,8 +158,8 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                             children: [
                               Text(
                                 '${filtered.length} Past ${filtered.length == 1 ? "Event" : "Events"}',
-                                style: const TextStyle(
-                                  color: ZynkColors.darkMuted,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -167,9 +167,9 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: ZynkColors.darkSurface,
+                                  color: Theme.of(context).colorScheme.surface,
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: ZynkColors.darkBorder),
+                                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
@@ -180,8 +180,8 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                                       color: ZynkColors.primary,
                                       size: 18,
                                     ),
-                                    style: const TextStyle(
-                                      color: ZynkColors.offWhite,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                     ),

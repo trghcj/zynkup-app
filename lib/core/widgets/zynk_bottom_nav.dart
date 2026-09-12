@@ -55,9 +55,9 @@ class ZynkBottomNav extends StatelessWidget {
                       color: ZynkColors.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child:  Icon(
                       Icons.add_rounded,
-                      color: ZynkColors.darkSurface,
+                      color: Theme.of(context).colorScheme.surface,
                       size: 24,
                     ),
                   ),

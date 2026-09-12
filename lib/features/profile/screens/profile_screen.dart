@@ -250,8 +250,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: ZynkColors.darkBg,
+      return  Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: _ProfileSkeleton(),
       );
     }
@@ -275,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (progress.isNaN || progress.isInfinite) progress = 0.0;
 
     return Scaffold(
-      backgroundColor: ZynkColors.darkBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: ZynkBackground(
         child: CustomScrollView(
           slivers: [
@@ -294,9 +294,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           Container(
                             width: 88,
                             height: 88,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: ZynkColors.darkSurface,
+                              color: Theme.of(context).colorScheme.surface,
                             ),
                             child: ClipOval(
                               child:
@@ -323,17 +323,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: ZynkColors.darkSurface,
+                                  color: Theme.of(context).colorScheme.surface,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: ZynkColors.darkBorder,
+                                    color: Theme.of(context).colorScheme.outlineVariant,
                                     width: 1.5,
                                   ),
                                 ),
-                                child: const Icon(
+                                child:  Icon(
                                   Icons.edit,
                                   size: 12,
-                                  color: ZynkColors.offWhite,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -344,8 +344,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(height: 16),
                   Text(
                     user['name'] ?? 'Student',
-                    style: const TextStyle(
-                      color: ZynkColors.offWhite,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
@@ -354,8 +354,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(height: 4),
                   Text(
                     '@${user['email']?.split('@')[0] ?? 'user'}',
-                    style: const TextStyle(
-                      color: ZynkColors.darkMuted,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       fontSize: 14,
                     ),
                   ),
@@ -366,8 +366,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const Text('🔥 ', style: TextStyle(fontSize: 14)),
                       Text(
                         '$streak day streak',
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -376,8 +376,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const Text('✨ ', style: TextStyle(fontSize: 14)),
                       Text(
                         'Level $level',
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -402,8 +402,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                           const SizedBox(height: 6),
                           Text(
                             '${xp - currentLevelXP} / ${nextLevelXP - currentLevelXP} XP to Level ${level + 1}',
-                            style: const TextStyle(
-                              color: ZynkColors.darkMuted,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -424,7 +424,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Container(
                         width: 1,
                         height: 24,
-                        color: ZynkColors.darkBorder,
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         margin: const EdgeInsets.symmetric(horizontal: 24),
                       ),
                       _InlineStat(
@@ -657,12 +657,12 @@ class _OverviewTab extends StatelessWidget {
                 return Column(
                   children: [
                     if (pending.isNotEmpty) ...[
-                      const Align(
+                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'Pending Requests',
                           style: TextStyle(
-                            color: ZynkColors.darkMuted,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                             fontSize: 12,
                           ),
                         ),
@@ -712,12 +712,12 @@ class _OverviewTab extends StatelessWidget {
                       const SizedBox(height: 16),
                     ],
                     if (friends.isNotEmpty) ...[
-                      const Align(
+                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'My Friends',
                           style: TextStyle(
-                            color: ZynkColors.darkMuted,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                             fontSize: 12,
                           ),
                         ),
@@ -742,7 +742,7 @@ class _OverviewTab extends StatelessWidget {
                           ),
                           title: Text(
                             f['name'] ?? 'User',
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(color: Colors.white),
                           ),
                           trailing: IconButton(
                             icon: const Icon(
@@ -753,7 +753,7 @@ class _OverviewTab extends StatelessWidget {
                               final confirm = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  backgroundColor: ZynkColors.darkBg,
+                                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                                   title: const Text(
                                     'Unfriend',
                                     style: TextStyle(color: Colors.white),
@@ -868,9 +868,9 @@ class _TimelineTab extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: ZynkColors.darkSurface2,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ZynkColors.darkBorder),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Row(
               children: [
@@ -889,16 +889,16 @@ class _TimelineTab extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          color: ZynkColors.offWhite,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         timeAgo,
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontSize: 12,
                         ),
                       ),
@@ -948,12 +948,12 @@ class _BadgeIcon extends StatelessWidget {
               children: [
                 Icon(badge.icon, color: color, size: 24),
                 if (!badge.unlocked)
-                  const Positioned(
+                   Positioned(
                     right: 4,
                     bottom: 4,
                     child: Icon(
                       Icons.lock_rounded,
-                      color: ZynkColors.darkMuted,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       size: 12,
                     ),
                   ),
@@ -1038,20 +1038,20 @@ class _EventsTabState extends State<_EventsTab> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: ZynkColors.darkSurface,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(ZynkRadius.md),
-                  border: Border.all(color: ZynkColors.darkBorder),
+                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedFilter,
                     dropdownColor: ZynkColors.darkSurface,
-                    icon: const Icon(
+                    icon:  Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: ZynkColors.darkMuted,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                     ),
-                    style: const TextStyle(
-                      color: ZynkColors.offWhite,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1138,8 +1138,8 @@ class _EventsTabState extends State<_EventsTab> {
                             ),
                             child: Text(
                               item.label,
-                              style: const TextStyle(
-                                color: ZynkColors.offWhite,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1188,9 +1188,9 @@ class _BadgesTab extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: ZynkColors.darkSurface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(ZynkRadius.lg),
-              border: Border.all(color: ZynkColors.darkBorder),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: Row(
               children: [
@@ -1227,8 +1227,8 @@ class _BadgesTab extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         badge['description'] ?? '',
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                           fontSize: 13,
                         ),
                       ),
@@ -1292,7 +1292,7 @@ class _BadgeTileState extends State<_BadgeTile>
             border: Border.all(
               color: badge.unlocked
                   ? ZynkColors.darkBorder
-                  : ZynkColors.darkBorder.withValues(alpha: 0.5),
+                  : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
           child: Column(
@@ -1345,7 +1345,7 @@ class _EmptyState extends StatelessWidget {
               gradient: ZynkGradients.cardSurface,
               borderRadius: BorderRadius.circular(ZynkRadius.xl),
               border: Border.all(
-                color: ZynkColors.darkBorder.withValues(alpha: 0.5),
+                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
               ),
               boxShadow: ZynkShadows.card,
             ),
@@ -1369,8 +1369,8 @@ class _EmptyState extends StatelessWidget {
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: ZynkColors.darkText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                   ),
@@ -1379,8 +1379,8 @@ class _EmptyState extends StatelessWidget {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: ZynkColors.darkMuted,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                     height: 1.4,
                   ),
                 ),
@@ -1625,8 +1625,8 @@ class _InlineStat extends StatelessWidget {
       children: [
         Text(
           count,
-          style: const TextStyle(
-            color: ZynkColors.offWhite,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -1634,8 +1634,8 @@ class _InlineStat extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: ZynkColors.darkMuted,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
