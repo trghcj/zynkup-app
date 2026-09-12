@@ -663,10 +663,13 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           indicatorColor: Theme.of(context).brightness == Brightness.light
                               ? const Color(0xFF65A30D)
                               : ZynkColors.gold,
+                          indicatorWeight: 3,
                           labelColor: Theme.of(context).brightness == Brightness.light
                               ? const Color(0xFF3F6212)
                               : ZynkColors.gold,
-                          unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                           dividerColor: Colors.transparent,
                           isScrollable: true,
                           tabs: const [
@@ -1559,14 +1562,22 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: ZynkColors.darkBg.withValues(alpha: 0.95),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+      ),
       child: _tabBar,
     );
   }
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
+    return true;
   }
 }
 class _ClubProfileSkeleton extends StatelessWidget {
