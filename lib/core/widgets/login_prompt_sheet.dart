@@ -12,9 +12,14 @@ class LoginPromptSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark
+        ? ZynkColors.darkBg.withValues(alpha: 0.98)
+        : Theme.of(context).colorScheme.surface;
+
     return Container(
       decoration: BoxDecoration(
-        color: ZynkColors.darkBg.withValues(alpha: 0.98),
+        color: sheetBg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
       ),
@@ -26,14 +31,18 @@ class LoginPromptSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: ZynkColors.darkMuted.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 24),
-          const Icon(Icons.lock_rounded, size: 48, color: ZynkColors.primary),
+          Icon(
+            Icons.lock_rounded,
+            size: 48,
+            color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
+          ),
           const SizedBox(height: 16),
-           Text(
+          Text(
             'Authentication Required',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
@@ -45,7 +54,10 @@ class LoginPromptSheet extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 14),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -59,13 +71,18 @@ class LoginPromptSheet extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const UserLoginScreen()),
                 );
               },
-              icon: const Icon(Icons.login_rounded, color: Colors.white),
+              icon: const Icon(Icons.login_rounded, color: Color(0xFF1F242F)),
               label: const Text(
                 'Sign In / Register',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Color(0xFF1F242F),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ZynkColors.primary,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

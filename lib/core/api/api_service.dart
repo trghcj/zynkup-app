@@ -243,6 +243,7 @@ class ApiService {
     String? avatarSeed,
     String? avatarType,
     String? theme,
+    String? bannerUrl,
   }) async {
     try {
       await loadToken();
@@ -262,6 +263,7 @@ class ApiService {
           if (avatarSeed != null) "avatar_seed": avatarSeed,
           if (avatarType != null) "avatar_type": avatarType,
           if (theme != null) "theme": theme,
+          if (bannerUrl != null) "banner_url": bannerUrl,
         }),
       );
       if (res.statusCode == 200) {

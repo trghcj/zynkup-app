@@ -14,6 +14,7 @@ class User(Base):
     google_id    = Column(String, unique=True, nullable=True, index=True)
     name         = Column(String, nullable=True)
     avatar_url   = Column(Text, nullable=True)
+    banner_url   = Column(Text, nullable=True)
     role         = Column(String, nullable=False, default="ROLE_USER")
     fcm_token    = Column(String, nullable=True)
     created_at   = Column(DateTime, server_default=func.now())

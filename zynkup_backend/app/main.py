@@ -93,6 +93,7 @@ def repair_event_schema() -> None:
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_url TEXT",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS banner_url TEXT",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
@@ -165,6 +166,7 @@ def repair_event_schema() -> None:
     elif engine.dialect.name == "sqlite":
         statements = [
             "ALTER TABLE users ADD COLUMN fcm_token VARCHAR",
+            "ALTER TABLE users ADD COLUMN banner_url TEXT",
             "ALTER TABLE events ADD COLUMN club_id INTEGER",
             "ALTER TABLE clubs ADD COLUMN gallery_files TEXT",
             "ALTER TABLE feed_posts ADD COLUMN is_reported BOOLEAN DEFAULT 0 NOT NULL",

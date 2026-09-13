@@ -3,6 +3,7 @@ import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart' as fp;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 
@@ -66,6 +67,13 @@ class _ProfileScreenState extends State<ProfileScreen>
     ]);
     if (!mounted) return;
     final user = results[0] as Map<String, dynamic>?;
+    if (isMe && user != null && (user['banner_url'] == null || user['banner_url'].toString().isEmpty)) {
+      final prefs = await SharedPreferences.getInstance();
+      final localBanner = prefs.getString('profile_banner_url');
+      if (localBanner != null && localBanner.isNotEmpty) {
+        user['banner_url'] = localBanner;
+      }
+    }
     final heatmap = (results[1] is Map<String, int>)
         ? results[1] as Map<String, int>
         : <String, int>{};
@@ -88,43 +96,204 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _showAvatarOptions(int currentLevel) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: ZynkColors.darkSurface,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.upload, color: ZynkColors.primary),
-                title: const Text('Upload Photo', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pickAndUploadAvatar();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library, color: ZynkColors.gold),
-                title: const Text('Choose from Avatar Gallery', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => AvatarGalleryScreen(currentLevel: currentLevel))).then((_) => _load());
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.casino, color: ZynkColors.secondaryAccent),
-                title: const Text('Random Cartoon Avatar', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _randomizeAvatar();
-                },
-              ),
-            ],
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? ZynkColors.darkSurface : Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: Icon(
+                    Icons.upload_rounded,
+                    color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
+                  ),
+                  title: Text(
+                    'Upload Photo',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickAndUploadAvatar();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_rounded, color: ZynkColors.gold),
+                  title: Text(
+                    'Choose from Avatar Gallery',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AvatarGalleryScreen(currentLevel: currentLevel),
+                      ),
+                    ).then((_) => _load());
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.casino_rounded, color: ZynkColors.secondaryAccent),
+                  title: Text(
+                    'Random Cartoon Avatar',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _randomizeAvatar();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _showBannerOptions() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasBanner = _user?['banner_url'] != null &&
+        _user!['banner_url'].toString().trim().isNotEmpty;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? ZynkColors.darkSurface : Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: Icon(
+                    Icons.add_photo_alternate_rounded,
+                    color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
+                  ),
+                  title: Text(
+                    'Upload Custom Banner',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'PNG, JPG (Recommended landscape format)',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickAndUploadBanner();
+                  },
+                ),
+                if (hasBanner)
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline_rounded, color: ZynkColors.error),
+                    title: const Text(
+                      'Remove Custom Banner',
+                      style: TextStyle(
+                        color: ZynkColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _removeBanner();
+                    },
+                  ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadBanner() async {
+    final result = await fp.FilePicker.pickFiles(
+      type: fp.FileType.image,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() => _loading = true);
+    try {
+      final file = result.files.first;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        setState(() => _loading = false);
+        return;
+      }
+
+      final url = await ApiService.uploadImageBytes(bytes, file.name);
+      if (url != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profile_banner_url', url);
+
+        await ApiService.updateProfile(bannerUrl: url);
+        await _load();
+      } else {
+        setState(() => _loading = false);
+      }
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _removeBanner() async {
+    setState(() => _loading = true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('profile_banner_url');
+    await ApiService.updateProfile(bannerUrl: '');
+    await _load();
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -283,65 +452,18 @@ class _ProfileScreenState extends State<ProfileScreen>
             SliverToBoxAdapter(
               child: Column(
                 children: [
-                  const SizedBox(height: 56),
-                  Center(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(50),
-                      onTap: widget.userId == null ? () => _showAvatarOptions(level) : null,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Theme.of(context).colorScheme.surface,
-                            ),
-                            child: ClipOval(
-                              child:
-                                  (user['avatar_url'] != null &&
-                                      user['avatar_url'].toString().isNotEmpty)
-                                  ? CachedNetworkImage(
-                                      imageUrl: user['avatar_url'],
-                                      fit: BoxFit.cover,
-                                      width: 88,
-                                      height: 88,
-                                      memCacheWidth: 260,
-                                    )
-                                  : DiceBearAvatar(
-                                      seed: seed,
-                                      type: avatarType,
-                                      size: 88,
-                                    ),
-                            ),
-                          ),
-                          if (widget.userId == null)
-                            Positioned(
-                              right: -4,
-                              bottom: 4,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Theme.of(context).colorScheme.outlineVariant,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child:  Icon(
-                                  Icons.edit,
-                                  size: 12,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                            ),
-                        ],
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.topCenter,
+                    children: [
+                      _buildBannerSection(user),
+                      Positioned(
+                        top: 104,
+                        child: _buildAvatarWidget(user, level, seed, avatarType),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 56),
                   Text(
                     user['name'] ?? 'Student',
                     style: TextStyle(
@@ -359,30 +481,51 @@ class _ProfileScreenState extends State<ProfileScreen>
                       fontSize: 14,
                     ),
                   ),
-                                    const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('🔥 ', style: TextStyle(fontSize: 14)),
-                      Text(
-                        '$streak day streak',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFFF8FAFC)
+                          : Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
                       ),
-                      const SizedBox(width: 16),
-                      const Text('✨ ', style: TextStyle(fontSize: 14)),
-                      Text(
-                        'Level $level',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔥 ', style: TextStyle(fontSize: 13)),
+                        Text(
+                          '$streak day streak',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('✨ ', style: TextStyle(fontSize: 13)),
+                        Text(
+                          'Level $level',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Center(
@@ -394,9 +537,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: progress,
-                              backgroundColor: ZynkColors.darkSurface2,
+                              backgroundColor: Theme.of(context).brightness == Brightness.light
+                                  ? Theme.of(context).colorScheme.outlineVariant
+                                  : ZynkColors.darkSurface2,
                               color: ZynkColors.gold,
-                              minHeight: 4,
+                              minHeight: 5,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -486,6 +631,230 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBannerSection(Map<String, dynamic> user) {
+    final bannerUrl = user['banner_url'];
+    final hasCustomBanner =
+        bannerUrl != null && bannerUrl.toString().trim().isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 150,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161B26) : const Color(0xFFE2E8F0),
+            gradient: hasCustomBanner
+                ? null
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? const [
+                            Color(0xFF1E2638),
+                            Color(0xFF111827),
+                            Color(0xFF0F172A),
+                          ]
+                        : const [
+                            Color(0xFFF1F5F9),
+                            Color(0xFFE2E8F0),
+                            Color(0xFFCBD5E1),
+                          ],
+                  ),
+          ),
+          child: hasCustomBanner
+              ? CachedNetworkImage(
+                  imageUrl: bannerUrl.toString(),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 150,
+                  placeholder: (context, url) => Container(
+                    color: isDark ? const Color(0xFF161B26) : const Color(0xFFE2E8F0),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: isDark ? const Color(0xFF161B26) : const Color(0xFFE2E8F0),
+                    child: Icon(
+                      Icons.broken_image_rounded,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                  ),
+                )
+              : Stack(
+                  children: [
+                    Positioned(
+                      right: -20,
+                      top: -20,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: (isDark ? ZynkColors.primary : const Color(0xFF65A30D))
+                              .withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 20,
+                      bottom: 10,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: (isDark ? ZynkColors.gold : const Color(0xFF3B82F6))
+                              .withValues(alpha: 0.06),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Icon(
+                        Icons.school_rounded,
+                        size: 44,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.14),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 48,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  (isDark ? ZynkColors.darkBg : Theme.of(context).scaffoldBackgroundColor)
+                      .withValues(alpha: 0.45),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (widget.userId == null)
+          Positioned(
+            top: 14,
+            right: 14,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _showBannerOptions,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white24, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                      SizedBox(width: 5),
+                      Text(
+                        'Banner',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAvatarWidget(
+    Map<String, dynamic> user,
+    int level,
+    String seed,
+    String avatarType,
+  ) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(50),
+      onTap: widget.userId == null ? () => _showAvatarOptions(level) : null,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 92,
+            height: 92,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.surface,
+              border: Border.all(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                width: 4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: (user['avatar_url'] != null &&
+                      user['avatar_url'].toString().isNotEmpty)
+                  ? CachedNetworkImage(
+                      imageUrl: user['avatar_url'],
+                      fit: BoxFit.cover,
+                      width: 92,
+                      height: 92,
+                      memCacheWidth: 260,
+                    )
+                  : DiceBearAvatar(
+                      seed: seed,
+                      type: avatarType,
+                      size: 92,
+                    ),
+            ),
+          ),
+          if (widget.userId == null)
+            Positioned(
+              right: 0,
+              bottom: 4,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.edit,
+                  size: 13,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
