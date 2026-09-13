@@ -1,5 +1,6 @@
 import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
@@ -958,8 +959,13 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       },
                       onMore: () => _showMoreOptions(post),
                       onShare: () async {
-                        final text = post['content'] ?? '';
-                        if (text.isEmpty) return;
+                        final postId = post['id'];
+                        final baseUrl = kIsWeb ? Uri.base.origin : 'https://zynkup-app.vercel.app';
+                        final shareUrl = '$baseUrl/feed/$postId';
+                        final snippet = (post['content'] ?? '').toString().trim();
+                        final text = snippet.isNotEmpty
+                            ? '$snippet\n\nCheck out this post on Zynkup:\n$shareUrl'
+                            : 'Check out this post on Zynkup:\n$shareUrl';
                         final messenger = ScaffoldMessenger.of(context);
                         try {
                           await Share.share(text);
@@ -971,7 +977,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                 children: [
                                   Icon(Icons.check_circle_outline_rounded, color: ZynkColors.gold),
                                   SizedBox(width: 12),
-                                  Text('Copied post text to clipboard!'),
+                                  Text('Copied post link to clipboard!'),
                                 ],
                               ),
                               backgroundColor: ZynkColors.darkSurface2,

@@ -11,6 +11,7 @@ import 'core/widgets/theme_page_turn.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
+import 'core/services/deep_link_service.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint(
@@ -52,6 +53,7 @@ class ZynkupApp extends StatefulWidget {
   State<ZynkupApp> createState() => _ZynkupAppState();
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
@@ -63,13 +65,17 @@ class _ZynkupAppState extends State<ZynkupApp> {
     // Rebuild when theme changes so MaterialApp picks up the new ThemeMode
     themeProvider.addListener(_onThemeChange);
 
+    // Configure and initialize deep linking
+    DeepLinkService.configure(navigatorKey);
+    DeepLinkService.init();
+
     ApiService.latestNotification.addListener(() {
       final notif = ApiService.latestNotification.value;
       if (notif != null) {
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(
             content: Text(
-                "\${notif['title'] ?? 'Notification'}: \${notif['body'] ?? ''}"),
+                "${notif['title'] ?? 'Notification'}: ${notif['body'] ?? ''}"),
             behavior: SnackBarBehavior.floating,
             backgroundColor: ZynkColors.error,
             duration: const Duration(seconds: 4),
@@ -86,6 +92,7 @@ class _ZynkupAppState extends State<ZynkupApp> {
   @override
   void dispose() {
     themeProvider.removeListener(_onThemeChange);
+    DeepLinkService.dispose();
     super.dispose();
   }
 
@@ -93,6 +100,7 @@ class _ZynkupAppState extends State<ZynkupApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Zynkup',
+      navigatorKey: navigatorKey,
       scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,

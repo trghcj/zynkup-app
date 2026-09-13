@@ -719,6 +719,22 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> getFeedPostById(int postId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/feed/$postId"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>> createFeedPost({
     required String content,
     String? imageUrl,
