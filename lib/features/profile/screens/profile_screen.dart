@@ -452,18 +452,27 @@ class _ProfileScreenState extends State<ProfileScreen>
             SliverToBoxAdapter(
               child: Column(
                 children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.topCenter,
-                    children: [
-                      _buildBannerSection(user),
-                      Positioned(
-                        top: 104,
-                        child: _buildAvatarWidget(user, level, seed, avatarType),
-                      ),
-                    ],
+                  SizedBox(
+                    height: 200,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.topCenter,
+                      children: [
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 150,
+                          child: _buildBannerSection(user),
+                        ),
+                        Positioned(
+                          top: 104,
+                          child: _buildAvatarWidget(user, level, seed, avatarType),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 56),
+                  const SizedBox(height: 6),
                   Text(
                     user['name'] ?? 'Student',
                     style: TextStyle(
@@ -785,76 +794,92 @@ class _ProfileScreenState extends State<ProfileScreen>
     String seed,
     String avatarType,
   ) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(50),
-      onTap: widget.userId == null ? () => _showAvatarOptions(level) : null,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 92,
-            height: 92,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Theme.of(context).colorScheme.surface,
-              border: Border.all(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                width: 4,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: (user['avatar_url'] != null &&
-                      user['avatar_url'].toString().isNotEmpty)
-                  ? CachedNetworkImage(
-                      imageUrl: user['avatar_url'],
-                      fit: BoxFit.cover,
-                      width: 92,
-                      height: 92,
-                      memCacheWidth: 260,
-                    )
-                  : DiceBearAvatar(
-                      seed: seed,
-                      type: avatarType,
-                      size: 92,
+    final bool canEdit = widget.userId == null;
+
+    return MouseRegion(
+      cursor: canEdit ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: canEdit ? () => _showAvatarOptions(level) : null,
+        child: SizedBox(
+          width: 96,
+          height: 96,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  width: 92,
+                  height: 92,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Theme.of(context).colorScheme.surface,
+                    border: Border.all(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      width: 4,
                     ),
-            ),
-          ),
-          if (widget.userId == null)
-            Positioned(
-              right: 0,
-              bottom: 4,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 1.5,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.edit,
-                  size: 13,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  child: ClipOval(
+                    child: (user['avatar_url'] != null &&
+                            user['avatar_url'].toString().isNotEmpty)
+                        ? CachedNetworkImage(
+                            imageUrl: user['avatar_url'],
+                            fit: BoxFit.cover,
+                            width: 92,
+                            height: 92,
+                            memCacheWidth: 260,
+                          )
+                        : DiceBearAvatar(
+                            seed: seed,
+                            type: avatarType,
+                            size: 92,
+                          ),
+                  ),
                 ),
               ),
-            ),
-        ],
+              if (canEdit)
+                Positioned(
+                  right: 0,
+                  bottom: 2,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _showAvatarOptions(level),
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.edit,
+                        size: 13,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
