@@ -124,11 +124,19 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                             onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                             decoration: InputDecoration(
                               hintText: 'Search past events by title, venue...',
-                              hintStyle: const TextStyle(color: ZynkColors.darkMuted),
-                              prefixIcon: const Icon(Icons.search_rounded, color: ZynkColors.darkMuted),
+                              hintStyle: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                              ),
                               suffixIcon: _searchQuery.isNotEmpty
                                   ? IconButton(
-                                      icon: const Icon(Icons.close_rounded, color: ZynkColors.darkMuted),
+                                      icon: Icon(
+                                        Icons.close_rounded,
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                                      ),
                                       onPressed: () {
                                         _searchController.clear();
                                         setState(() => _searchQuery = '');
@@ -136,7 +144,7 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                                     )
                                   : null,
                               filled: true,
-                              fillColor: ZynkColors.darkSurface,
+                              fillColor: Theme.of(context).colorScheme.surface,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
@@ -147,7 +155,7 @@ class _PastEventsScreenState extends State<PastEventsScreen> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: ZynkColors.primary),
+                                borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
                               ),
                             ),
                           ),
