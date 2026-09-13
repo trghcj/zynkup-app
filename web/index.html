@@ -37,6 +37,19 @@
       .then(() => console.log("Firebase Auth ready"))
       .catch(err => console.error(err));
   </script>
+  <script>
+    (function() {
+      var path = window.location.pathname;
+      var isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid && (path.indexOf('/events/') === 0 || path.indexOf('/feed/') === 0 || path.indexOf('/posts/') === 0)) {
+        var target = path.substring(1);
+        var intentUrl = 'intent://' + target + '#Intent;scheme=zynkup;package=com.example.zynkup;S.browser_fallback_url=' + encodeURIComponent(window.location.href) + ';end;';
+        try {
+          window.location.href = intentUrl;
+        } catch (e) {}
+      }
+    })();
+  </script>
 
   <script src="flutter_bootstrap.js" async></script>
 </head>

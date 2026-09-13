@@ -191,6 +191,50 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
         ))
     return result
 
+@router.get("/{post_id}", response_model=FeedPostResponse)
+def get_post(post_id: int, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+    p = db.query(FeedPost).filter(FeedPost.id == post_id).first()
+    if not p:
+        raise HTTPException(status_code=404, detail="Feed post not found")
+
+    is_liked = False
+    if current_user:
+        is_liked = db.query(FeedLike).filter(FeedLike.post_id == post_id, FeedLike.user_id == current_user.id).first() is not None
+
+    react_counts = {}
+    user_react = None
+    for r in p.reactions:
+        react_counts[r.emoji] = react_counts.get(r.emoji, 0) + 1
+        if current_user and r.user_id == current_user.id:
+            user_react = r.emoji
+
+    poll_dict = None
+    if p.poll:
+        poll_dict = {
+            "question": p.poll.question,
+            "options": json.loads(p.poll.options),
+            "votes": json.loads(p.poll.votes) if p.poll.votes else {}
+        }
+
+    return FeedPostResponse(
+        id=p.id,
+        author_id=p.author_id,
+        author_name=p.author.name or p.author.display_name if p.author else None,
+        author_avatar=p.author.resolved_avatar_url if p.author else None,
+        club_id=p.club_id,
+        club_name=p.club.name if p.club else None,
+        club_logo=p.club.logo_url if p.club else None,
+        content=p.content,
+        image_url=p.image_url,
+        banner_url=p.banner_url,
+        likes=p.likes,
+        is_liked=is_liked,
+        created_at=p.created_at,
+        reactions=react_counts,
+        user_reaction=user_react,
+        poll=poll_dict
+    )
+
 @router.post("/{post_id}/like")
 def like_post(post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     post = db.query(FeedPost).filter(FeedPost.id == post_id).first()

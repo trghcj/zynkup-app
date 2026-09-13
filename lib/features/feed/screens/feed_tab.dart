@@ -1,6 +1,7 @@
 import 'package:zynkup/features/clubs/screens/all_clubs_screen.dart';
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/api/api_service.dart';
@@ -537,9 +538,16 @@ class _FeedTabState extends State<FeedTab> {
                         },
                         onReply: () => _showComments(post),
                         onShare: () async {
-                          final text = post['content'] ?? '';
-                          if (text.isEmpty) { return; }
-                          await Share.share(text);
+                          final postId = post['id'];
+                          final baseUrl = kIsWeb ? Uri.base.origin : 'https://zynkup-app.vercel.app';
+                          final shareUrl = '$baseUrl/feed/$postId';
+                          final snippet = (post['content'] ?? '').toString().trim();
+                          final text = snippet.isNotEmpty
+                              ? '$snippet\n\nCheck out this post on Zynkup:\n$shareUrl'
+                              : 'Check out this post on Zynkup:\n$shareUrl';
+                          try {
+                            await Share.share(text);
+                          } catch (_) {}
                         },
                         onMore: () => _showMoreOptions(post),
                         onReact: (emoji) async {

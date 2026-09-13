@@ -20,11 +20,18 @@ import 'package:zynkup/features/events/screens/event_participants_screen.dart';
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
     super.key,
-    required this.event,
+    required Event this.event,
     this.isGuest = false,
-  });
+  }) : eventId = null;
 
-  final Event event;
+  const EventDetailsScreen.fromId({
+    super.key,
+    required int this.eventId,
+    this.isGuest = false,
+  }) : event = null;
+
+  final Event? event;
+  final int? eventId;
   final bool isGuest;
 
   @override
@@ -49,13 +56,30 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _event = widget.event;
-    _qrCode = widget.event.qrCode;
+    if (widget.event != null) {
+      _event = widget.event!;
+      _qrCode = widget.event!.qrCode;
+    } else {
+      _event = Event(
+        id: (widget.eventId ?? 0).toString(),
+        title: 'Event Details',
+        description: '',
+        venue: '',
+        date: DateTime.now(),
+        category: EventCategory.tech,
+        organizerId: '',
+      );
+    }
     _load();
   }
 
   Future<void> _load() async {
-    final data = await ApiService.getEventById(int.parse(_event.id));
+    final targetId = widget.eventId ?? int.tryParse(_event.id);
+    if (targetId == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    final data = await ApiService.getEventById(targetId);
     final user = widget.isGuest ? null : await ApiService.getCurrentUser();
     if (!mounted) return;
     setState(() {
@@ -109,7 +133,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Future<void> _share() async {
     final baseUrl = kIsWeb ? Uri.base.origin : 'https://zynkup-app.vercel.app';
-    final text = 'Join ${_event.title} on Zynkup: $baseUrl/events/${_event.id}';
+    final shareUrl = '$baseUrl/events/${_event.id}';
+    final text = 'Join "${_event.title}" on Zynkup:\n$shareUrl';
     try {
       await Share.share(text);
     } catch (_) {

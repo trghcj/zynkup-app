@@ -121,6 +121,8 @@ service-account*.json
 *.json
 !pubspec.lock
 !firebase.json
+!vercel.json
+!web/.well-known/assetlinks.json
 !pubspec.yaml
 !analysis_options.yaml
 !devtools_options.yaml

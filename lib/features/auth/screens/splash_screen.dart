@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/home/screens/home_screen.dart';
+import 'package:zynkup/core/services/deep_link_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,10 +25,11 @@ class _SplashScreenState extends State<SplashScreen> {
       // User is fetched in HomeScreen, no need to wait here!
     }
     if (!mounted) return;
-    Navigator.pushReplacement(
+    await Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
+    DeepLinkService.checkAndHandlePendingLink();
   }
 
   @override
