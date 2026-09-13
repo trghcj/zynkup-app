@@ -51,6 +51,7 @@ class ProfileUpdate(BaseModel):
     avatar_seed:  Optional[str] = None
     avatar_type:  Optional[str] = None
     theme:        Optional[str] = None
+    banner_url:   Optional[str] = None
 
 
 def _user_response(user: models.User, token: str) -> dict:
@@ -62,6 +63,7 @@ def _user_response(user: models.User, token: str) -> dict:
             "email":        user.email,
             "name":         user.name,
             "avatar_url":   user.resolved_avatar_url,
+            "banner_url":   user.banner_url,
             "role":         user.role,
             "college":      user.college,
             "branch":       user.branch,
@@ -208,6 +210,7 @@ def get_me(
         "email":        current_user.email,
         "name":         current_user.name,
         "avatar_url":   current_user.resolved_avatar_url,
+        "banner_url":   current_user.banner_url,
         "role":         current_user.role,
         "college":      current_user.college,
         "branch":       current_user.branch,
@@ -255,6 +258,9 @@ def update_profile(
         current_user.avatar_url = data.avatar_url
     elif data.avatar_seed is not None or data.avatar_type is not None:
         current_user.avatar_url = None
+
+    if data.banner_url   is not None:
+        current_user.banner_url = data.banner_url if data.banner_url != "" else None
 
     if data.avatar_seed  is not None: current_user.avatar_seed  = data.avatar_seed
     if data.avatar_type  is not None: current_user.avatar_type  = data.avatar_type
@@ -405,6 +411,7 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: mo
         "email":        user.email,
         "name":         user.name,
         "avatar_url":   user.resolved_avatar_url,
+        "banner_url":   user.banner_url,
         "role":         user.role,
         "college":      user.college,
         "branch":       user.branch,
