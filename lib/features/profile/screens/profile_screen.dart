@@ -1254,6 +1254,12 @@ class _TimelineTab extends StatelessWidget {
           if (type == 'event_registration') {
             icon = Icons.event_available_rounded;
             color = ZynkColors.accent;
+          } else if (type == 'event_created') {
+            icon = Icons.event_note_rounded;
+            color = ZynkColors.secondaryAccent;
+          } else if (type == 'club_created') {
+            icon = Icons.group_add_rounded;
+            color = ZynkColors.orange;
           } else if (type == 'club_join') {
             icon = Icons.groups_rounded;
             color = ZynkColors.primary;

@@ -101,6 +101,13 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
             club_name = club.name
             club_logo = club.logo_url
 
+    # Award XP for creating a feed post
+    try:
+        from app.gamification import add_xp
+        add_xp(db, current_user, "create_post")
+    except Exception as xp_err:
+        pass
+
     return FeedPostResponse(
         id=new_post.id,
         author_id=new_post.author_id,
@@ -337,6 +344,13 @@ def create_comment(post_id: int, comment_data: FeedCommentCreate, db: Session = 
             type=NEW_COMMENT,
             data={"post_id": str(post_id)}
         )
+
+    # Award XP for commenting on a feed post
+    try:
+        from app.gamification import add_xp
+        add_xp(db, current_user, "create_comment")
+    except Exception as xp_err:
+        pass
 
     return FeedCommentResponse(
         id=new_comment.id,

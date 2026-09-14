@@ -204,6 +204,12 @@ def get_me(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    try:
+        from app.gamification import add_xp
+        add_xp(db, current_user, "daily_login")
+    except Exception:
+        pass
+
     stats = get_user_stats(db, current_user)
     return {
         "id":           current_user.id,
@@ -327,7 +333,7 @@ def my_registrations(
 def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     timeline = []
 
-    # Events
+    # Events Registered
     regs = db.query(models.Registration).filter(models.Registration.user_id == current_user.id).all()
     for r in regs:
         timeline.append({
@@ -337,15 +343,33 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
             "target_id": r.event_id
         })
 
-    # Clubs
+    # Events Created
+    created_events = db.query(models.Event).filter(models.Event.creator_id == current_user.id).all()
+    for e in created_events:
+        timeline.append({
+            "type": "event_created",
+            "title": f"Created {e.title}",
+            "date": (e.created_at or datetime.utcnow()).isoformat(),
+            "target_id": e.id
+        })
+
+    # Clubs (Created vs Joined)
     memberships = db.query(models.ClubMember).filter(models.ClubMember.user_id == current_user.id).all()
     for m in memberships:
-        timeline.append({
-            "type": "club_join",
-            "title": f"Joined {m.club.name}",
-            "date": (m.joined_at or datetime.utcnow()).isoformat(),
-            "target_id": m.club_id
-        })
+        if m.club and m.club.creator_id == current_user.id:
+            timeline.append({
+                "type": "club_created",
+                "title": f"Created {m.club.name}",
+                "date": (m.joined_at or m.club.created_at or datetime.utcnow()).isoformat(),
+                "target_id": m.club_id
+            })
+        elif m.club:
+            timeline.append({
+                "type": "club_join",
+                "title": f"Joined {m.club.name}",
+                "date": (m.joined_at or datetime.utcnow()).isoformat(),
+                "target_id": m.club_id
+            })
 
     # Posts
     posts = db.query(models.FeedPost).filter(models.FeedPost.author_id == current_user.id).all()

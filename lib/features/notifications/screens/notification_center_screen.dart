@@ -128,6 +128,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         return Icons.emoji_events_rounded;
       case 'XP_GAINED':
         return Icons.bolt_rounded;
+      case 'LEVEL_UP':
+        return Icons.military_tech_rounded;
       default:
         return Icons.notifications_rounded;
     }
@@ -144,8 +146,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       case 'NEW_REPLY':
         return ZynkColors.primary;
       case 'CLUB_INVITE':
-        return ZynkColors.gold;
       case 'BADGE_UNLOCKED':
+      case 'LEVEL_UP':
         return ZynkColors.gold;
       case 'XP_GAINED':
         return ZynkColors.orange;
