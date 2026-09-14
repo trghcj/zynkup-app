@@ -7,6 +7,7 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_toast.dart';
 import 'package:zynkup/core/widgets/event_card_widget.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:zynkup/core/widgets/college_picker_sheet.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 
 class CreateEventScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _time = TimeOfDay.now();
   String _category = 'tech';
+  String? _college;
   int _step = 0;
   bool _loading = false;
   Uint8List? _pickedBytes;
@@ -117,6 +119,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         title: _title.text.trim(),
         description: _description.text.trim(),
         venue: _venue.text.trim(),
+        college: _college,
         date: dateTime.toIso8601String(),
         category: _category,
         imageUrls: images,
@@ -327,12 +330,98 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Widget _buildDetails() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        InkWell(
+          onTap: () async {
+            final selected = await CollegePickerSheet.show(
+              context,
+              initialValue: _college,
+              allowNone: true,
+            );
+            if (selected != null) {
+              setState(() {
+                _college = selected.isEmpty ? null : selected;
+                if (_college != null && _venue.text.trim().isEmpty) {
+                  _venue.text = _college!;
+                }
+              });
+            }
+          },
+          borderRadius: BorderRadius.circular(ZynkRadius.lg),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(ZynkRadius.lg),
+              border: Border.all(
+                color: _college != null 
+                    ? ZynkColors.primary.withValues(alpha: 0.5) 
+                    : Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.account_balance_rounded,
+                  color: _college != null 
+                      ? ZynkColors.primary 
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'College / University',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _college ?? 'Select Delhi College (optional)',
+                        style: TextStyle(
+                          color: _college != null
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                          fontSize: 15,
+                          fontWeight: _college != null ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (_college != null)
+                  GestureDetector(
+                    onTap: () => setState(() => _college = null),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                      size: 18,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
         TextFormField(
           controller: _venue,
           style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16),
           decoration: InputDecoration(
-            labelText: 'Venue / Location',
+            labelText: 'Venue / Hall / Room',
+            hintText: 'e.g. Audi 1, Block 5 or Campus Grounds',
             prefixIcon: Icon(
               Icons.location_on_rounded,
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),

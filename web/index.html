@@ -36,17 +36,62 @@
     setPersistence(auth, browserSessionPersistence)
       .then(() => console.log("Firebase Auth ready"))
       .catch(err => console.error(err));
-  </script>
+  <style>
+    #app-launcher-banner {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 9999999;
+      background: #0B0F17;
+      color: #FFFFFF;
+      padding: 10px 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #app-launcher-banner.active {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .launcher-btn {
+      background: #84CC16;
+      color: #000000;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      text-decoration: none;
+      display: inline-block;
+    }
+  </style>
   <script>
     (function() {
       var path = window.location.pathname;
-      var isAndroid = /Android/i.test(navigator.userAgent);
-      if (isAndroid && (path.indexOf('/events/') === 0 || path.indexOf('/feed/') === 0 || path.indexOf('/posts/') === 0)) {
+      var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile && (path.indexOf('/events/') === 0 || path.indexOf('/feed/') === 0 || path.indexOf('/posts/') === 0)) {
         var target = path.substring(1);
+        var schemeUrl = 'zynkup://' + target;
         var intentUrl = 'intent://' + target + '#Intent;scheme=zynkup;package=com.example.zynkup;S.browser_fallback_url=' + encodeURIComponent(window.location.href) + ';end;';
-        try {
-          window.location.href = intentUrl;
-        } catch (e) {}
+        
+        window.addEventListener('DOMContentLoaded', function() {
+          var banner = document.getElementById('app-launcher-banner');
+          var btn = document.getElementById('launcher-link');
+          if (banner && btn) {
+            banner.className = 'active';
+            btn.href = intentUrl;
+            btn.onclick = function() {
+              window.location.href = intentUrl;
+              setTimeout(function() { window.location.href = schemeUrl; }, 250);
+            };
+          }
+        });
+
+        setTimeout(function() {
+          try {
+            window.location.href = intentUrl;
+          } catch(e) {}
+        }, 150);
       }
     })();
   </script>
@@ -54,5 +99,15 @@
   <script src="flutter_bootstrap.js" async></script>
 </head>
 <body>
+  <div id="app-launcher-banner">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="favicon.png" width="28" height="28" style="border-radius: 6px;">
+      <div>
+        <div style="font-weight: 700; font-size: 13px;">Zynkup</div>
+        <div style="font-size: 11px; opacity: 0.7;">Open in App for full experience</div>
+      </div>
+    </div>
+    <a id="launcher-link" href="#" class="launcher-btn">Open App</a>
+  </div>
 </body>
 </html>

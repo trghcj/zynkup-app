@@ -459,6 +459,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           label: 'Venue',
                           value: _event.venue,
                         ),
+                        if (_event.college != null && _event.college!.isNotEmpty)
+                          _Info(
+                            icon: Icons.account_balance_rounded,
+                            label: 'College / University',
+                            value: _event.college!,
+                          ),
                         const SizedBox(height: 22),
                          Text(
                           'About',

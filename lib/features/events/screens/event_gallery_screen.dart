@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
-import 'package:zynkup/features/home/screens/home_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:url_launcher/url_launcher.dart';class EventGalleryScreen extends StatefulWidget {
+import 'package:url_launcher/url_launcher.dart';
+
+class EventGalleryScreen extends StatefulWidget {
   const EventGalleryScreen({
     super.key,
     required this.event,
@@ -177,19 +178,6 @@ class _EventGalleryScreenState extends State<EventGalleryScreen> {
       appBar: AppBar(
         title: const Text('Gallery'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, size: 20),
-            onPressed: () async {
-              await ApiService.logout();
-              if (!mounted) return;
-              Navigator.pushAndRemoveUntil(
-                // ignore: use_build_context_synchronously
-                context,
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
-                (_) => false,
-              );
-            },
-          ),
           if (widget.canUpload)
             IconButton(
               onPressed: _uploading ? null : _upload,

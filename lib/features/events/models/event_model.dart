@@ -8,6 +8,7 @@ class Event {
     required this.title,
     required this.description,
     required this.venue,
+    this.college,
     required this.date,
     required this.category,
     required this.organizerId,
@@ -27,6 +28,7 @@ class Event {
   final String title;
   final String description;
   final String venue;
+  final String? college;
   final DateTime date;
   final EventCategory category;
   final String organizerId;
@@ -50,6 +52,7 @@ class Event {
       title: (json['title'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       venue: (json['venue'] ?? '').toString(),
+      college: json['college']?.toString(),
       date:
           DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now(),
       category: _parseCategory(json['category']),
@@ -81,6 +84,7 @@ class Event {
     'title': title,
     'description': description,
     'venue': venue,
+    'college': college,
     'date': date.toIso8601String(),
     'category': category.name,
     'organizerId': organizerId,

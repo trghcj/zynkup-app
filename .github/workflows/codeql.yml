@@ -24,8 +24,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - language: javascript-typescript
-          build-mode: none
         - language: python
           build-mode: none
         # Note: CodeQL does not currently support Dart/Flutter natively.

@@ -42,7 +42,23 @@
                 <data android:scheme="zynkup" />
             </intent-filter>
 
-            <!-- Deep linking: App Links (HTTP/HTTPS) -->
+            <!-- Standard Web Deep Links (prompts 'Open with Zynkup' for sideloaded APKs) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="zynkup-app.vercel.app" android:pathPrefix="/events" />
+                <data android:scheme="https" android:host="zynkup-app.vercel.app" android:pathPrefix="/feed" />
+                <data android:scheme="https" android:host="zynkup-app.vercel.app" android:pathPrefix="/posts" />
+                <data android:scheme="https" android:host="zynkup.com" android:pathPrefix="/events" />
+                <data android:scheme="https" android:host="zynkup.com" android:pathPrefix="/feed" />
+                <data android:scheme="https" android:host="zynkup.com" android:pathPrefix="/posts" />
+                <data android:scheme="http" android:host="zynkup-app.vercel.app" android:pathPrefix="/events" />
+                <data android:scheme="http" android:host="zynkup-app.vercel.app" android:pathPrefix="/feed" />
+                <data android:scheme="http" android:host="zynkup-app.vercel.app" android:pathPrefix="/posts" />
+            </intent-filter>
+
+            <!-- Deep linking: App Links (HTTP/HTTPS with domain verification) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

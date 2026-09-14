@@ -372,6 +372,7 @@ class ApiService {
     required String title,
     required String description,
     required String venue,
+    String? college,
     required String date,
     required String category,
     List<String>? imageUrls,
@@ -388,6 +389,7 @@ class ApiService {
           "title": title,
           "description": description,
           "venue": venue,
+          if (college != null && college.isNotEmpty) "college": college,
           "date": date,
           "category": category,
           if (imageUrls != null && imageUrls.isNotEmpty)
@@ -819,6 +821,7 @@ class ApiService {
     required String name,
     required String description,
     String? category,
+    String? college,
     String? bannerUrl,
     String? logoUrl,
   }) async {
@@ -831,6 +834,7 @@ class ApiService {
           "name": name,
           "description": description,
           "category": category ?? "general",
+          if (college != null && college.isNotEmpty) "college": college,
           if (bannerUrl != null) "banner_url": bannerUrl,
           if (logoUrl != null) "logo_url": logoUrl,
         }),
