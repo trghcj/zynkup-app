@@ -10,6 +10,9 @@ class DeepLinkService {
   static StreamSubscription<Uri>? _linkSubscription;
   static Uri? pendingUri;
   static GlobalKey<NavigatorState>? navigatorKey;
+  static bool isAppReady = false;
+  static String? _lastHandledKey;
+  static DateTime? _lastHandledTime;
 
   static void configure(GlobalKey<NavigatorState> navKey) {
     navigatorKey = navKey;
@@ -31,7 +34,11 @@ class DeepLinkService {
         final currentUri = Uri.base;
         if (currentUri.path.contains('/events/') ||
             currentUri.path.contains('/feed/') ||
-            currentUri.path.contains('/posts/')) {
+            currentUri.path.contains('/posts/') ||
+            currentUri.fragment.contains('/events/') ||
+            currentUri.fragment.contains('/feed/') ||
+            currentUri.fragment.contains('/posts/')) {
+          debugPrint('DeepLinkService: Web currentUri: $currentUri');
           pendingUri = currentUri;
         }
       } catch (_) {}
@@ -58,11 +65,18 @@ class DeepLinkService {
     if (pendingUri == null) return false;
     final uri = pendingUri!;
     pendingUri = null;
+    isAppReady = true;
     handleUri(uri, context: context);
     return true;
   }
 
   static void handleUri(Uri uri, {BuildContext? context}) {
+    if (!isAppReady) {
+      debugPrint('DeepLinkService: App not mounted yet, queueing pendingUri: $uri');
+      pendingUri = uri;
+      return;
+    }
+
     String? type;
     String? idStr;
 
@@ -88,9 +102,39 @@ class DeepLinkService {
       }
     }
 
+    if (type == null || idStr == null) {
+      if (uri.fragment.isNotEmpty) {
+        final frag = uri.fragment.startsWith('/') ? uri.fragment : '/${uri.fragment}';
+        final fragUri = Uri.tryParse(frag);
+        if (fragUri != null) {
+          final segments = fragUri.pathSegments;
+          for (int i = 0; i < segments.length; i++) {
+            final seg = segments[i].toLowerCase();
+            if ((seg == 'events' || seg == 'feed' || seg == 'posts') &&
+                i + 1 < segments.length) {
+              type = seg;
+              idStr = segments[i + 1];
+              break;
+            }
+          }
+        }
+      }
+    }
+
     if (type == null || idStr == null) return;
     final id = int.tryParse(idStr);
     if (id == null) return;
+
+    final routeKey = '$type/$id';
+    final now = DateTime.now();
+    if (_lastHandledKey == routeKey &&
+        _lastHandledTime != null &&
+        now.difference(_lastHandledTime!) < const Duration(milliseconds: 1500)) {
+      debugPrint('DeepLinkService: Skipping duplicate navigation for $routeKey');
+      return;
+    }
+    _lastHandledKey = routeKey;
+    _lastHandledTime = now;
 
     final nav = navigatorKey?.currentState ??
         (context != null ? Navigator.of(context) : null);

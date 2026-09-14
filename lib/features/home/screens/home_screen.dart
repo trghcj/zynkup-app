@@ -15,6 +15,7 @@ import 'package:zynkup/features/home/tabs/my_events_tab.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/features/feed/screens/feed_tab.dart';
 import 'package:zynkup/features/notifications/screens/notification_center_screen.dart';
+import 'package:zynkup/core/services/deep_link_service.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
@@ -36,6 +37,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadUser();
     _notifTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchUnread());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkService.isAppReady = true;
+      DeepLinkService.checkAndHandlePendingLink(context);
+    });
   }
 
   @override
