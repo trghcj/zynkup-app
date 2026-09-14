@@ -40,10 +40,38 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _load();
+    ApiService.userStatsChanged.addListener(_onStatsChanged);
+    ApiService.latestNotification.addListener(_onNotificationReceived);
+    ApiService.clubDeleted.addListener(_onClubDeleted);
+  }
+
+  void _onStatsChanged() {
+    if (mounted && widget.userId == null) {
+      _load();
+    }
+  }
+
+  void _onNotificationReceived() {
+    final notif = ApiService.latestNotification.value;
+    if (notif != null && mounted && widget.userId == null) {
+      final type = notif['type']?.toString();
+      if (type == 'XP_GAINED' || type == 'LEVEL_UP') {
+        _load();
+      }
+    }
+  }
+
+  void _onClubDeleted() {
+    if (mounted && widget.userId == null) {
+      _load();
+    }
   }
 
   @override
   void dispose() {
+    ApiService.userStatsChanged.removeListener(_onStatsChanged);
+    ApiService.latestNotification.removeListener(_onNotificationReceived);
+    ApiService.clubDeleted.removeListener(_onClubDeleted);
     _tabController.dispose();
     _nameC.dispose();
     _bioC.dispose();
@@ -446,8 +474,12 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: ZynkBackground(
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          color: ZynkColors.primary,
+          onRefresh: _load,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
             // ── Hero Profile Header ──────────────────────────────────────────
             SliverToBoxAdapter(
               child: Column(
@@ -641,8 +673,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBannerSection(Map<String, dynamic> user) {
     final bannerUrl = user['banner_url'];

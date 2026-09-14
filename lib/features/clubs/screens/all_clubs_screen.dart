@@ -37,10 +37,21 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
   void initState() {
     super.initState();
     _loadClubs();
+    ApiService.clubDeleted.addListener(_onClubDeleted);
+  }
+
+  void _onClubDeleted() {
+    final deletedId = ApiService.clubDeleted.value;
+    if (deletedId != null && mounted) {
+      setState(() {
+        _clubs.removeWhere((c) => c['id'].toString() == deletedId.toString());
+      });
+    }
   }
 
   @override
   void dispose() {
+    ApiService.clubDeleted.removeListener(_onClubDeleted);
     _searchController.dispose();
     super.dispose();
   }
@@ -325,8 +336,8 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
         : 'https://picsum.photos/seed/$clubId/200/200';
 
     return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
+      onTap: () async {
+        final result = await showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
@@ -336,6 +347,9 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
             clubData: club is Map<String, dynamic> ? club : null,
           ),
         );
+        if (result == true && mounted) {
+          _loadClubs();
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(12),

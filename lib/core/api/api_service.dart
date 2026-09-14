@@ -24,6 +24,14 @@ class ApiService {
   static List<dynamic>? _cachedEvents;
   static WebSocketChannel? _wsChannel;
   static final ValueNotifier<Map<String, dynamic>?> latestNotification = ValueNotifier(null);
+  static final ValueNotifier<int?> clubDeleted = ValueNotifier(null);
+  static final ValueNotifier<int> userStatsChanged = ValueNotifier(0);
+
+  /// Invalidate cached user profile and notify listeners to refresh stats (XP, level, badges)
+  static void invalidateUserCache() {
+    _cachedUser = null;
+    userStatsChanged.value++;
+  }
 
   static Future<void> initWebSocket() async {
     await loadToken();
@@ -759,6 +767,7 @@ class ApiService {
         }),
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
+        invalidateUserCache();
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
       throw _parseError(res);
@@ -810,6 +819,7 @@ class ApiService {
         body: jsonEncode({"content": content}),
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
+        invalidateUserCache();
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
       throw _parseError(res);
@@ -864,6 +874,7 @@ class ApiService {
       );
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body) as Map<String, dynamic>;
+        invalidateUserCache();
         return {'success': true, 'joined': body['joined'] == true};
       }
       return null;
@@ -879,7 +890,12 @@ class ApiService {
         Uri.parse("$baseUrl/clubs/$clubId"),
         headers: await _headers,
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        clubDeleted.value = clubId;
+        invalidateUserCache();
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }

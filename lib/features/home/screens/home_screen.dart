@@ -248,6 +248,9 @@ class _HomeScreenState extends State<HomeScreen> {
       showLoginPrompt(context, message: 'Sign in to view your tickets and profile.');
       return;
     }
+    if (index == 4) {
+      ApiService.invalidateUserCache();
+    }
     setState(() => _index = index);
     _nestedNavKey.currentState?.popUntil((route) => route.isFirst);
   }

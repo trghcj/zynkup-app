@@ -36,10 +36,21 @@ class _HomeTabState extends State<HomeTab> {
   void initState() {
     super.initState();
     _load();
+    ApiService.clubDeleted.addListener(_onClubDeleted);
+  }
+
+  void _onClubDeleted() {
+    final deletedId = ApiService.clubDeleted.value;
+    if (deletedId != null && mounted) {
+      setState(() {
+        _clubs.removeWhere((c) => c['id'].toString() == deletedId.toString());
+      });
+    }
   }
   
   @override
   void dispose() {
+    ApiService.clubDeleted.removeListener(_onClubDeleted);
     _searchController.dispose();
     super.dispose();
   }
@@ -170,7 +181,18 @@ class _HomeTabState extends State<HomeTab> {
                     runSpacing: 16,
                     children: matchedClubs.map((club) {
                       return GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ClubProfileScreen(clubId: club['id'].toString(), clubName: club['name']?.toString() ?? 'Club'))),
+                        onTap: () async {
+                          final res = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ClubProfileScreen(
+                                clubId: club['id'].toString(),
+                                clubName: club['name']?.toString() ?? 'Club',
+                              ),
+                            ),
+                          );
+                          if (res == true && mounted) _load();
+                        },
                         child: Container(
                           width: isDesktop ? 300 : MediaQuery.of(context).size.width - 40,
                           padding: const EdgeInsets.all(16),
@@ -695,11 +717,12 @@ class _ClubsSection extends StatelessWidget {
                 ],
               ),
               TextButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const AllClubsScreen()),
                   );
+                  onRefresh();
                 },
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -769,8 +792,8 @@ class _ClubsSection extends StatelessWidget {
                     );
                   },
                   child: GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
+                    onTap: () async {
+                      final res = await showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
                         backgroundColor: Colors.transparent,
@@ -780,6 +803,7 @@ class _ClubsSection extends StatelessWidget {
                           clubData: club,
                         ),
                       );
+                      if (res == true) onRefresh();
                     },
                     child: Container(
                       width: 140,

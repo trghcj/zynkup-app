@@ -208,16 +208,40 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   }
 
   Future<void> _deleteClub() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Club?'),
-        content: const Text('This action cannot be undone. All events, members, and posts will be deleted.'),
+        backgroundColor: Theme.of(ctx).colorScheme.surface,
+        title: Text(
+          'Delete Club?',
+          style: TextStyle(
+            color: Theme.of(ctx).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'This action cannot be undone. All events, members, and posts will be deleted.',
+          style: TextStyle(
+            color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.75),
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: ZynkColors.error)),
+            child: const Text('Delete', style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -225,19 +249,64 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     if (confirm != true) return;
 
     final success = await ApiService.deleteClub(int.parse(widget.clubId));
-    if (success && mounted) {
-      Navigator.of(context).pop(); // Close club profile
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Club deleted successfully.'),
-          backgroundColor: ZynkColors.darkSurface2,
+    if (!mounted) return;
+    if (success) {
+      nav.pop(true); // Close club profile and signal deletion
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: ZynkColors.primary, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Club deleted successfully.',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isDark ? ZynkColors.darkBorder : Colors.black12,
+            ),
+          ),
+          duration: const Duration(seconds: 3),
         ),
       );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to delete club. Please try again.'),
-          backgroundColor: ZynkColors.error,
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Failed to delete club. Please try again.',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isDark ? ZynkColors.darkBorder : Colors.black12,
+            ),
+          ),
+          duration: const Duration(seconds: 3),
         ),
       );
     }

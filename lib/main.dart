@@ -75,6 +75,9 @@ class _ZynkupAppState extends State<ZynkupApp> {
         final notifType = notif['type'] as String? ?? '';
         final isLevelUp = notifType == 'LEVEL_UP';
         final isXp = notifType == 'XP_GAINED';
+        if (isLevelUp || isXp) {
+          ApiService.invalidateUserCache();
+        }
         final accentColor = isLevelUp
             ? ZynkColors.gold
             : isXp
