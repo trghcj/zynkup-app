@@ -131,11 +131,14 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
     # Creator is automatically an admin member
     member = ClubMember(club_id=new_club.id, user_id=current_user.id, role="admin")
     db.add(member)
-    
-    # Increase XP by 40 for creating a club
-    current_user.xp = (current_user.xp or 0) + 40
-    
     db.commit()
+
+    # Award XP for creating a club
+    try:
+        from app.gamification import add_xp
+        add_xp(db, current_user, "create_club")
+    except Exception as xp_err:
+        logger.warning(f"XP AWARD FAILED: {xp_err}")
 
     return ClubResponse(
         id=new_club.id,
@@ -253,6 +256,14 @@ def join_club(club_id: int, db: Session = Depends(get_db), current_user: User = 
     member = ClubMember(club_id=club_id, user_id=current_user.id, role="member")
     db.add(member)
     db.commit()
+
+    # Award XP for joining a club
+    try:
+        from app.gamification import add_xp
+        add_xp(db, current_user, "join_club")
+    except Exception as xp_err:
+        logger.warning(f"XP AWARD FAILED: {xp_err}")
+
     return {"message": "Joined club successfully", "joined": True}
 
 @router.get("/{club_id}/members", response_model=List[ClubMemberResponse])

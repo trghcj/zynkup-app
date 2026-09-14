@@ -72,12 +72,75 @@ class _ZynkupAppState extends State<ZynkupApp> {
     ApiService.latestNotification.addListener(() {
       final notif = ApiService.latestNotification.value;
       if (notif != null) {
+        final notifType = notif['type'] as String? ?? '';
+        final isLevelUp = notifType == 'LEVEL_UP';
+        final isXp = notifType == 'XP_GAINED';
+        final accentColor = isLevelUp
+            ? ZynkColors.gold
+            : isXp
+                ? ZynkColors.orange
+                : ZynkColors.primary;
+
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(
-            content: Text(
-                "${notif['title'] ?? 'Notification'}: ${notif['body'] ?? ''}"),
+            content: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isLevelUp
+                        ? Icons.military_tech_rounded
+                        : isXp
+                            ? Icons.bolt_rounded
+                            : Icons.notifications_active_rounded,
+                    color: accentColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notif['title'] ?? 'Notification',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (notif['body'] != null &&
+                          (notif['body'] as String).isNotEmpty)
+                        Text(
+                          notif['body'] as String,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: ZynkColors.error,
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: (isLevelUp || isXp)
+                    ? accentColor.withValues(alpha: 0.4)
+                    : Colors.white10,
+              ),
+            ),
             duration: const Duration(seconds: 4),
           ),
         );

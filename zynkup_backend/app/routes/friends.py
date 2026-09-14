@@ -69,13 +69,22 @@ def accept_friend_request(request_id: int, db: Session = Depends(get_db), curren
         raise HTTPException(status_code=400, detail="Request is not pending")
         
     freq.status = "accepted"
-    
+    db.commit()
+
+    # Award XP to both users for connecting
     sender = db.query(models.User).filter(models.User.id == freq.sender_id).first()
     if sender:
-        sender.xp = (sender.xp or 0) + 5
-    current_user.xp = (current_user.xp or 0) + 5
+        try:
+            from app.gamification import add_xp
+            add_xp(db, sender, "accept_friend")
+        except Exception:
+            pass
+    try:
+        from app.gamification import add_xp
+        add_xp(db, current_user, "accept_friend")
+    except Exception:
+        pass
     
-    db.commit()
     return {"message": "Friend request accepted"}
 
 @router.put("/request/{request_id}/decline")

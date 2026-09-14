@@ -18,6 +18,7 @@ CLUB_INVITE = "CLUB_INVITE"
 ATTENDANCE_MARKED = "ATTENDANCE_MARKED"
 BADGE_UNLOCKED = "BADGE_UNLOCKED"
 XP_GAINED = "XP_GAINED"
+LEVEL_UP = "LEVEL_UP"
 
 # Initialize Firebase Admin SDK
 firebase_key_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "firebase_service_account.json")

@@ -5,12 +5,64 @@ from sqlalchemy.orm import Session
 from app import models
 
 XP_RULES = {
-    "create_event": 10,
-    "register_event": 5,
-    "attend_event": 15,
-    "daily_login": 2,
-    "complete_profile": 10,
+    "create_event": 50,
+    "create_club": 50,
+    "create_post": 20,
+    "create_comment": 5,
+    "register_event": 10,
+    "attend_event": 25,
+    "accept_friend": 15,
+    "join_club": 10,
+    "daily_login": 5,
+    "complete_profile": 20,
     "first_event_bonus": 50,
+}
+
+ACTION_NOTIFICATIONS = {
+    "create_event": {
+        "title": "🎉 Event Created! (+50 XP)",
+        "body": "You earned 50 XP for organizing a new event on Zynkup!",
+    },
+    "create_club": {
+        "title": "🏛️ Club Founded! (+50 XP)",
+        "body": "You earned 50 XP for launching a new student club!",
+    },
+    "create_post": {
+        "title": "📝 Post Published! (+20 XP)",
+        "body": "You earned 20 XP for sharing on the campus feed!",
+    },
+    "create_comment": {
+        "title": "💬 Discussion Sparked! (+5 XP)",
+        "body": "You earned 5 XP for commenting on a feed post!",
+    },
+    "register_event": {
+        "title": "🎟️ Event Registered! (+10 XP)",
+        "body": "You earned 10 XP for signing up for an event!",
+    },
+    "attend_event": {
+        "title": "📍 Attendance Confirmed! (+25 XP)",
+        "body": "You earned 25 XP for attending the event!",
+    },
+    "accept_friend": {
+        "title": "🤝 New Connection! (+15 XP)",
+        "body": "You earned 15 XP for connecting with a new friend!",
+    },
+    "join_club": {
+        "title": "🌟 Club Joined! (+10 XP)",
+        "body": "You earned 10 XP for joining a club community!",
+    },
+    "daily_login": {
+        "title": "⚡ Daily Check-In! (+5 XP)",
+        "body": "You earned 5 XP for your daily check-in! Keep the streak going!",
+    },
+    "complete_profile": {
+        "title": "✨ Profile Completed! (+20 XP)",
+        "body": "You earned 20 XP for completing your student profile!",
+    },
+    "first_event_bonus": {
+        "title": "🚀 First Event Bonus! (+50 XP)",
+        "body": "Awesome! You earned a special 50 XP bonus for your first event!",
+    },
 }
 
 BADGE_DEFINITIONS = [
@@ -87,44 +139,86 @@ BADGE_DEFINITIONS = [
 ]
 
 def calculate_level(xp: int) -> int:
-    
-    return math.floor(math.sqrt(xp / 25)) + 1
+    xp_val = max(0, xp or 0)
+    return math.floor(math.sqrt(xp_val / 25)) + 1
 
 def add_xp(db: Session, user: models.User, action: str, amount: int = None):
     try:
         if amount is None:
             amount = XP_RULES.get(action, 0)
-        
+
+        # De-duplicate daily login XP (only once per calendar day in UTC)
+        if action == "daily_login":
+            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+            already_awarded = db.query(models.ActivityLog).filter(
+                models.ActivityLog.user_id == user.id,
+                models.ActivityLog.action == "daily_login",
+                models.ActivityLog.created_at >= today_start
+            ).first()
+            if already_awarded:
+                return
+
         # Check for first event bonus
+        bonus_awarded = False
         if action == "create_event":
             event_count = db.query(models.Event).filter(models.Event.creator_id == user.id).count()
-            if event_count <= 1: # If it's the first one (already committed in events.py)
-                amount += XP_RULES["first_event_bonus"]
-                log_activity(db, user, "first_event_bonus", XP_RULES["first_event_bonus"])
+            if event_count <= 1: # If it's the first one
+                bonus_amount = XP_RULES.get("first_event_bonus", 50)
+                amount += bonus_amount
+                bonus_awarded = True
 
-        user.xp += amount
-        user.level = calculate_level(user.xp)
+        if amount <= 0:
+            return
+
+        old_xp = user.xp or 0
+        old_level = user.level or calculate_level(old_xp)
+
+        user.xp = old_xp + amount
+        new_level = calculate_level(user.xp)
+        user.level = new_level
         
         log_activity(db, user, action, amount)
+        if bonus_awarded:
+            log_activity(db, user, "first_event_bonus", XP_RULES.get("first_event_bonus", 50))
+        
         db.commit()
 
-        if amount > 0:
-            try:
-                from app.fcm import create_notification_helper, XP_GAINED
+        try:
+            from app.fcm import create_notification_helper, XP_GAINED, LEVEL_UP
+            
+            action_info = ACTION_NOTIFICATIONS.get(action)
+            if action_info:
+                title = action_info["title"]
+                body = action_info["body"]
+            else:
+                title = f"⚡ XP Gained! (+{amount} XP)"
+                body = f"You gained {amount} XP from {action.replace('_', ' ')}."
+
+            create_notification_helper(
+                db=db,
+                user_id=user.id,
+                title=title,
+                body=body,
+                type=XP_GAINED,
+                data={"xp_gained": str(amount), "action": action, "total_xp": str(user.xp)}
+            )
+
+            # Check if user leveled up
+            if new_level > old_level:
                 create_notification_helper(
                     db=db,
                     user_id=user.id,
-                    title="XP Gained!",
-                    body=f"You gained {amount} XP from {action.replace('_', ' ')}.",
-                    type=XP_GAINED,
-                    data={"xp_gained": str(amount), "action": action}
+                    title=f"🎖️ Level Up! You're now Level {new_level}!",
+                    body=f"Congratulations! You've reached Level {new_level}. Keep participating to unlock more badges and rank up!",
+                    type=LEVEL_UP,
+                    data={"new_level": str(new_level), "old_level": str(old_level), "total_xp": str(user.xp)}
                 )
-            except Exception as e_xp:
-                print(f"Failed to create XP notification: {e_xp}")
+        except Exception as e_xp:
+            print(f"Failed to create XP notification: {e_xp}")
     except Exception as e:
         db.rollback()
         # We don't raise here — gamification should not break the core app
-        print(f"GAMIFICATION ERROR (Likely missing columns): {e}")
+        print(f"GAMIFICATION ERROR: {e}")
 
 def log_activity(db: Session, user: models.User, action: str, xp_gained: int):
     try:
@@ -135,6 +229,7 @@ def log_activity(db: Session, user: models.User, action: str, xp_gained: int):
         )
         db.add(activity)
         # Update last_active and streak logic
+        user.streak = user.streak or 0
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         if user.last_active:
             delta = now - user.last_active
