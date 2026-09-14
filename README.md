@@ -1,11 +1,18 @@
 # ZynkUp 🎯
 
 <p align="center">
-  <a href="release/Zynkup.apk"><img src="https://img.shields.io/badge/-%E2%AC%87%20DOWNLOAD%20APK-4CAF50?style=for-the-badge" alt="Download APK"></a>
-  <img src="https://img.shields.io/badge/VERSION-1.5.0-0088cc?style=for-the-badge" alt="Version 1.5.0">
+  <a href="release/Zynkup.apk"><img src="https://img.shields.io/badge/-%E2%AC%87%20DOWNLOAD%20APK%20(ARM64)-4CAF50?style=for-the-badge" alt="Download APK"></a>
+  <img src="https://img.shields.io/badge/VERSION-1.6.0-0088cc?style=for-the-badge" alt="Version 1.6.0">
   <img src="https://img.shields.io/badge/PLATFORM-ANDROID-4CAF50?style=for-the-badge" alt="Platform Android">
   <img src="https://img.shields.io/badge/BUILT%20WITH-FLUTTER-02569B?style=for-the-badge" alt="Built with Flutter">
 </p>
+
+### 📦 Split APK Downloads (Optimized Architecture)
+| Architecture | Target Devices | Direct Download |
+| :--- | :--- | :--- |
+| **ARM64-v8a** *(Recommended)* | Modern Android Phones & Tablets | [Download ARM64 APK](release/app-arm64-v8a-release.apk) |
+| **ARMEABI-v7a** | Older 32-bit Android Devices | [Download ARMv7 APK](release/app-armeabi-v7a-release.apk) |
+| **x86_64** | Android Emulators & Chromebooks | [Download x86_64 APK](release/app-x86_64-release.apk) |
 
 ---
 
@@ -21,20 +28,22 @@
 graph TD
     A[Flutter App Android/Web] -->|Authentication| B[Firebase Auth]
     A -->|Push Notifications| C[Firebase Cloud Messaging]
-    A -->|Realtime / REST| D[Supabase Backend-as-a-Service]
+    A -->|Realtime / REST| D[FastAPI & Supabase Backend]
     D --> E[PostgreSQL Database]
     D --> F[Supabase Storage]
-    D --> G[Supabase Edge Functions]
-    G -->|Webhook Triggers| C
+    D --> G[Gamification & Activity Engine]
+    G -->|XP & Level-Up Events| C
 ```
 
 ## Features
 - **🎨 Content-First Dark UI:** A mature, refined, and responsive dark aesthetic (Linear/Spotify-inspired) with clean editorial typography and a minimalist Zynkup lime interaction system.
-- **📅 Event Management:** Discover, host, and manage campus events with dynamic ticketing and QR-code passes.
-- **🤝 Campus Communities:** Discover and found campus clubs, manage members with role-based access, and engage in club-specific events and chats.
-- **💬 Social Campus Feed:** Share updates, photos, and polls directly to the campus timeline with real-time likes, replies, and reactions.
-- **🔔 Automated Push Notifications:** Supabase Database Webhooks trigger Deno Edge Functions to fire targeted push notifications to users via Firebase Cloud Messaging.
-- **🏆 Student Identity & Gamification:** Personalize your profile with an activity heatmap, inline statistics, customizable avatars, and a progression system (XP, Streaks, and Badges).
+- **🏆 Gamification & XP Rewards:** Real-time XP rewards across all key student actions (hosting events, founding clubs, joining communities, publishing feed posts, commenting, event check-ins, friend requests, and daily streaks) with automatic Level-Up progression.
+- **🔔 Dual Push & In-App Notifications:** Real-time FCM push notifications and an in-app Notification Center (bell icon) with live unread badge counters, celebratory level milestone alerts, and custom activity badges.
+- **📅 Event Management:** Discover, host, and manage campus events with dynamic ticketing, attendance tracking, and QR-code passes.
+- **🤝 Campus Communities:** Discover and found campus clubs with role-based access, college affiliations (Delhi colleges directory), and club-specific chats.
+- **💬 Social Campus Feed:** Share updates, photos, and polls directly to the campus feed with real-time likes, replies, and reactions.
+- **📱 Profile Activity Timeline:** Chronological timeline tracking student milestones with clear distinction between founded clubs, joined clubs, hosted events, and feed posts.
+- **🔗 Universal Deep Linking:** Native deep-linking redirects for events and feed discussion threads across APK and Web.
 - **🔒 Secure Authentication:** Seamless login and session management powered by Firebase Auth.
 - **☁️ Cloud Media:** Seamless image uploads and robust media hosting integrated with Supabase Storage.
 
