@@ -57,14 +57,25 @@ class PushNotificationService {
     });
 
     // Register token
-    final token = await messaging.getToken();
-    if (token != null) {
-      ApiService.registerFcmToken(token);
-    }
+    syncToken();
     
     messaging.onTokenRefresh.listen((newToken) {
+      debugPrint('FCM Token Refreshed: $newToken');
       ApiService.registerFcmToken(newToken);
     });
+  }
+
+  /// Explicitly retrieves the latest FCM token and syncs it with the backend/database.
+  static Future<void> syncToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        debugPrint('PushNotificationService: Syncing FCM Token: $token');
+        await ApiService.registerFcmToken(token);
+      }
+    } catch (e) {
+      debugPrint('PushNotificationService: Failed to sync FCM token: $e');
+    }
   }
 
   static void _showLocalNotification(RemoteMessage message) {

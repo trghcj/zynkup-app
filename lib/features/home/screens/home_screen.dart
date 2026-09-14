@@ -16,6 +16,7 @@ import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/features/feed/screens/feed_tab.dart';
 import 'package:zynkup/features/notifications/screens/notification_center_screen.dart';
 import 'package:zynkup/core/services/deep_link_service.dart';
+import 'package:zynkup/services/push_notification_service.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
@@ -54,6 +55,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUser() async {
     await ApiService.loadToken();
     final user = ApiService.hasToken ? await ApiService.getCurrentUser(force: true) : null;
+    if (ApiService.hasToken) {
+      PushNotificationService.syncToken();
+    }
     if (!mounted) return;
     setState(() => _user = user);
     await _fetchUnread();

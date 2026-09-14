@@ -62,15 +62,18 @@ class ApiService {
   static Future<void> registerFcmToken(String token) async {
     try {
       await loadToken();
-      if (!hasToken) return;
-      await http.post(
+      if (!hasToken) {
+        debugPrint('registerFcmToken: User not logged in, token not registered yet.');
+        return;
+      }
+      final res = await http.post(
         Uri.parse("$baseUrl/notifications/fcm-token"),
         headers: await _headers,
         body: jsonEncode({"token": token}),
       );
-      // ignore response; backend stores token.
-    } catch (_) {
-      // silently ignore failures – token registration is best‑effort.
+      debugPrint('registerFcmToken response: ${res.statusCode}');
+    } catch (e) {
+      debugPrint('registerFcmToken failed: $e');
     }
   }
 
