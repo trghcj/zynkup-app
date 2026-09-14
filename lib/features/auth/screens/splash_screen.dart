@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/home/screens/home_screen.dart';
-import 'package:zynkup/core/services/deep_link_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,17 +19,15 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _route() async {
-    await Future<void>.delayed(const Duration(milliseconds: 1500)); // Added delay for splash screen pause
-    await ApiService.loadToken();
-    if (ApiService.hasToken) {
-      // User is fetched in HomeScreen, no need to wait here!
+    if (!kIsWeb) {
+      await Future<void>.delayed(const Duration(milliseconds: 1000));
     }
+    await ApiService.loadToken();
     if (!mounted) return;
-    await Navigator.pushReplacement(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
-    DeepLinkService.checkAndHandlePendingLink();
   }
 
   @override
