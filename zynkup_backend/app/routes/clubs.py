@@ -38,6 +38,14 @@ class ClubCreate(BaseModel):
     banner_url: Optional[str] = None
     logo_url: Optional[str] = None
 
+class ClubUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    college: Optional[str] = None
+    banner_url: Optional[str] = None
+    logo_url: Optional[str] = None
+
 class ClubResponse(BaseModel):
     id: int
     name: str
@@ -153,6 +161,73 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
         created_at=new_club.created_at,
         is_member=True,
         creator_id=new_club.creator_id
+    )
+
+@router.put("/{club_id}", response_model=ClubResponse)
+def update_club(
+    club_id: int,
+    club_data: ClubUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    is_owner = (club.creator_id == current_user.id)
+    is_admin = False
+    if not is_owner:
+        member = db.query(ClubMember).filter(
+            ClubMember.club_id == club_id,
+            ClubMember.user_id == current_user.id
+        ).first()
+        if member and member.role == "admin":
+            is_admin = True
+
+    if not is_owner and not is_admin:
+        raise HTTPException(status_code=403, detail="Only club owner and admins can edit this club")
+
+    if club_data.name is not None and club_data.name.strip():
+        name_clean = club_data.name.strip()
+        if name_clean.lower() != club.name.lower():
+            existing = db.query(Club).filter(Club.name == name_clean, Club.id != club_id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Club name already taken")
+        club.name = name_clean
+
+    if club_data.description is not None:
+        club.description = club_data.description.strip()
+    if club_data.category is not None and club_data.category.strip():
+        club.category = club_data.category.strip().lower()
+    if club_data.college is not None:
+        club.college = club_data.college.strip()
+    if club_data.banner_url is not None:
+        club.banner_url = club_data.banner_url
+    if club_data.logo_url is not None:
+        club.logo_url = club_data.logo_url
+
+    db.commit()
+    db.refresh(club)
+
+    count = db.query(ClubMember).filter(ClubMember.club_id == club.id).count()
+    is_member = db.query(ClubMember).filter(
+        ClubMember.club_id == club.id,
+        ClubMember.user_id == current_user.id
+    ).first() is not None
+
+    return ClubResponse(
+        id=club.id,
+        name=club.name,
+        description=club.description,
+        category=club.category,
+        college=club.college,
+        banner_url=club.banner_url,
+        logo_url=club.logo_url,
+        clubProfileUrl=club.logo_url,
+        member_count=count,
+        created_at=club.created_at,
+        is_member=is_member,
+        creator_id=club.creator_id
     )
 
 @router.get("/", response_model=List[ClubResponse])

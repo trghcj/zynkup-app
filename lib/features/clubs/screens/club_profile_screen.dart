@@ -25,6 +25,7 @@ import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:zynkup/features/clubs/widgets/edit_club_sheet.dart';
 
 class ClubProfileScreen extends StatefulWidget {
   final String clubId;
@@ -66,6 +67,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _loadCurrentUser();
+    ApiService.clubUpdated.addListener(_onClubUpdated);
     if (widget.clubData != null) {
       _club = widget.clubData;
       _isMember = widget.clubData?['is_member'] == true;
@@ -77,8 +79,18 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     }
   }
 
+  void _onClubUpdated() {
+    final updated = ApiService.clubUpdated.value;
+    if (updated != null && mounted && updated['id'].toString() == widget.clubId) {
+      setState(() {
+        _club = updated;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    ApiService.clubUpdated.removeListener(_onClubUpdated);
     _tabController.dispose();
     super.dispose();
   }
@@ -318,6 +330,42 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           duration: const Duration(seconds: 3),
         ),
       );
+    }
+  }
+
+  bool get _isClubOwner {
+    if (_club == null || _currentUser == null) return false;
+    return _club!['creator_id']?.toString() == _currentUser!['id']?.toString();
+  }
+
+  bool get _isClubAdmin {
+    if (_currentUser == null) return false;
+    final record = _clubMembers.firstWhere(
+      (m) => m['user_id']?.toString() == _currentUser!['id']?.toString(),
+      orElse: () => null,
+    );
+    if (record != null) {
+      final role = record['role']?.toString().toLowerCase() ?? 'member';
+      return role == 'admin';
+    }
+    return false;
+  }
+
+  bool get _canEditClub => _isClubOwner || _isClubAdmin;
+
+  Future<void> _editClub() async {
+    if (_club == null) return;
+    final updated = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditClubSheet(club: _club!),
+    );
+    if (updated != null && mounted) {
+      setState(() {
+        _club = updated;
+      });
+      _loadClub();
     }
   }
 
@@ -659,7 +707,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         },
                       ),
                       actions: [
-                        if (_club != null && _currentUser != null && _club!['creator_id']?.toString() == _currentUser!['id']?.toString())
+                        if (_canEditClub)
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: CircleAvatar(
@@ -667,13 +715,31 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                               child: PopupMenuButton<String>(
                                 icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
                                 onSelected: (val) {
+                                  if (val == 'edit') _editClub();
                                   if (val == 'delete') _deleteClub();
                                 },
                                 itemBuilder: (ctx) => [
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Delete Club', style: TextStyle(color: ZynkColors.error)),
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit_rounded, color: Theme.of(ctx).colorScheme.onSurface, size: 18),
+                                        const SizedBox(width: 10),
+                                        Text('Edit Club', style: TextStyle(color: Theme.of(ctx).colorScheme.onSurface)),
+                                      ],
+                                    ),
                                   ),
+                                  if (_isClubOwner)
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_rounded, color: ZynkColors.error, size: 18),
+                                          SizedBox(width: 10),
+                                          Text('Delete Club', style: TextStyle(color: ZynkColors.error)),
+                                        ],
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),

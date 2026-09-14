@@ -26,7 +26,9 @@ class ApiService {
   static final ValueNotifier<Map<String, dynamic>?> latestNotification = ValueNotifier(null);
   static final ValueNotifier<int?> clubDeleted = ValueNotifier(null);
   static final ValueNotifier<Map<String, dynamic>?> clubCreated = ValueNotifier(null);
+  static final ValueNotifier<Map<String, dynamic>?> clubUpdated = ValueNotifier(null);
   static final ValueNotifier<Map<String, dynamic>?> eventCreated = ValueNotifier(null);
+  static final ValueNotifier<Map<String, dynamic>?> eventUpdated = ValueNotifier(null);
   static final ValueNotifier<int> userStatsChanged = ValueNotifier(0);
 
   /// Invalidate cached user profile and notify listeners to refresh stats (XP, level, badges)
@@ -443,6 +445,45 @@ class ApiService {
       return false;
     } catch (_) {
       return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateEvent({
+    required int eventId,
+    String? title,
+    String? description,
+    String? venue,
+    String? college,
+    String? date,
+    String? category,
+    List<String>? imageUrls,
+  }) async {
+    await loadToken();
+    try {
+      final res = await http.put(
+        Uri.parse("$baseUrl/events/$eventId"),
+        headers: await _headers,
+        body: jsonEncode({
+          if (title != null) "title": title,
+          if (description != null) "description": description,
+          if (venue != null) "venue": venue,
+          if (college != null && college.isNotEmpty) "college": college,
+          if (date != null) "date": date,
+          if (category != null) "category": category,
+          if (imageUrls != null) "image_urls": imageUrls,
+        }),
+      );
+      if (res.statusCode == 200) {
+        _cachedEvents = null;
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        eventUpdated.value = data;
+        return data;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to update event.");
     }
   }
 
@@ -871,6 +912,43 @@ class ApiService {
       rethrow;
     } catch (_) {
       throw const ApiException("Failed to create club.");
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateClub({
+    required int clubId,
+    String? name,
+    String? description,
+    String? category,
+    String? college,
+    String? bannerUrl,
+    String? logoUrl,
+  }) async {
+    await loadToken();
+    try {
+      final res = await http.put(
+        Uri.parse("$baseUrl/clubs/$clubId"),
+        headers: await _headers,
+        body: jsonEncode({
+          if (name != null) "name": name,
+          if (description != null) "description": description,
+          if (category != null) "category": category,
+          if (college != null && college.isNotEmpty) "college": college,
+          if (bannerUrl != null) "banner_url": bannerUrl,
+          if (logoUrl != null) "logo_url": logoUrl,
+        }),
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        clubUpdated.value = data;
+        invalidateUserCache();
+        return data;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to update club.");
     }
   }
 

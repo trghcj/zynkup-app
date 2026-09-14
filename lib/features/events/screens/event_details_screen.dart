@@ -16,6 +16,7 @@ import 'package:zynkup/features/events/screens/qr_scanner_screen.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/features/events/screens/event_participants_screen.dart';
+import 'package:zynkup/features/events/widgets/edit_event_sheet.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
@@ -71,6 +72,22 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       );
     }
     _load();
+    ApiService.eventUpdated.addListener(_onEventUpdated);
+  }
+
+  void _onEventUpdated() {
+    final updated = ApiService.eventUpdated.value;
+    if (updated != null && mounted && updated['id'].toString() == _event.id) {
+      setState(() {
+        _event = Event.fromJson(updated);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    ApiService.eventUpdated.removeListener(_onEventUpdated);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -140,6 +157,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: text));
       _snack('Event link copied.');
+    }
+  }
+
+  Future<void> _editEvent() async {
+    final updatedData = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditEventSheet(event: _event),
+    );
+    if (updatedData != null && mounted) {
+      setState(() {
+        _event = Event.fromJson(updatedData);
+      });
+      _load();
     }
   }
 
@@ -337,7 +369,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                       color: Theme.of(context).colorScheme.surface,
                       onSelected: (value) {
-                        if (value == 'participants') {
+                        if (value == 'edit') {
+                          _editEvent();
+                        } else if (value == 'participants') {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -352,6 +386,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         }
                       },
                       itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
+                              const SizedBox(width: 12),
+                              Text('Edit Event', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                            ],
+                          ),
+                        ),
                         PopupMenuItem(
                           value: 'participants',
                           child: Row(

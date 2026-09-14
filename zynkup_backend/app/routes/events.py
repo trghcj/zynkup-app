@@ -244,8 +244,16 @@ def update_event(
         event.description = payload.description.strip()
     if payload.venue is not None:
         event.venue = payload.venue.strip()
+    if payload.college is not None:
+        event.college = payload.college.strip()
     if payload.date is not None:
-        event.date = datetime.fromisoformat(payload.date)
+        try:
+            date_str = payload.date
+            if date_str.endswith("Z"):
+                date_str = date_str.replace("Z", "+00:00")
+            event.date = datetime.fromisoformat(date_str)
+        except Exception as e:
+            raise HTTPException(status_code=422, detail=f"Invalid date format: {str(e)}")
     if payload.category is not None:
         event.category = payload.category.strip().lower()
     if payload.image_urls is not None:

@@ -44,7 +44,9 @@ class _ProfileScreenState extends State<ProfileScreen>
     ApiService.latestNotification.addListener(_onNotificationReceived);
     ApiService.clubDeleted.addListener(_onClubDeleted);
     ApiService.clubCreated.addListener(_onClubCreated);
+    ApiService.clubUpdated.addListener(_onClubUpdated);
     ApiService.eventCreated.addListener(_onEventCreated);
+    ApiService.eventUpdated.addListener(_onEventUpdated);
   }
 
   void _onStatsChanged() {
@@ -88,7 +90,19 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  void _onClubUpdated() {
+    if (mounted && widget.userId == null) {
+      _load(silent: true);
+    }
+  }
+
   void _onEventCreated() {
+    if (mounted && widget.userId == null) {
+      _load(silent: true);
+    }
+  }
+
+  void _onEventUpdated() {
     if (mounted && widget.userId == null) {
       _load(silent: true);
     }
@@ -100,7 +114,9 @@ class _ProfileScreenState extends State<ProfileScreen>
     ApiService.latestNotification.removeListener(_onNotificationReceived);
     ApiService.clubDeleted.removeListener(_onClubDeleted);
     ApiService.clubCreated.removeListener(_onClubCreated);
+    ApiService.clubUpdated.removeListener(_onClubUpdated);
     ApiService.eventCreated.removeListener(_onEventCreated);
+    ApiService.eventUpdated.removeListener(_onEventUpdated);
     _tabController.dispose();
     _nameC.dispose();
     _bioC.dispose();

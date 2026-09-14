@@ -38,6 +38,8 @@ class _HomeTabState extends State<HomeTab> {
     _load();
     ApiService.clubDeleted.addListener(_onClubDeleted);
     ApiService.clubCreated.addListener(_onClubCreated);
+    ApiService.clubUpdated.addListener(_onClubUpdated);
+    ApiService.eventUpdated.addListener(_onEventUpdated);
   }
 
   void _onClubDeleted() {
@@ -58,11 +60,38 @@ class _HomeTabState extends State<HomeTab> {
       });
     }
   }
+
+  void _onClubUpdated() {
+    final updatedClub = ApiService.clubUpdated.value;
+    if (updatedClub != null && mounted) {
+      setState(() {
+        final idx = _clubs.indexWhere((c) => c['id'].toString() == updatedClub['id'].toString());
+        if (idx != -1) {
+          _clubs[idx] = updatedClub;
+        }
+      });
+    }
+  }
+
+  void _onEventUpdated() {
+    final updatedData = ApiService.eventUpdated.value;
+    if (updatedData != null && mounted) {
+      final updatedEvent = Event.fromJson(updatedData);
+      setState(() {
+        final idx = _events.indexWhere((e) => e.id == updatedEvent.id);
+        if (idx != -1) {
+          _events[idx] = updatedEvent;
+        }
+      });
+    }
+  }
   
   @override
   void dispose() {
     ApiService.clubDeleted.removeListener(_onClubDeleted);
     ApiService.clubCreated.removeListener(_onClubCreated);
+    ApiService.clubUpdated.removeListener(_onClubUpdated);
+    ApiService.eventUpdated.removeListener(_onEventUpdated);
     _searchController.dispose();
     super.dispose();
   }
