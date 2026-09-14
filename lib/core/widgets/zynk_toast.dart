@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/theme/theme_provider.dart';
 
 class ZToast {
   static void showSuccess(BuildContext context, String title, {String? subtitle}) {
+    final isDark = themeProvider.isDark;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -13,12 +15,16 @@ class ZToast {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: ZynkColors.elevatedSurface,
+            color: isDark ? ZynkColors.elevatedSurface : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: ZynkColors.primary.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: isDark
+                  ? ZynkColors.primary.withValues(alpha: 0.3)
+                  : const Color(0xFFE2E8F0),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -36,8 +42,8 @@ class ZToast {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: ZynkColors.offWhite,
+                      style: TextStyle(
+                        color: isDark ? ZynkColors.offWhite : const Color(0xFF0E1117),
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -46,8 +52,8 @@ class ZToast {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: ZynkColors.darkMuted,
+                        style: TextStyle(
+                          color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
                           fontSize: 12,
                         ),
                       ),

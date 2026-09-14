@@ -48,11 +48,27 @@ class PushNotificationService {
       if (message.notification != null) {
         debugPrint('Message also contained a notification: ${message.notification}');
         _showLocalNotification(message);
-        ApiService.latestNotification.value = {
-          'title': message.notification?.title,
-          'body': message.notification?.body,
-          'type': message.data['type'] ?? 'XP_GAINED',
-        };
+      }
+
+      final notifMap = <String, dynamic>{
+        'title': message.notification?.title ?? message.data['title'] ?? 'Notification',
+        'body': message.notification?.body ?? message.data['body'] ?? '',
+        'type': message.data['type'] ?? 'XP_GAINED',
+        ...message.data,
+      };
+      ApiService.latestNotification.value = notifMap;
+      ApiService.invalidateUserCache();
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint('PushNotificationService: onMessageOpenedApp event');
+      ApiService.invalidateUserCache();
+    });
+
+    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null) {
+        debugPrint('PushNotificationService: initialMessage detected');
+        ApiService.invalidateUserCache();
       }
     });
 

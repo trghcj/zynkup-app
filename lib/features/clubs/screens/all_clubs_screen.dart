@@ -38,6 +38,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
     super.initState();
     _loadClubs();
     ApiService.clubDeleted.addListener(_onClubDeleted);
+    ApiService.clubCreated.addListener(_onClubCreated);
   }
 
   void _onClubDeleted() {
@@ -49,9 +50,20 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
     }
   }
 
+  void _onClubCreated() {
+    final newClub = ApiService.clubCreated.value;
+    if (newClub != null && mounted) {
+      setState(() {
+        _clubs.removeWhere((c) => c['id'].toString() == newClub['id'].toString());
+        _clubs.insert(0, newClub);
+      });
+    }
+  }
+
   @override
   void dispose() {
     ApiService.clubDeleted.removeListener(_onClubDeleted);
+    ApiService.clubCreated.removeListener(_onClubCreated);
     _searchController.dispose();
     super.dispose();
   }

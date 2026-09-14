@@ -75,14 +75,15 @@ class _ZynkupAppState extends State<ZynkupApp> {
         final notifType = notif['type'] as String? ?? '';
         final isLevelUp = notifType == 'LEVEL_UP';
         final isXp = notifType == 'XP_GAINED';
-        if (isLevelUp || isXp) {
-          ApiService.invalidateUserCache();
-        }
+        ApiService.invalidateUserCache();
+
         final accentColor = isLevelUp
             ? ZynkColors.gold
             : isXp
                 ? ZynkColors.orange
                 : ZynkColors.primary;
+
+        final isDark = themeProvider.isDark;
 
         scaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(
@@ -112,19 +113,19 @@ class _ZynkupAppState extends State<ZynkupApp> {
                     children: [
                       Text(
                         notif['title'] ?? 'Notification',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Colors.white,
+                          color: isDark ? Colors.white : const Color(0xFF0E1117),
                         ),
                       ),
                       if (notif['body'] != null &&
                           (notif['body'] as String).isNotEmpty)
                         Text(
                           notif['body'] as String,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white70,
+                            color: isDark ? Colors.white70 : const Color(0xFF64748B),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -135,13 +136,14 @@ class _ZynkupAppState extends State<ZynkupApp> {
               ],
             ),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF1E293B),
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            elevation: isDark ? 2 : 6,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
                 color: (isLevelUp || isXp)
                     ? accentColor.withValues(alpha: 0.4)
-                    : Colors.white10,
+                    : (isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
               ),
             ),
             duration: const Duration(seconds: 4),

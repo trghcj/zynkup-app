@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/theme/theme_provider.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
@@ -208,25 +209,31 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   }
 
   Future<void> _deleteClub() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = themeProvider.isDark;
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(ctx).colorScheme.surface,
+        backgroundColor: isDark ? ZynkColors.darkSurface : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+        ),
         title: Text(
           'Delete Club?',
           style: TextStyle(
-            color: Theme.of(ctx).colorScheme.onSurface,
+            color: isDark ? Colors.white : const Color(0xFF0E1117),
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
           'This action cannot be undone. All events, members, and posts will be deleted.',
           style: TextStyle(
-            color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.75),
+            color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
           ),
         ),
         actions: [
@@ -235,7 +242,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
               ),
             ),
           ),
@@ -262,7 +269,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 child: Text(
                   'Club deleted successfully.',
                   style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    color: isDark ? Colors.white : const Color(0xFF0E1117),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -274,9 +281,10 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isDark ? ZynkColors.darkBorder : Colors.black12,
+              color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
             ),
           ),
+          elevation: isDark ? 2 : 6,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -291,7 +299,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                 child: Text(
                   'Failed to delete club. Please try again.',
                   style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                    color: isDark ? Colors.white : const Color(0xFF0E1117),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -303,9 +311,10 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isDark ? ZynkColors.darkBorder : Colors.black12,
+              color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
             ),
           ),
+          elevation: isDark ? 2 : 6,
           duration: const Duration(seconds: 3),
         ),
       );

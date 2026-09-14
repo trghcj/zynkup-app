@@ -37,6 +37,7 @@ class _HomeTabState extends State<HomeTab> {
     super.initState();
     _load();
     ApiService.clubDeleted.addListener(_onClubDeleted);
+    ApiService.clubCreated.addListener(_onClubCreated);
   }
 
   void _onClubDeleted() {
@@ -47,10 +48,21 @@ class _HomeTabState extends State<HomeTab> {
       });
     }
   }
+
+  void _onClubCreated() {
+    final newClub = ApiService.clubCreated.value;
+    if (newClub != null && mounted) {
+      setState(() {
+        _clubs.removeWhere((c) => c['id'].toString() == newClub['id'].toString());
+        _clubs.insert(0, newClub);
+      });
+    }
+  }
   
   @override
   void dispose() {
     ApiService.clubDeleted.removeListener(_onClubDeleted);
+    ApiService.clubCreated.removeListener(_onClubCreated);
     _searchController.dispose();
     super.dispose();
   }

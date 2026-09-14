@@ -43,27 +43,54 @@ class _ProfileScreenState extends State<ProfileScreen>
     ApiService.userStatsChanged.addListener(_onStatsChanged);
     ApiService.latestNotification.addListener(_onNotificationReceived);
     ApiService.clubDeleted.addListener(_onClubDeleted);
+    ApiService.clubCreated.addListener(_onClubCreated);
+    ApiService.eventCreated.addListener(_onEventCreated);
   }
 
   void _onStatsChanged() {
     if (mounted && widget.userId == null) {
-      _load();
+      _load(silent: true);
     }
   }
 
   void _onNotificationReceived() {
     final notif = ApiService.latestNotification.value;
     if (notif != null && mounted && widget.userId == null) {
-      final type = notif['type']?.toString();
-      if (type == 'XP_GAINED' || type == 'LEVEL_UP') {
-        _load();
+      // Immediate optimistic update for zero latency
+      final totalXpStr = notif['total_xp']?.toString();
+      final xpGainedStr = notif['xp_gained']?.toString();
+      final newLevelStr = notif['new_level']?.toString();
+      if (_user != null) {
+        setState(() {
+          if (totalXpStr != null && int.tryParse(totalXpStr) != null) {
+            _user!['xp'] = int.parse(totalXpStr);
+          } else if (xpGainedStr != null && int.tryParse(xpGainedStr) != null) {
+            _user!['xp'] = (_user!['xp'] as int? ?? 0) + int.parse(xpGainedStr);
+          }
+          if (newLevelStr != null && int.tryParse(newLevelStr) != null) {
+            _user!['level'] = int.parse(newLevelStr);
+          }
+        });
       }
+      _load(silent: true);
     }
   }
 
   void _onClubDeleted() {
     if (mounted && widget.userId == null) {
-      _load();
+      _load(silent: true);
+    }
+  }
+
+  void _onClubCreated() {
+    if (mounted && widget.userId == null) {
+      _load(silent: true);
+    }
+  }
+
+  void _onEventCreated() {
+    if (mounted && widget.userId == null) {
+      _load(silent: true);
     }
   }
 
@@ -72,14 +99,18 @@ class _ProfileScreenState extends State<ProfileScreen>
     ApiService.userStatsChanged.removeListener(_onStatsChanged);
     ApiService.latestNotification.removeListener(_onNotificationReceived);
     ApiService.clubDeleted.removeListener(_onClubDeleted);
+    ApiService.clubCreated.removeListener(_onClubCreated);
+    ApiService.eventCreated.removeListener(_onEventCreated);
     _tabController.dispose();
     _nameC.dispose();
     _bioC.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool silent = false}) async {
+    if (!silent && _user == null) {
+      setState(() => _loading = true);
+    }
     // Each call is independent — one failure shouldn't kill the others
     final isMe = widget.userId == null;
     final userFuture = isMe
@@ -111,15 +142,14 @@ class _ProfileScreenState extends State<ProfileScreen>
         : <dynamic>[];
 
     setState(() {
-      _user = user;
-      _heatmapData = heatmap;
-
-      _timeline = timelineRaw;
-      _loading = false;
       if (user != null) {
+        _user = user;
         _nameC.text = user['name'] ?? '';
         _bioC.text = user['bio'] ?? '';
       }
+      _heatmapData = heatmap;
+      _timeline = timelineRaw;
+      _loading = false;
     });
   }
 

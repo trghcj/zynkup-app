@@ -25,6 +25,8 @@ class ApiService {
   static WebSocketChannel? _wsChannel;
   static final ValueNotifier<Map<String, dynamic>?> latestNotification = ValueNotifier(null);
   static final ValueNotifier<int?> clubDeleted = ValueNotifier(null);
+  static final ValueNotifier<Map<String, dynamic>?> clubCreated = ValueNotifier(null);
+  static final ValueNotifier<Map<String, dynamic>?> eventCreated = ValueNotifier(null);
   static final ValueNotifier<int> userStatsChanged = ValueNotifier(0);
 
   /// Invalidate cached user profile and notify listeners to refresh stats (XP, level, badges)
@@ -413,7 +415,10 @@ class ApiService {
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
         _cachedEvents = null;
-        return jsonDecode(res.body) as Map<String, dynamic>;
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        eventCreated.value = data;
+        invalidateUserCache();
+        return data;
       }
       throw _parseError(res);
     } on ApiException {
@@ -432,6 +437,7 @@ class ApiService {
       );
       if (res.statusCode == 200) {
         _cachedEvents = null;
+        invalidateUserCache();
         return true;
       }
       return false;
@@ -451,6 +457,7 @@ class ApiService {
         headers: await _headers,
       );
       if (res.statusCode == 200) {
+        invalidateUserCache();
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
       throw _parseError(res);
@@ -502,6 +509,7 @@ class ApiService {
         headers: await _headers,
       );
       if (res.statusCode == 200) {
+        invalidateUserCache();
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
       throw _parseError(res);
@@ -853,7 +861,10 @@ class ApiService {
         }),
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
-        return jsonDecode(res.body) as Map<String, dynamic>;
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        clubCreated.value = data;
+        invalidateUserCache();
+        return data;
       }
       throw _parseError(res);
     } on ApiException {
@@ -1219,7 +1230,11 @@ class ApiService {
         Uri.parse("$baseUrl/friends/request/$requestId/accept"),
         headers: await _headers,
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        invalidateUserCache();
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
