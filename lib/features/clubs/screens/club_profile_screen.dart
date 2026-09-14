@@ -404,23 +404,43 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
 
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+    final isDark = themeProvider.isDark;
 
     messenger.showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Row(
           children: [
             SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: ZynkColors.gold),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+              ),
             ),
-            SizedBox(width: 16),
-            Text('Uploading photo to gallery...'),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Uploading photo to gallery...',
+                style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF0E1117),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ],
         ),
-        backgroundColor: ZynkColors.darkSurface2,
+        backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+        ),
+        elevation: isDark ? 2 : 8,
+        duration: const Duration(seconds: 15),
       ),
     );
 
@@ -440,20 +460,64 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
         _loadGallery();
         if (mounted) {
           messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Image uploaded successfully!'),
-              backgroundColor: ZynkColors.success,
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: ZynkColors.success, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Image uploaded successfully!',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0E1117),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                ),
+              ),
+              elevation: isDark ? 2 : 8,
             ),
           );
         }
       } else {
         if (mounted) {
           messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Failed to upload image.'),
-              backgroundColor: ZynkColors.error,
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Failed to upload image.',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0E1117),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                ),
+              ),
+              elevation: isDark ? 2 : 8,
             ),
           );
         }
@@ -463,9 +527,31 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: ZynkColors.error,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Error: $e',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0E1117),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(
+                color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+              ),
+            ),
+            elevation: isDark ? 2 : 8,
           ),
         );
       }
@@ -475,111 +561,387 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   Future<void> _showRoleAssignmentDialog(int userId, String name, String currentRole) async {
     final controller = TextEditingController(text: currentRole);
     final messenger = ScaffoldMessenger.of(context);
+    final isDark = themeProvider.isDark;
 
     await showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: ZynkColors.darkSurface2,
-          title: Text('Assign Role for $name'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-               Text(
-                'Give this member a role in the club. You can type anything (e.g. Co-Founder, Treasurer, Organizer) or select a preset.',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                decoration: const InputDecoration(
-                  labelText: 'Role Name',
-                  hintText: 'e.g. Moderator',
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final selectedRole = controller.text.trim().toLowerCase();
+            final presets = [
+              {'role': 'admin', 'label': 'Admin', 'icon': Icons.admin_panel_settings_rounded},
+              {'role': 'moderator', 'label': 'Moderator', 'icon': Icons.security_rounded},
+              {'role': 'member', 'label': 'Member', 'icon': Icons.person_outline_rounded},
+            ];
+
+            return AlertDialog(
+              backgroundColor: isDark ? ZynkColors.darkSurface : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(
+                  color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                  width: 1,
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              title: Row(
                 children: [
-                  ActionChip(
-                    label: const Text('Admin'),
-                    onPressed: () => controller.text = 'admin',
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? ZynkColors.primary.withValues(alpha: 0.15)
+                          : const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.military_tech_rounded,
+                      color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                      size: 24,
+                    ),
                   ),
-                  ActionChip(
-                    label: const Text('Moderator'),
-                    onPressed: () => controller.text = 'moderator',
-                  ),
-                  ActionChip(
-                    label: const Text('Member'),
-                    onPressed: () => controller.text = 'member',
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assign Role',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : const Color(0xFF0E1117),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'for $name',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              )
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: ZynkColors.darkMuted)),
-            ),
-            TextButton(
-              onPressed: () async {
-                final newRole = controller.text.trim();
-                if (newRole.isNotEmpty) {
-                  Navigator.pop(context);
-                  final success = await ApiService.updateClubMemberRole(
-                    int.parse(widget.clubId),
-                    userId,
-                    newRole,
-                  );
-                  if (success) {
-                    _loadMembers();
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('Successfully assigned "$newRole" role to $name.'),
-                          backgroundColor: ZynkColors.success,
-                          behavior: SnackBarBehavior.floating,
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    Text(
+                      'Give this member a club role. You can type any custom title or select a preset below.',
+                      style: TextStyle(
+                        color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    // Role Name Input
+                    TextField(
+                      controller: controller,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0E1117),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Role Name',
+                        hintText: 'e.g. Moderator, Lead, Organizer',
+                        labelStyle: TextStyle(
+                          color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
                         ),
-                      );
-                    }
-                  } else {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to update member role.'),
-                          backgroundColor: ZynkColors.error,
-                          behavior: SnackBarBehavior.floating,
+                        hintStyle: TextStyle(
+                          color: isDark ? ZynkColors.darkMuted.withValues(alpha: 0.5) : const Color(0xFF94A3B8),
                         ),
-                      );
-                    }
-                  }
-                }
-              },
-              child: const Text('Save', style: TextStyle(color: ZynkColors.gold, fontWeight: FontWeight.bold)),
-            ),
-          ],
+                        prefixIcon: Icon(
+                          Icons.badge_outlined,
+                          color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                          size: 20,
+                        ),
+                        filled: true,
+                        fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'PRESETS',
+                      style: TextStyle(
+                        color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Preset Chips Row with interactive highlight
+                    Row(
+                      children: presets.map((preset) {
+                        final isSelected = selectedRole == (preset['role'] as String).toLowerCase();
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                controller.text = preset['role'] as String;
+                                setDialogState(() {});
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? (isDark
+                                          ? ZynkColors.primary.withValues(alpha: 0.18)
+                                          : const Color(0xFFEFF6FF))
+                                      : (isDark
+                                          ? ZynkColors.darkSurface2
+                                          : const Color(0xFFF1F5F9)),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                        : (isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
+                                    width: isSelected ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      preset['icon'] as IconData,
+                                      size: 18,
+                                      color: isSelected
+                                          ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                          : (isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      preset['label'] as String,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? (isDark ? Colors.white : const Color(0xFF0E1117))
+                                            : (isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
+                                        fontSize: 12,
+                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+              actions: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(
+                            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: isDark ? ZynkColors.primary : const Color(0xFF0E1117),
+                          foregroundColor: isDark ? Colors.black : Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          final newRole = controller.text.trim();
+                          if (newRole.isNotEmpty) {
+                            Navigator.pop(dialogContext);
+                            final success = await ApiService.updateClubMemberRole(
+                              int.parse(widget.clubId),
+                              userId,
+                              newRole,
+                            );
+                            if (success) {
+                              _loadMembers();
+                              if (mounted) {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        const Icon(Icons.check_circle_rounded, color: ZynkColors.success, size: 20),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            'Successfully assigned "$newRole" role to $name.',
+                                            style: TextStyle(
+                                              color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      side: BorderSide(
+                                        color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    elevation: isDark ? 2 : 8,
+                                  ),
+                                );
+                              }
+                            } else {
+                              if (mounted) {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            'Failed to update member role.',
+                                            style: TextStyle(
+                                              color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      side: BorderSide(
+                                        color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    elevation: isDark ? 2 : 8,
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        },
+                        child: const Text(
+                          'Save Role',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
   Future<void> _removeMember(int userId, String name) async {
+    final isDark = themeProvider.isDark;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ZynkColors.darkSurface2,
-        title: const Text('Remove Member'),
-        content: Text('Are you sure you want to remove $name from the club?'),
+        backgroundColor: isDark ? ZynkColors.darkSurface : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+        ),
+        title: Text(
+          'Remove Member',
+          style: TextStyle(
+            color: isDark ? Colors.white : const Color(0xFF0E1117),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to remove $name from the club?',
+          style: TextStyle(
+            color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: ZynkColors.darkMuted)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ZynkColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove', style: TextStyle(color: ZynkColors.error)),
+            child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -598,13 +960,63 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           _loadMembers();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$name removed from club'), backgroundColor: ZynkColors.success),
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: ZynkColors.success, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '$name removed from club',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF0E1117),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                elevation: isDark ? 2 : 8,
+              ),
             );
           }
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to remove member'), backgroundColor: ZynkColors.error),
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Failed to remove member',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF0E1117),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                elevation: isDark ? 2 : 8,
+              ),
             );
           }
         }
@@ -946,25 +1358,63 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   if (postId != null) {
                     final success = await ApiService.reportFeedPost(postId);
                     if (success) {
+                      final isDark = themeProvider.isDark;
                       messenger.showSnackBar(
                         SnackBar(
-                          content: const Row(
+                          content: Row(
                             children: [
-                              Icon(Icons.check_circle_outline_rounded, color: ZynkColors.error),
-                              SizedBox(width: 12),
-                              Text('Post reported successfully.'),
+                              const Icon(Icons.check_circle_outline_rounded, color: ZynkColors.success, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Post reported successfully.',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                          backgroundColor: ZynkColors.darkSurface,
+                          backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
                           behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(
+                              color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          elevation: isDark ? 2 : 8,
                         ),
                       );
                     } else {
+                      final isDark = themeProvider.isDark;
                       messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to report post.'),
-                          backgroundColor: Colors.red,
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Failed to report post.',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
                           behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(
+                              color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          elevation: isDark ? 2 : 8,
                         ),
                       );
                     }
@@ -1146,21 +1596,37 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           await Share.share(text);
                         } catch (_) {
                           await Clipboard.setData(ClipboardData(text: text));
+                          final isDark = themeProvider.isDark;
                           messenger.showSnackBar(
                             SnackBar(
-                              content: const Row(
+                              content: Row(
                                 children: [
-                                  Icon(Icons.check_circle_outline_rounded, color: ZynkColors.gold),
-                                  SizedBox(width: 12),
-                                  Text('Copied post link to clipboard!'),
+                                  Icon(
+                                    Icons.check_circle_outline_rounded,
+                                    color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Copied post link to clipboard!',
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
-                              backgroundColor: ZynkColors.darkSurface2,
+                              backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(color: ZynkColors.gold.withValues(alpha: 0.3)),
+                                borderRadius: BorderRadius.circular(14),
+                                side: BorderSide(
+                                  color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                                ),
                               ),
+                              elevation: isDark ? 2 : 8,
                             ),
                           );
                         }
