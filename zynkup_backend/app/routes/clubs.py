@@ -34,6 +34,7 @@ class ClubCreate(BaseModel):
     name: str
     description: Optional[str] = None
     category: Optional[str] = "general"
+    college: Optional[str] = None
     banner_url: Optional[str] = None
     logo_url: Optional[str] = None
 
@@ -42,6 +43,7 @@ class ClubResponse(BaseModel):
     name: str
     description: Optional[str]
     category: Optional[str]
+    college: Optional[str] = None
     banner_url: Optional[str]
     logo_url: Optional[str]
     clubProfileUrl: Optional[str] = None
@@ -117,6 +119,7 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
         name=club_data.name,
         description=club_data.description,
         category=club_data.category,
+        college=club_data.college,
         banner_url=club_data.banner_url,
         logo_url=club_data.logo_url,
         creator_id=current_user.id
@@ -139,6 +142,7 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
         name=new_club.name,
         description=new_club.description,
         category=new_club.category,
+        college=new_club.college,
         banner_url=new_club.banner_url,
         logo_url=new_club.logo_url,
         clubProfileUrl=new_club.logo_url,
@@ -163,6 +167,7 @@ def get_clubs(db: Session = Depends(get_db), current_user: Optional[User] = Depe
             name=c.name,
             description=c.description,
             category=c.category,
+            college=c.college,
             banner_url=c.banner_url,
             logo_url=c.logo_url,
             clubProfileUrl=c.logo_url,
@@ -189,6 +194,7 @@ def get_club(club_id: int, db: Session = Depends(get_db), current_user: Optional
         name=club.name,
         description=club.description,
         category=club.category,
+        college=club.college,
         banner_url=club.banner_url,
         logo_url=club.logo_url,
         clubProfileUrl=club.logo_url,

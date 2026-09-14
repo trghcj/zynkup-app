@@ -5,6 +5,7 @@ import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_toast.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:zynkup/core/widgets/college_picker_sheet.dart';
 
 class CreateClubScreen extends StatefulWidget {
   const CreateClubScreen({super.key});
@@ -20,6 +21,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
   final _picker = ImagePicker();
 
   String _category = 'tech';
+  String? _college;
   bool _loading = false;
 
   Uint8List? _logoBytes;
@@ -88,6 +90,7 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         category: _category,
+        college: _college,
         logoUrl: logoUrl,
         bannerUrl: bannerUrl,
       );
@@ -210,6 +213,77 @@ class _CreateClubScreenState extends State<CreateClubScreen> {
           ),
         ),
         validator: (v) => v == null || v.trim().isEmpty ? 'Description is required' : null,
+      ),
+      const SizedBox(height: 20),
+
+      _buildLabel('College / University (Optional)'),
+      const SizedBox(height: 8),
+      InkWell(
+        onTap: () async {
+          final selected = await CollegePickerSheet.show(
+            context,
+            initialValue: _college,
+            allowNone: true,
+          );
+          if (selected != null) {
+            setState(() {
+              _college = selected.isEmpty ? null : selected;
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _college != null 
+                  ? ZynkColors.primary.withValues(alpha: 0.5) 
+                  : Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.account_balance_rounded,
+                color: _college != null 
+                    ? ZynkColors.primary 
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _college ?? 'Select Delhi college (optional)',
+                  style: TextStyle(
+                    color: _college != null
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                    fontSize: 15,
+                    fontWeight: _college != null ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_college != null)
+                GestureDetector(
+                  onTap: () => setState(() => _college = null),
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    size: 18,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.arrow_drop_down_rounded,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+            ],
+          ),
+        ),
       ),
       const SizedBox(height: 32),
 

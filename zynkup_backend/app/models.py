@@ -71,6 +71,7 @@ class Event(Base):
     title                 = Column(String, nullable=False)
     description           = Column(String, nullable=False)
     venue                 = Column(String, nullable=False)
+    college               = Column(String, nullable=True)
     date                  = Column(DateTime, nullable=False)
     category              = Column(String, nullable=False)
     # Auto-approved — no admin needed
@@ -138,6 +139,7 @@ class Club(Base):
     name        = Column(String, unique=True, nullable=False)
     description = Column(Text, nullable=True)
     category    = Column(String, nullable=True, default="general")
+    college     = Column(String, nullable=True)
     banner_url  = Column(Text, nullable=True)
     logo_url    = Column(Text, nullable=True)
     gallery_files = Column(Text, nullable=True, default="")

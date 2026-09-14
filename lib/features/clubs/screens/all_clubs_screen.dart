@@ -83,9 +83,11 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
       }
       final name = (club['name'] ?? '').toString().toLowerCase();
       final desc = (club['description'] ?? '').toString().toLowerCase();
+      final college = (club['college'] ?? '').toString().toLowerCase();
       return name.contains(_searchQuery) ||
           desc.contains(_searchQuery) ||
-          cat.contains(_searchQuery);
+          cat.contains(_searchQuery) ||
+          college.contains(_searchQuery);
     }).toList();
 
     return Scaffold(
@@ -127,7 +129,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                             style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
                             decoration: InputDecoration(
-                              hintText: 'Search clubs by name, category or topic...',
+                              hintText: 'Search clubs by name, college, or category...',
                               hintStyle: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                               ),
@@ -314,6 +316,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
     final String clubId = (club['id'] ?? '').toString();
     final String? logoUrl = club['logo_url'];
     final String? category = club['category'];
+    final String? college = club['college'];
     final String description = club['description'] ?? '';
     final int memberCount = (club['member_count'] as int?) ?? 1;
 
@@ -398,6 +401,31 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                       ],
                     ],
                   ),
+                  if (college != null && college.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.account_balance_rounded,
+                          size: 11,
+                          color: ZynkColors.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            college,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: ZynkColors.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     description.isNotEmpty ? description : 'Campus Club • $memberCount ${memberCount == 1 ? "member" : "members"}',

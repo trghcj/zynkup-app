@@ -632,6 +632,37 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            if (_club?['college'] != null && _club!['college'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: ZynkColors.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: ZynkColors.primary.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.account_balance_rounded, size: 14, color: ZynkColors.primary),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        _club!['college'],
+                                        style: const TextStyle(
+                                          color: ZynkColors.primary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 20),
                             if (_club == null || _currentUser == null || (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
                               SizedBox(

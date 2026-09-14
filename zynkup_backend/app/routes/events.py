@@ -41,6 +41,7 @@ class EventCreate(BaseModel):
     title: str
     description: str
     venue: str
+    college: Optional[str] = None
     date: str
     category: str
     image_urls: Optional[List[str]] = []
@@ -53,6 +54,7 @@ class EventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     venue: Optional[str] = None
+    college: Optional[str] = None
     date: Optional[str] = None
     category: Optional[str] = None
     image_urls: Optional[List[str]] = None
@@ -121,6 +123,7 @@ def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> d
         "title": event.title,
         "description": event.description,
         "venue": event.venue,
+        "college": event.college,
         "date": event.date.isoformat() if event.date else None,
         "category": event.category,
         "isApproved": event.is_approved,
@@ -167,6 +170,7 @@ def create_event(
             title=payload.title.strip(),
             description=payload.description.strip(),
             venue=payload.venue.strip(),
+            college=payload.college.strip() if payload.college else None,
             date=parsed_date,
             category=payload.category.strip().lower(),
             is_approved=True,
