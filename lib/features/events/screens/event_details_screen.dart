@@ -178,26 +178,41 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _deleteEvent() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: ZynkColors.darkSurface,
+        backgroundColor: isDark ? ZynkColors.darkSurface : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(ZynkRadius.xl),
-          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          side: BorderSide(
+            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
         ),
-        title:  Text(
+        title: Text(
           'Delete event?',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
+            fontWeight: FontWeight.w800,
+          ),
         ),
         content: Text(
           'This will permanently remove "${_event.title}" and all registrations.',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), height: 1.5),
+          style: TextStyle(
+            color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: ZynkColors.darkMuted)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           FilledButton(
             style: FilledButton.styleFrom(

@@ -1438,6 +1438,8 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       builder: (_) => EditPostSheet(
                         postId: post['id'],
                         initialContent: post['content'] ?? '',
+                        initialImageUrl: post['image_url'] ?? post['imageUrl'],
+                        initialBannerUrl: post['banner_url'] ?? post['bannerUrl'],
                       ),
                     );
                     if (result != null) _loadFeed();
@@ -1453,20 +1455,51 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   ),
                   onTap: () async {
                     Navigator.pop(sheetContext);
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (c) => AlertDialog(
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        title: const Text('Delete Post', style: TextStyle(color: ZynkColors.error)),
-                        content: Text('Are you sure you want to delete this post?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                        backgroundColor: isDark ? ZynkColors.darkSurface : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(ZynkRadius.xl),
+                          side: BorderSide(
+                            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        title: Text(
+                          'Delete Post?',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        content: Text(
+                          'Are you sure you want to delete this post? This action cannot be undone.',
+                          style: TextStyle(
+                            color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                            height: 1.5,
+                          ),
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(c, false),
-                            child: const Text('Cancel', style: TextStyle(color: ZynkColors.darkMuted)),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                          TextButton(
+                          FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: ZynkColors.error,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(ZynkRadius.md),
+                              ),
+                            ),
                             onPressed: () => Navigator.pop(c, true),
-                            child: const Text('Delete', style: TextStyle(color: ZynkColors.error)),
+                            child: const Text('Delete'),
                           ),
                         ],
                       ),

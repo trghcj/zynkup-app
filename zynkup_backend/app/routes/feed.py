@@ -274,9 +274,9 @@ def update_post(post_id: int, post_data: FeedPostUpdate, db: Session = Depends(g
     if post_data.content is not None:
         post.content = post_data.content
     if post_data.image_url is not None:
-        post.image_url = post_data.image_url
+        post.image_url = None if post_data.image_url == "" else post_data.image_url
     if post_data.banner_url is not None:
-        post.banner_url = post_data.banner_url
+        post.banner_url = None if post_data.banner_url == "" else post_data.banner_url
 
     db.commit()
     db.refresh(post)

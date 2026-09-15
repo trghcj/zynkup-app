@@ -1020,7 +1020,12 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>?> editFeedPost(int postId, {String? content, String? imageUrl}) async {
+  static Future<Map<String, dynamic>?> editFeedPost(
+    int postId, {
+    String? content,
+    String? imageUrl,
+    String? bannerUrl,
+  }) async {
     try {
       await loadToken();
       final res = await http.patch(
@@ -1029,6 +1034,7 @@ class ApiService {
         body: jsonEncode({
           if (content != null) "content": content,
           if (imageUrl != null) "image_url": imageUrl,
+          if (bannerUrl != null) "banner_url": bannerUrl,
         }),
       );
       if (res.statusCode == 200) {
