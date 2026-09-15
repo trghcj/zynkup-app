@@ -58,6 +58,8 @@ class EventUpdate(BaseModel):
     date: Optional[str] = None
     category: Optional[str] = None
     image_urls: Optional[List[str]] = None
+    registration_url: Optional[str] = None
+    registration_url_type: Optional[str] = None
 
 
 def _is_valid_image_source(value: str) -> bool:
@@ -258,6 +260,10 @@ def update_event(
         event.category = payload.category.strip().lower()
     if payload.image_urls is not None:
         event.image_urls = ",".join(url for url in payload.image_urls if _is_valid_image_source(url))
+    if payload.registration_url is not None:
+        event.registration_url = payload.registration_url.strip() if payload.registration_url.strip() else None
+    if payload.registration_url_type is not None:
+        event.registration_url_type = payload.registration_url_type.strip() if payload.registration_url_type.strip() else None
     db.commit()
     db.refresh(event)
     return _event_to_dict(event, current_user.id)

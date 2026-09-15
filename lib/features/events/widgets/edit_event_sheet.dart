@@ -1,8 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/theme/theme_provider.dart';
@@ -22,6 +24,7 @@ class _EditEventSheetState extends State<EditEventSheet> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _venueController;
+  late final TextEditingController _registrationUrlController;
 
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
@@ -48,6 +51,7 @@ class _EditEventSheetState extends State<EditEventSheet> {
     _titleController = TextEditingController(text: widget.event.title);
     _descriptionController = TextEditingController(text: widget.event.description);
     _venueController = TextEditingController(text: widget.event.venue);
+    _registrationUrlController = TextEditingController(text: widget.event.registrationUrl ?? '');
     _selectedDate = widget.event.date;
     _selectedTime = TimeOfDay.fromDateTime(widget.event.date);
     _category = widget.event.category.name.toLowerCase();
@@ -59,6 +63,7 @@ class _EditEventSheetState extends State<EditEventSheet> {
     _titleController.dispose();
     _descriptionController.dispose();
     _venueController.dispose();
+    _registrationUrlController.dispose();
     super.dispose();
   }
 
@@ -114,6 +119,7 @@ class _EditEventSheetState extends State<EditEventSheet> {
       );
 
       final eventId = int.parse(widget.event.id);
+      final formLink = _registrationUrlController.text.trim();
       final updatedData = await ApiService.updateEvent(
         eventId: eventId,
         title: _titleController.text.trim(),
@@ -122,6 +128,8 @@ class _EditEventSheetState extends State<EditEventSheet> {
         date: combined.toIso8601String(),
         category: _category,
         imageUrls: imageUrl != null ? [imageUrl] : null,
+        registrationUrl: formLink.isEmpty ? '' : formLink,
+        registrationUrlType: formLink.isEmpty ? '' : 'customUrl',
       );
 
       if (!mounted) return;
@@ -515,6 +523,134 @@ class _EditEventSheetState extends State<EditEventSheet> {
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter a description' : null,
                     ),
+
+                    const SizedBox(height: 20),
+
+                    // External Form Link (Optional)
+                    Row(
+                      children: [
+                        Text(
+                          'External Form Link (Optional)',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_registrationUrlController.text.isNotEmpty)
+                          GestureDetector(
+                            onTap: () => setState(() => _registrationUrlController.clear()),
+                            child: const Text(
+                              'Clear',
+                              style: TextStyle(
+                                color: ZynkColors.error,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _registrationUrlController,
+                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0E1117)),
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'https://forms.gle/... (Google Form or RSVP link)',
+                        hintStyle: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
+                        filled: true,
+                        fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                        prefixIcon: Icon(
+                          Icons.link_rounded,
+                          color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.paste_rounded, size: 20),
+                          tooltip: 'Paste link',
+                          onPressed: () async {
+                            final data = await Clipboard.getData('text/plain');
+                            if (data?.text != null) {
+                              setState(() => _registrationUrlController.text = data!.text!.trim());
+                            }
+                          },
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    if (_registrationUrlController.text.trim().startsWith('http://') ||
+                        _registrationUrlController.text.trim().startsWith('https://')) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: QrImageView(
+                                data: _registrationUrlController.text.trim(),
+                                size: 48,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Form QR Code Active',
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Attendees can scan or tap to open this form in a popup modal.',
+                                    style: TextStyle(
+                                      color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                              tooltip: 'Test link',
+                              onPressed: () => launchUrl(
+                                Uri.parse(_registrationUrlController.text.trim()),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 32),
 

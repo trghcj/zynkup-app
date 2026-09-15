@@ -1,7 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_toast.dart';
@@ -24,6 +26,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _description = TextEditingController();
   final _venue = TextEditingController();
   final _imageUrl = TextEditingController();
+  final _registrationUrl = TextEditingController();
   final _page = PageController();
   final _picker = ImagePicker();
 
@@ -42,6 +45,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     _description.dispose();
     _venue.dispose();
     _imageUrl.dispose();
+    _registrationUrl.dispose();
     _page.dispose();
     super.dispose();
   }
@@ -65,7 +69,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       _show('Please set the venue first.');
       return;
     }
-    if (_step == 4) {
+    if (_step == 5) {
       _submit();
       return;
     }
@@ -115,6 +119,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         if (uploaded != null) images.add(uploaded);
       }
 
+      final formLink = _registrationUrl.text.trim();
+
       await ApiService.createEvent(
         title: _title.text.trim(),
         description: _description.text.trim(),
@@ -123,6 +129,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         date: dateTime.toIso8601String(),
         category: _category,
         imageUrls: images,
+        registrationUrl: formLink.isEmpty ? null : formLink,
+        registrationUrlType: formLink.isEmpty ? null : 'customUrl',
         clubId: widget.clubId,
       );
 
@@ -216,6 +224,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             _buildMedia(),
                           ),
                           _buildStepShell(
+                            'External Form (Optional)',
+                            'Attach a Google Form, Typeform, or custom survey for attendees.',
+                            _buildFormLink(),
+                          ),
+                          _buildStepShell(
                             'Review & Launch',
                             'Here is how your event will look.',
                             _buildPreview(),
@@ -240,8 +253,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       child: Row(
         children: [
           Text(
-            'Step ${_step + 1} of 5',
-            style: TextStyle(
+            'Step ${_step + 1} of 6',
+            style: const TextStyle(
               color: ZynkColors.primary,
               fontWeight: FontWeight.w700,
               fontSize: 14,
@@ -258,7 +271,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
-                widthFactor: (_step + 1) / 5,
+                widthFactor: (_step + 1) / 6,
                 child: Container(
                   decoration: BoxDecoration(
                     color: ZynkColors.primary,
@@ -616,7 +629,185 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
+  Widget _buildFormLink() {
+    final formUrl = _registrationUrl.text.trim();
+    final isValidUrl = formUrl.startsWith('http://') || formUrl.startsWith('https://');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: ZynkColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.assignment_outlined,
+                  color: ZynkColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Optional External Form',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Attach a Google Form, Typeform, or custom survey. A dedicated QR code popup will be generated for attendees.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        TextFormField(
+          controller: _registrationUrl,
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15),
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            labelText: 'Form / Survey Link (Optional)',
+            hintText: 'https://forms.gle/... or https://...',
+            prefixIcon: Icon(
+              Icons.link_rounded,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+            ),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (formUrl.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 20),
+                    tooltip: 'Clear',
+                    onPressed: () => setState(() => _registrationUrl.clear()),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.paste_rounded, size: 20),
+                  tooltip: 'Paste link',
+                  onPressed: () async {
+                    final data = await Clipboard.getData('text/plain');
+                    if (data?.text != null) {
+                      setState(() => _registrationUrl.text = data!.text!.trim());
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        if (isValidUrl) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: ZynkColors.primary.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.qr_code_2_rounded, color: ZynkColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Live Form QR Preview',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: QrImageView(
+                    data: formUrl,
+                    size: 160,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Attendees will be able to scan this QR code or tap to open this form directly.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: () => launchUrl(Uri.parse(formUrl), mode: LaunchMode.externalApplication),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                  label: const Text('Test Form Link in Browser'),
+                ),
+              ],
+            ),
+          ),
+        ] else if (formUrl.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              'Please enter a valid link starting with http:// or https://',
+              style: const TextStyle(
+                color: ZynkColors.error,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildPreview() {
+    final formLink = _registrationUrl.text.trim();
     // Generate a mock event to render via the real EventCardWidget
     final mockEvent = Event(
       id: 'mock',
@@ -635,6 +826,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       imageUrls: _imageUrl.text.isNotEmpty ? [_imageUrl.text] : [],
       registeredUsers: [],
       isRegistered: false,
+      registrationUrl: formLink.isEmpty ? null : formLink,
+      registrationUrlType: formLink.isEmpty ? null : RegistrationUrlType.customUrl,
     );
 
     return Column(
@@ -650,6 +843,33 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             onTap: () {},
           ),
         ),
+        if (formLink.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: ZynkColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ZynkColors.primary.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.qr_code_2_rounded, color: ZynkColors.primary, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Form attached: Attendees can view the QR code and tap to fill it out.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -684,8 +904,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           Expanded(
             flex: 2,
             child: ZynkButton(
-              label: _step == 4 ? 'Launch Event' : 'Continue',
-              icon: _step == 4 ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
+              label: _step == 5 ? 'Launch Event' : 'Continue',
+              icon: _step == 5 ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
               isLoading: _loading,
               onTap: _next,
             ),

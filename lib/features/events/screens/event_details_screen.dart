@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/theme/theme_provider.dart';
 import 'package:zynkup/core/widgets/zynk_toast.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
@@ -231,6 +233,171 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     );
   }
 
+  void _showFormQrDialog(BuildContext context, String formUrl) {
+    final isDark = themeProvider.isDark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? ZynkColors.darkSurface : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ZynkColors.primary.withValues(alpha: 0.15)
+                    : const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                Icons.assignment_outlined,
+                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Event Form QR',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0E1117),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _event.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.close_rounded,
+                color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8),
+                size: 20,
+              ),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                'Scan this QR code with your phone camera, or click the button below to open the form directly.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // QR Code Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: QrImageView(
+                  data: formUrl,
+                  size: 200,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Primary "Click to Fill the Form" button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDark ? ZynkColors.primary : const Color(0xFF0E1117),
+                    foregroundColor: isDark ? Colors.black : Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () {
+                    launchUrl(Uri.parse(formUrl), mode: LaunchMode.externalApplication);
+                  },
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text(
+                    'Click to Fill the Form',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Secondary "Copy Link" button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(
+                      color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: formUrl));
+                    if (context.mounted) {
+                      ZToast.showSuccess(context, 'Link Copied', subtitle: 'Form link copied to clipboard.');
+                    }
+                  },
+                  icon: Icon(
+                    Icons.copy_rounded,
+                    size: 16,
+                    color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                  ),
+                  label: Text(
+                    'Copy Form Link',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : const Color(0xFF334155),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -329,6 +496,28 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                   ),
                 ),
+                if (_event.registrationUrl != null && _event.registrationUrl!.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: IconButton(
+                      tooltip: 'Event Form & QR',
+                      onPressed: () => _showFormQrDialog(context, _event.registrationUrl!),
+                      icon: const Icon(
+                        Icons.assignment_outlined,
+                        size: 20,
+                        color: ZynkColors.primary,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                    ),
+                  ),
                 if (_isCreator) ...[
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -527,6 +716,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             fontSize: 14,
                           ),
                         ),
+                        if (_event.registrationUrl != null && _event.registrationUrl!.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          _FormCard(
+                            formUrl: _event.registrationUrl!,
+                            onTap: () => _showFormQrDialog(context, _event.registrationUrl!),
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         _ActionRow(
                           isCreator: _isCreator,
@@ -894,6 +1090,118 @@ class _EventDetailsSkeleton extends StatelessWidget {
           ),
         )
       ],
+    );
+  }
+}
+
+class _FormCard extends StatelessWidget {
+  final String formUrl;
+  final VoidCallback onTap;
+
+  const _FormCard({required this.formUrl, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = themeProvider.isDark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? ZynkColors.primary.withValues(alpha: 0.3)
+                : const Color(0xFFBFDBFE),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ZynkColors.primary.withValues(alpha: 0.15)
+                    : const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.assignment_outlined,
+                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Event Form & QR Code',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0E1117),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Click to view QR code or fill out the form',
+                    style: TextStyle(
+                      color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ZynkColors.primary.withValues(alpha: 0.15)
+                    : const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.qr_code_2_rounded,
+                    size: 16,
+                    color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Open',
+                    style: TextStyle(
+                      color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

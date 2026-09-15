@@ -457,6 +457,8 @@ class ApiService {
     String? date,
     String? category,
     List<String>? imageUrls,
+    String? registrationUrl,
+    String? registrationUrlType,
   }) async {
     await loadToken();
     try {
@@ -471,6 +473,8 @@ class ApiService {
           if (date != null) "date": date,
           if (category != null) "category": category,
           if (imageUrls != null) "image_urls": imageUrls,
+          if (registrationUrl != null) "registration_url": registrationUrl,
+          if (registrationUrlType != null) "registration_url_type": registrationUrlType,
         }),
       );
       if (res.statusCode == 200) {
