@@ -1,3 +1,5 @@
+import 'package:zynkup/core/utils/date_utils.dart';
+
 enum EventCategory { tech, cultural, sports, workshop, seminar }
 
 enum RegistrationUrlType { googleForm, customUrl }
@@ -53,8 +55,7 @@ class Event {
       description: (json['description'] ?? '').toString(),
       venue: (json['venue'] ?? '').toString(),
       college: json['college']?.toString(),
-      date:
-          DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now(),
+      date: ZynkDateUtils.parseUtc(json['date']) ?? DateTime.now(),
       category: _parseCategory(json['category']),
       organizerId:
           (json['organizerId'] ??
@@ -67,9 +68,7 @@ class Event {
         json['image_urls'] ?? json['images'] ?? json['image'],
       ),
       isApproved: json['isApproved'] ?? json['is_approved'] ?? true,
-      approvedAt: json['approvedAt'] != null
-          ? DateTime.tryParse(json['approvedAt'].toString())
-          : null,
+      approvedAt: ZynkDateUtils.parseUtc(json['approvedAt'] ?? json['approved_at']),
       registrationUrl: json['registration_url']?.toString(),
       registrationUrlType: _parseUrlType(json['registration_url_type']),
       attendeeCount: _parseInt(json['attendee_count']) ?? registered.length,

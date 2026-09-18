@@ -14,6 +14,7 @@ import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 
 import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:zynkup/core/utils/date_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   final int? userId;
@@ -1347,22 +1348,7 @@ class _TimelineTab extends StatelessWidget {
             color = ZynkColors.gold;
           }
 
-          String timeAgo = 'recently';
-          if (dateStr != null) {
-            try {
-              final dt = DateTime.parse(dateStr).toLocal();
-              final diff = DateTime.now().difference(dt);
-              if (diff.inDays > 0) {
-                timeAgo = '${diff.inDays}d ago';
-              } else if (diff.inHours > 0) {
-                timeAgo = '${diff.inHours}h ago';
-              } else if (diff.inMinutes > 0) {
-                timeAgo = '${diff.inMinutes}m ago';
-              } else {
-                timeAgo = 'just now';
-              }
-            } catch (_) {}
-          }
+          final timeAgo = ZynkDateUtils.formatTimeAgo(dateStr);
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),

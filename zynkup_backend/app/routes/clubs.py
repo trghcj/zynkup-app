@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..database import get_db
 from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage
@@ -717,6 +717,14 @@ class ClubConnectionManager:
                 except Exception:
                     pass
 
+def _format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
+
 manager = ClubConnectionManager()
 
 @router.get("/{club_id}/chat")
@@ -749,7 +757,7 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
             "attachment_type": attachment_type,
             "is_edited": msg.is_edited and not msg.is_deleted,
             "is_deleted": msg.is_deleted,
-            "created_at": msg.created_at.isoformat(),
+            "created_at": _format_datetime_utc(msg.created_at),
             "user_id": msg.user_id,
             "user_name": msg.user.name or msg.user.display_name or "User",
             "user_avatar": msg.user.resolved_avatar_url,
@@ -822,7 +830,7 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
                 "attachment_type": new_msg.attachment_type,
                 "is_edited": False,
                 "is_deleted": False,
-                "created_at": new_msg.created_at.isoformat(),
+                "created_at": _format_datetime_utc(new_msg.created_at),
                 "user_id": user_id,
                 "user_name": user.name or user.display_name or "User",
                 "user_avatar": user.resolved_avatar_url,
@@ -870,7 +878,7 @@ async def edit_club_message(club_id: int, message_id: int, payload: EditMessageP
         "attachment_type": msg.attachment_type,
         "is_edited": msg.is_edited,
         "is_deleted": msg.is_deleted,
-        "created_at": msg.created_at.isoformat(),
+        "created_at": _format_datetime_utc(msg.created_at),
         "user_id": msg.user_id,
         "user_name": msg.user.name or msg.user.display_name or "User",
         "user_avatar": msg.user.resolved_avatar_url,

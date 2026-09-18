@@ -23,6 +23,7 @@ import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/features/clubs/widgets/club_chat_widget.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
+import 'package:zynkup/core/utils/date_utils.dart';
 import 'package:zynkup/features/feed/screens/edit_post_sheet.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/features/clubs/widgets/edit_club_sheet.dart';
@@ -2274,10 +2275,7 @@ class _ClubEventCard extends StatelessWidget {
     final List<dynamic>? imageUrls = event['image_urls'] as List<dynamic>?;
     final String? image = (imageUrls != null && imageUrls.isNotEmpty) ? imageUrls.first.toString() : null;
 
-    DateTime? dt;
-    try {
-      dt = DateTime.parse(dateStr).toLocal();
-    } catch (_) {}
+    final dt = ZynkDateUtils.parseUtc(dateStr);
 
     final dateFormatted = dt != null ? DateFormat('MMM d, yyyy • hh:mm a').format(dt) : 'Date TBD';
 

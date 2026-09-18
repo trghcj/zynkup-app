@@ -126,7 +126,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         description: _description.text.trim(),
         venue: _venue.text.trim(),
         college: _college,
-        date: dateTime.toIso8601String(),
+        date: dateTime.toUtc().toIso8601String(),
         category: _category,
         imageUrls: images,
         registrationUrl: formLink.isEmpty ? null : formLink,

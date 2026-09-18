@@ -21,6 +21,7 @@ import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:zynkup/core/utils/date_utils.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -317,7 +318,7 @@ class _FeedTabState extends State<FeedTab> {
       if (e is! Map) return true;
       final dateStr = e['date'];
       if (dateStr == null) return true;
-      final dt = DateTime.tryParse(dateStr.toString());
+      final dt = ZynkDateUtils.parseUtc(dateStr.toString());
       if (dt == null) return true;
       return dt.isAfter(now.subtract(const Duration(hours: 12)));
     }).toList();
@@ -1097,17 +1098,7 @@ class FeedPostCard extends StatelessWidget {
   });
 
   String _timeAgo(String? dateTimeStr) {
-    if (dateTimeStr == null) { return 'some time ago'; }
-    try {
-      final dt = DateTime.parse(dateTimeStr).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inDays > 0) { return '${diff.inDays}d ago'; }
-      if (diff.inHours > 0) { return '${diff.inHours}h ago'; }
-      if (diff.inMinutes > 0) { return '${diff.inMinutes}m ago'; }
-      return 'just now';
-    } catch (_) {
-      return 'some time ago';
-    }
+    return ZynkDateUtils.formatTimeAgo(dateTimeStr);
   }
 
   @override

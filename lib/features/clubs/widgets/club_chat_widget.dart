@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:zynkup/core/utils/date_utils.dart';
 
 class ClubChatWidget extends StatefulWidget {
   final int clubId;
@@ -251,13 +252,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     final isMe = msg['user_id'] == _currentUserId;
     if (!isMe) return; // For now, only show options for own messages
     
-    DateTime? dt;
-    try { 
-      String dateStr = msg['created_at'];
-      if (!dateStr.endsWith('Z')) dateStr += 'Z';
-      dt = DateTime.parse(dateStr); 
-    } catch(_) {}
-    final bool within5Mins = dt != null && DateTime.now().toUtc().difference(dt).inMinutes <= 5;
+    final dt = ZynkDateUtils.parseUtc(msg['created_at']);
+    final bool within5Mins = dt != null && DateTime.now().difference(dt).inMinutes <= 5;
     final bool isDeleted = msg['is_deleted'] == true;
     
     showModalBottomSheet(
@@ -383,8 +379,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
               
               final role = msg['user_role'] ?? 'member';
               
-               DateTime? dt;
-              try { dt = DateTime.parse(msg['created_at']).toLocal(); } catch(_) {}
+              final dt = ZynkDateUtils.parseUtc(msg['created_at']);
               final timeStr = dt != null ? DateFormat('h:mm a').format(dt) : '';
               
               final isDeleted = msg['is_deleted'] == true;
