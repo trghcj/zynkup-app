@@ -3,7 +3,7 @@ import logging
 import os
 import httpx
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
@@ -308,6 +308,14 @@ def my_created_events(
 
 # ── My registrations ──────────────────────────────────────────────────────────
 
+def _format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
+
 @router.get("/my-registrations")
 def my_registrations(
     db: Session = Depends(get_db),
@@ -321,7 +329,7 @@ def my_registrations(
         {
             "qr_code":   r.qr_code,
             "attended":  r.attended,
-            "registered_at": r.created_at.isoformat() if r.created_at else None,
+            "registered_at": _format_datetime_utc(r.created_at),
             "event": _event_to_dict(r.event, current_user.id),
         }
         for r in regs
@@ -339,7 +347,7 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
         timeline.append({
             "type": "event_registration",
             "title": f"Registered for {r.event.title}",
-            "date": (r.created_at or datetime.utcnow()).isoformat(),
+            "date": _format_datetime_utc(r.created_at or datetime.utcnow()),
             "target_id": r.event_id
         })
 
@@ -349,7 +357,7 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
         timeline.append({
             "type": "event_created",
             "title": f"Created {e.title}",
-            "date": (e.created_at or datetime.utcnow()).isoformat(),
+            "date": _format_datetime_utc(e.created_at or datetime.utcnow()),
             "target_id": e.id
         })
 
@@ -360,14 +368,14 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
             timeline.append({
                 "type": "club_created",
                 "title": f"Created {m.club.name}",
-                "date": (m.joined_at or m.club.created_at or datetime.utcnow()).isoformat(),
+                "date": _format_datetime_utc(m.joined_at or m.club.created_at or datetime.utcnow()),
                 "target_id": m.club_id
             })
         elif m.club:
             timeline.append({
                 "type": "club_join",
                 "title": f"Joined {m.club.name}",
-                "date": (m.joined_at or datetime.utcnow()).isoformat(),
+                "date": _format_datetime_utc(m.joined_at or datetime.utcnow()),
                 "target_id": m.club_id
             })
 
@@ -377,7 +385,7 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
         timeline.append({
             "type": "post_created",
             "title": "Shared a new campus update",
-            "date": (p.created_at or datetime.utcnow()).isoformat(),
+            "date": _format_datetime_utc(p.created_at or datetime.utcnow()),
             "target_id": p.id
         })
 

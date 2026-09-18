@@ -3,6 +3,7 @@ import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/zynk_skeleton.dart';
 import 'package:zynkup/core/widgets/zynk_empty_state.dart';
+import 'package:zynkup/core/utils/date_utils.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({super.key});
@@ -59,9 +60,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
 
     for (var n in _notifications) {
       final createdStr = n['created_at'];
-      final createdAt = createdStr != null 
-          ? DateTime.tryParse(createdStr)?.toLocal() ?? now
-          : now;
+      final createdAt = ZynkDateUtils.parseUtc(createdStr) ?? now;
       
       final diff = now.difference(createdAt);
       
@@ -103,12 +102,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
   }
 
   String _timeAgo(DateTime d) {
-    final diff = DateTime.now().difference(d);
-    if (diff.inDays > 7) return '${d.month}/${d.day}/${d.year}';
-    if (diff.inDays > 0) return '${diff.inDays}d ago';
-    if (diff.inHours > 0) return '${diff.inHours}h ago';
-    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
-    return 'Just now';
+    return ZynkDateUtils.formatTimeAgo(d);
   }
 
   IconData _getIconForType(String type) {

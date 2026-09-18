@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..database import get_db
 from ..models import Notification, User
@@ -17,6 +17,14 @@ class NotificationResponse(BaseModel):
     type: Optional[str] = ""
     is_read: Optional[bool] = False
     created_at: Optional[datetime] = None
+
+    @field_serializer("created_at", when_used="json")
+    def serialize_created_at(self, dt: Optional[datetime]) -> Optional[str]:
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
     class Config:
         orm_mode = True

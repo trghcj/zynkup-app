@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -114,6 +114,14 @@ def _public_upload_url(request: Request, filename: str) -> str:
     return str(request.url_for("uploads", path=filename))
 
 
+def _format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
+
 def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> dict:
     raw_urls = _normalize_text_list(event.image_urls)
     urls = [url.strip() for url in raw_urls.split(",") if _is_valid_image_source(url.strip())]
@@ -126,7 +134,8 @@ def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> d
         "description": event.description,
         "venue": event.venue,
         "college": event.college,
-        "date": event.date.isoformat() if event.date else None,
+        "date": _format_datetime_utc(event.date),
+        "created_at": _format_datetime_utc(event.created_at),
         "category": event.category,
         "isApproved": event.is_approved,
         "organizerId": str(event.creator_id) if event.creator_id else "",
@@ -154,6 +163,8 @@ def create_event(
         if date_str.endswith("Z"):
             date_str = date_str.replace("Z", "+00:00")
         parsed_date = datetime.fromisoformat(date_str)
+        if parsed_date.tzinfo is not None:
+            parsed_date = parsed_date.astimezone(timezone.utc).replace(tzinfo=None)
     except Exception as e:
         logger.error(f"DATE PARSE ERROR: {e} | Input: {payload.date}")
         raise HTTPException(status_code=422, detail=f"Invalid date format: {str(e)}")
@@ -275,7 +286,10 @@ def update_event(
             date_str = payload.date
             if date_str.endswith("Z"):
                 date_str = date_str.replace("Z", "+00:00")
-            event.date = datetime.fromisoformat(date_str)
+            parsed_dt = datetime.fromisoformat(date_str)
+            if parsed_dt.tzinfo is not None:
+                parsed_dt = parsed_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            event.date = parsed_dt
         except Exception as e:
             raise HTTPException(status_code=422, detail=f"Invalid date format: {str(e)}")
     if payload.category is not None:
@@ -492,8 +506,8 @@ def get_event_participants(
             "email": u.email,
             "avatar_url": u.resolved_avatar_url,
             "attended": r.attended,
-            "registered_at": r.created_at.isoformat() if r.created_at else None,
-            "attended_at": r.attended_at.isoformat() if r.attended_at else None
+            "registered_at": _format_datetime_utc(r.created_at),
+            "attended_at": _format_datetime_utc(r.attended_at)
         })
         
     return participants

@@ -125,7 +125,7 @@ class _EditEventSheetState extends State<EditEventSheet> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         venue: _venueController.text.trim(),
-        date: combined.toIso8601String(),
+        date: combined.toUtc().toIso8601String(),
         category: _category,
         imageUrls: imageUrl != null ? [imageUrl] : null,
         registrationUrl: formLink.isEmpty ? '' : formLink,

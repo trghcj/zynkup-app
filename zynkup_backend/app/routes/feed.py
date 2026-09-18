@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 import json
 
@@ -52,6 +52,12 @@ class FeedPostResponse(BaseModel):
     user_reaction: Optional[str] = None
     poll: Optional[Dict[str, Any]] = None
 
+    @field_serializer("created_at", when_used="json")
+    def serialize_created_at(self, dt: datetime) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
     class Config:
         orm_mode = True
 
@@ -66,6 +72,12 @@ class FeedCommentResponse(BaseModel):
     author_avatar: Optional[str]
     content: str
     created_at: datetime
+
+    @field_serializer("created_at", when_used="json")
+    def serialize_created_at(self, dt: datetime) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
     class Config:
         orm_mode = True

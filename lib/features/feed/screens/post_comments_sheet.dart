@@ -3,6 +3,7 @@ import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:zynkup/core/utils/date_utils.dart';
 
 class PostCommentsSheet extends StatefulWidget {
   final int postId;
@@ -108,17 +109,7 @@ class _PostCommentsSheetState extends State<PostCommentsSheet> {
   }
 
   String _timeAgo(String? dateTimeStr) {
-    if (dateTimeStr == null) return 'some time ago';
-    try {
-      final dt = DateTime.parse(dateTimeStr).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inDays > 0) return '${diff.inDays}d ago';
-      if (diff.inHours > 0) return '${diff.inHours}h ago';
-      if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
-      return 'just now';
-    } catch (_) {
-      return 'some time ago';
-    }
+    return ZynkDateUtils.formatTimeAgo(dateTimeStr);
   }
 
   @override
