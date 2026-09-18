@@ -10,6 +10,9 @@ class EditPostSheet extends StatefulWidget {
   final String initialContent;
   final String? initialImageUrl;
   final String? initialBannerUrl;
+  final String? initialLinkUrl;
+  final String? initialLinkTitle;
+  final String? initialLinkType;
 
   const EditPostSheet({
     super.key,
@@ -17,6 +20,9 @@ class EditPostSheet extends StatefulWidget {
     required this.initialContent,
     this.initialImageUrl,
     this.initialBannerUrl,
+    this.initialLinkUrl,
+    this.initialLinkTitle,
+    this.initialLinkType,
   });
 
   @override
@@ -26,6 +32,8 @@ class EditPostSheet extends StatefulWidget {
 class _EditPostSheetState extends State<EditPostSheet> {
   final _picker = ImagePicker();
   late TextEditingController _controller;
+  late TextEditingController _linkUrlController;
+  late TextEditingController _linkTitleController;
   bool _saving = false;
 
   String? _currentPhotoUrl;
@@ -38,18 +46,51 @@ class _EditPostSheetState extends State<EditPostSheet> {
   String? _newBannerName;
   bool _bannerRemoved = false;
 
+  String? _detectedLinkType;
+  bool _linkRemoved = false;
+
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialContent);
     _currentPhotoUrl = widget.initialImageUrl;
     _currentBannerUrl = widget.initialBannerUrl;
+    _linkUrlController = TextEditingController(text: widget.initialLinkUrl ?? '');
+    _linkTitleController = TextEditingController(text: widget.initialLinkTitle ?? '');
+    _detectedLinkType = widget.initialLinkType;
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _linkUrlController.dispose();
+    _linkTitleController.dispose();
     super.dispose();
+  }
+
+  void _onLinkChanged(String val) {
+    final trimmed = val.trim().toLowerCase();
+    _linkRemoved = false;
+    if (trimmed.isEmpty) {
+      setState(() => _detectedLinkType = null);
+      return;
+    }
+    if (trimmed.contains('youtube.com') || trimmed.contains('youtu.be')) {
+      setState(() => _detectedLinkType = 'youtube');
+    } else if (trimmed.contains('instagram.com') || trimmed.contains('instagr.am')) {
+      setState(() => _detectedLinkType = 'instagram');
+    } else {
+      setState(() => _detectedLinkType = 'general');
+    }
+  }
+
+  void _clearLink() {
+    setState(() {
+      _linkUrlController.clear();
+      _linkTitleController.clear();
+      _detectedLinkType = null;
+      _linkRemoved = true;
+    });
   }
 
   Future<void> _pickPhoto() async {
@@ -132,11 +173,27 @@ class _EditPostSheetState extends State<EditPostSheet> {
         finalBannerUrl = _currentBannerUrl;
       }
 
+      String? finalLinkUrl;
+      String? finalLinkTitle;
+      String? finalLinkType;
+      if (_linkRemoved) {
+        finalLinkUrl = ""; // empty string clears on backend
+        finalLinkTitle = "";
+        finalLinkType = "";
+      } else if (_linkUrlController.text.trim().isNotEmpty) {
+        finalLinkUrl = _linkUrlController.text.trim();
+        finalLinkTitle = _linkTitleController.text.trim().isEmpty ? null : _linkTitleController.text.trim();
+        finalLinkType = _detectedLinkType;
+      }
+
       final res = await ApiService.editFeedPost(
         widget.postId,
         content: text,
         imageUrl: finalPhotoUrl,
         bannerUrl: finalBannerUrl,
+        linkUrl: finalLinkUrl,
+        linkTitle: finalLinkTitle,
+        linkType: finalLinkType,
       );
       if (!mounted) return;
       setState(() => _saving = false);
@@ -290,6 +347,79 @@ class _EditPostSheetState extends State<EditPostSheet> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 20),
+
+              // Embedded Link Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Attached Link',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : const Color(0xFF475569),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  if (_linkUrlController.text.isNotEmpty || _detectedLinkType != null)
+                    InkWell(
+                      onTap: _clearLink,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        child: Text(
+                          'Remove Link',
+                          style: TextStyle(
+                            color: ZynkColors.error,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _linkUrlController,
+                onChanged: _onLinkChanged,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'https://youtube.com/... or https://instagram.com/...',
+                  hintStyle: TextStyle(color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8), fontSize: 12),
+                  prefixIcon: Icon(
+                    _detectedLinkType == 'youtube'
+                        ? Icons.play_circle_fill_rounded
+                        : _detectedLinkType == 'instagram'
+                            ? Icons.camera_alt_rounded
+                            : Icons.link_rounded,
+                    size: 18,
+                    color: _detectedLinkType == 'youtube'
+                        ? Colors.red
+                        : _detectedLinkType == 'instagram'
+                            ? Colors.purpleAccent
+                            : (isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
+                  ),
+                  filled: true,
+                  fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _linkTitleController,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Link label / title (optional)',
+                  hintStyle: TextStyle(color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8), fontSize: 12),
+                  prefixIcon: Icon(Icons.title_rounded, size: 18, color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
+                  filled: true,
+                  fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
               ),
               const SizedBox(height: 24),
 

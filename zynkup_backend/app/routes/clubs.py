@@ -5,13 +5,13 @@ import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
-from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
 from ..database import get_db
-from ..models import Club, ClubMember, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage
+from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage
 from ..auth import get_current_user, get_optional_current_user
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
@@ -56,8 +56,10 @@ class ClubResponse(BaseModel):
     logo_url: Optional[str]
     clubProfileUrl: Optional[str] = None
     member_count: int
+    followers_count: int = 0
     created_at: datetime
     is_member: bool = False
+    is_following: bool = False
     creator_id: int
 
     class Config:
@@ -68,6 +70,7 @@ class ClubMemberResponse(BaseModel):
     name: str
     avatar_url: Optional[str]
     role: str
+    custom_role: Optional[str] = None
     joined_at: datetime
 
     class Config:
@@ -75,6 +78,12 @@ class ClubMemberResponse(BaseModel):
 
 class MemberRoleUpdate(BaseModel):
     role: str
+    custom_role: Optional[str] = None
+
+class MyClubsResponse(BaseModel):
+    created: List[ClubResponse]
+    joined: List[ClubResponse]
+    following: List[ClubResponse]
 
 def _is_valid_image_source(value: str) -> bool:
     value = value.strip()
@@ -136,9 +145,10 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
     db.commit()
     db.refresh(new_club)
 
-    # Creator is automatically an admin member
-    member = ClubMember(club_id=new_club.id, user_id=current_user.id, role="admin")
+    # Creator is automatically an admin member and follower
+    member = ClubMember(club_id=new_club.id, user_id=current_user.id, role="admin", custom_role="Founder")
     db.add(member)
+    db.add(ClubFollower(club_id=new_club.id, user_id=current_user.id))
     db.commit()
 
     # Award XP for creating a club
@@ -158,8 +168,10 @@ def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_us
         logo_url=new_club.logo_url,
         clubProfileUrl=new_club.logo_url,
         member_count=1,
+        followers_count=1,
         created_at=new_club.created_at,
         is_member=True,
+        is_following=True,
         creator_id=new_club.creator_id
     )
 
@@ -210,9 +222,14 @@ def update_club(
     db.refresh(club)
 
     count = db.query(ClubMember).filter(ClubMember.club_id == club.id).count()
+    f_count = db.query(ClubFollower).filter(ClubFollower.club_id == club.id).count()
     is_member = db.query(ClubMember).filter(
         ClubMember.club_id == club.id,
         ClubMember.user_id == current_user.id
+    ).first() is not None
+    is_following = db.query(ClubFollower).filter(
+        ClubFollower.club_id == club.id,
+        ClubFollower.user_id == current_user.id
     ).first() is not None
 
     return ClubResponse(
@@ -225,8 +242,10 @@ def update_club(
         logo_url=club.logo_url,
         clubProfileUrl=club.logo_url,
         member_count=count,
+        followers_count=f_count,
         created_at=club.created_at,
         is_member=is_member,
+        is_following=is_following,
         creator_id=club.creator_id
     )
 
@@ -234,12 +253,21 @@ def update_club(
 def get_clubs(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
     clubs = db.query(Club).all()
     user_memberships = set()
+    user_followings = set()
     if current_user:
         user_memberships = {m.club_id for m in db.query(ClubMember).filter(ClubMember.user_id == current_user.id).all()}
+        user_followings = {f.club_id for f in db.query(ClubFollower).filter(ClubFollower.user_id == current_user.id).all()}
+
+    member_counts = {c.id: 0 for c in clubs}
+    for row in db.query(ClubMember.club_id, func.count(ClubMember.id)).group_by(ClubMember.club_id).all():
+        member_counts[row[0]] = row[1]
+
+    follower_counts = {c.id: 0 for c in clubs}
+    for row in db.query(ClubFollower.club_id, func.count(ClubFollower.id)).group_by(ClubFollower.club_id).all():
+        follower_counts[row[0]] = row[1]
 
     result = []
     for c in clubs:
-        count = db.query(ClubMember).filter(ClubMember.club_id == c.id).count()
         result.append(ClubResponse(
             id=c.id,
             name=c.name,
@@ -249,12 +277,55 @@ def get_clubs(db: Session = Depends(get_db), current_user: Optional[User] = Depe
             banner_url=c.banner_url,
             logo_url=c.logo_url,
             clubProfileUrl=c.logo_url,
-            member_count=count,
+            member_count=member_counts.get(c.id, 0),
+            followers_count=follower_counts.get(c.id, 0),
             created_at=c.created_at,
             is_member=(c.id in user_memberships),
+            is_following=(c.id in user_followings),
             creator_id=c.creator_id
         ))
     return result
+
+@router.get("/my/list", response_model=MyClubsResponse)
+def get_my_clubs(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    created_clubs = db.query(Club).filter(Club.creator_id == current_user.id).all()
+    joined_ids = [m.club_id for m in db.query(ClubMember).filter(ClubMember.user_id == current_user.id).all()]
+    joined_clubs = db.query(Club).filter(Club.id.in_(joined_ids)).all() if joined_ids else []
+    following_ids = [f.club_id for f in db.query(ClubFollower).filter(ClubFollower.user_id == current_user.id).all()]
+    following_clubs = db.query(Club).filter(Club.id.in_(following_ids)).all() if following_ids else []
+
+    all_ids = set([c.id for c in created_clubs] + joined_ids + following_ids)
+    member_counts = {}
+    follower_counts = {}
+    if all_ids:
+        for row in db.query(ClubMember.club_id, func.count(ClubMember.id)).filter(ClubMember.club_id.in_(all_ids)).group_by(ClubMember.club_id).all():
+            member_counts[row[0]] = row[1]
+        for row in db.query(ClubFollower.club_id, func.count(ClubFollower.id)).filter(ClubFollower.club_id.in_(all_ids)).group_by(ClubFollower.club_id).all():
+            follower_counts[row[0]] = row[1]
+
+    def to_res(c: Club) -> ClubResponse:
+        return ClubResponse(
+            id=c.id,
+            name=c.name,
+            description=c.description,
+            category=c.category,
+            college=c.college,
+            banner_url=c.banner_url,
+            logo_url=c.logo_url,
+            clubProfileUrl=c.logo_url,
+            member_count=member_counts.get(c.id, 0),
+            followers_count=follower_counts.get(c.id, 0),
+            created_at=c.created_at,
+            is_member=c.id in joined_ids,
+            is_following=c.id in following_ids,
+            creator_id=c.creator_id
+        )
+
+    return MyClubsResponse(
+        created=[to_res(c) for c in created_clubs],
+        joined=[to_res(c) for c in joined_clubs],
+        following=[to_res(c) for c in following_clubs],
+    )
 
 @router.get("/{club_id}", response_model=ClubResponse)
 def get_club(club_id: int, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
@@ -263,10 +334,13 @@ def get_club(club_id: int, db: Session = Depends(get_db), current_user: Optional
         raise HTTPException(status_code=404, detail="Club not found")
 
     is_member = False
+    is_following = False
     if current_user:
         is_member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first() is not None
+        is_following = db.query(ClubFollower).filter(ClubFollower.club_id == club_id, ClubFollower.user_id == current_user.id).first() is not None
 
     count = db.query(ClubMember).filter(ClubMember.club_id == club_id).count()
+    f_count = db.query(ClubFollower).filter(ClubFollower.club_id == club_id).count()
     return ClubResponse(
         id=club.id,
         name=club.name,
@@ -277,8 +351,10 @@ def get_club(club_id: int, db: Session = Depends(get_db), current_user: Optional
         logo_url=club.logo_url,
         clubProfileUrl=club.logo_url,
         member_count=count,
+        followers_count=f_count,
         created_at=club.created_at,
         is_member=is_member,
+        is_following=is_following,
         creator_id=club.creator_id
     )
 
@@ -330,6 +406,11 @@ def join_club(club_id: int, db: Session = Depends(get_db), current_user: User = 
 
     member = ClubMember(club_id=club_id, user_id=current_user.id, role="member")
     db.add(member)
+    
+    # Auto-follow on join if not already following
+    if not db.query(ClubFollower).filter(ClubFollower.club_id == club_id, ClubFollower.user_id == current_user.id).first():
+        db.add(ClubFollower(club_id=club_id, user_id=current_user.id))
+
     db.commit()
 
     # Award XP for joining a club
@@ -340,6 +421,36 @@ def join_club(club_id: int, db: Session = Depends(get_db), current_user: User = 
         logger.warning(f"XP AWARD FAILED: {xp_err}")
 
     return {"message": "Joined club successfully", "joined": True}
+
+@router.post("/{club_id}/follow")
+def toggle_follow_club(club_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    existing = db.query(ClubFollower).filter(ClubFollower.club_id == club_id, ClubFollower.user_id == current_user.id).first()
+    if existing:
+        db.delete(existing)
+        db.commit()
+        is_following = False
+    else:
+        new_follower = ClubFollower(club_id=club_id, user_id=current_user.id)
+        db.add(new_follower)
+        db.commit()
+        is_following = True
+
+    count = db.query(ClubFollower).filter(ClubFollower.club_id == club_id).count()
+    return {"is_following": is_following, "followers_count": count}
+
+@router.get("/{club_id}/is-following")
+def check_is_following(club_id: int, db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
+    if not current_user:
+        return {"is_following": False}
+    is_following = db.query(ClubFollower).filter(
+        ClubFollower.club_id == club_id,
+        ClubFollower.user_id == current_user.id
+    ).first() is not None
+    return {"is_following": is_following}
 
 @router.get("/{club_id}/members", response_model=List[ClubMemberResponse])
 def get_club_members(club_id: int, db: Session = Depends(get_db)):
@@ -360,6 +471,7 @@ def get_club_members(club_id: int, db: Session = Depends(get_db)):
             name=m.user.name or m.user.display_name or "Student",
             avatar_url=m.user.resolved_avatar_url,
             role=role_str,
+            custom_role=m.custom_role,
             joined_at=m.joined_at
         ))
     return result
@@ -383,9 +495,11 @@ def update_member_role(club_id: int, user_id: int, payload: MemberRoleUpdate, db
     if member.user_id == club.creator_id:
         raise HTTPException(status_code=400, detail="Cannot change creator's role")
 
-    member.role = payload.role.strip()
+    member.role = payload.role.strip().lower()
+    if payload.custom_role is not None:
+        member.custom_role = payload.custom_role.strip() if payload.custom_role.strip() else None
     db.commit()
-    return {"message": f"Updated role to {member.role}"}
+    return {"message": f"Updated role to {member.role}", "role": member.role, "custom_role": member.custom_role}
 
 @router.delete("/{club_id}/members/{user_id}")
 def remove_member(club_id: int, user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

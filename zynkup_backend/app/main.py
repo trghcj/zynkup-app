@@ -106,6 +106,19 @@ def repair_event_schema() -> None:
             "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS attachment_type TEXT",
             "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS is_edited BOOLEAN DEFAULT FALSE",
             "ALTER TABLE club_messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE club_members ADD COLUMN IF NOT EXISTS custom_role VARCHAR",
+            "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS link_url TEXT",
+            "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS link_title VARCHAR",
+            "ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS link_type VARCHAR",
+            """
+            CREATE TABLE IF NOT EXISTS club_followers (
+                id SERIAL PRIMARY KEY,
+                club_id INTEGER REFERENCES clubs(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                CONSTRAINT uq_club_user_follower UNIQUE (club_id, user_id)
+            )
+            """,
             """
             CREATE TABLE IF NOT EXISTS user_hidden_messages (
                 id SERIAL PRIMARY KEY,

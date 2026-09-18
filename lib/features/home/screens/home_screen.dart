@@ -10,6 +10,7 @@ import 'package:zynkup/features/auth/screens/login_screen.dart';
 import 'package:zynkup/features/events/screens/create_event_screen.dart';
 import 'package:zynkup/features/feed/screens/create_post_screen.dart';
 import 'package:zynkup/features/clubs/screens/create_club_screen.dart';
+import 'package:zynkup/features/clubs/screens/my_clubs_screen.dart';
 import 'package:zynkup/features/home/tabs/home_tab.dart';
 import 'package:zynkup/features/home/tabs/my_events_tab.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
@@ -324,6 +325,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 tooltip: themeProvider.isDark ? 'Switch to Light' : 'Switch to Dark',
                 onPressed: () => themeProvider.toggle(),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.groups_rounded, size: 22),
+            tooltip: 'My Clubs',
+            onPressed: () {
+              if (_isGuest) {
+                showLoginPrompt(context, message: 'Sign in to view your clubs.');
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyClubsScreen()),
               );
             },
           ),

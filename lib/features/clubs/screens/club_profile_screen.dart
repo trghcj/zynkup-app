@@ -49,6 +49,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
   Map<String, dynamic>? _currentUser;
   bool _loading = false;
   bool _isMember = false;
+  bool _isFollowing = false;
 
   List<dynamic> _clubEvents = [];
   bool _loadingEvents = false;
@@ -71,6 +72,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     if (widget.clubData != null) {
       _club = widget.clubData;
       _isMember = widget.clubData?['is_member'] == true;
+      _isFollowing = widget.clubData?['is_following'] == true;
       _loadAllTabDetails();
     } else {
       _loadClub().then((_) {
@@ -134,6 +136,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
         setState(() {
           _club = found;
           _isMember = found?['is_member'] == true;
+          _isFollowing = found?['is_following'] == true;
           _loading = false;
         });
       }
@@ -212,6 +215,45 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to update membership. Please try again.'),
+            backgroundColor: ZynkColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleFollow() async {
+    if (!ApiService.hasToken) {
+      showLoginPrompt(context, message: 'Sign in to follow this club.');
+      return;
+    }
+    final res = await ApiService.toggleClubFollow(int.parse(widget.clubId));
+    if (res != null && mounted) {
+      final nowFollowing = res['is_following'] == true;
+      setState(() {
+        _isFollowing = nowFollowing;
+        if (_club != null) {
+          _club!['followers_count'] = res['followers_count'] ?? 0;
+          _club!['is_following'] = nowFollowing;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            nowFollowing
+                ? 'Following ${widget.clubName}! You will receive notifications for updates.'
+                : 'Unfollowed ${widget.clubName}',
+          ),
+          backgroundColor: nowFollowing ? ZynkColors.primary : ZynkColors.darkMuted,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update follow status. Please try again.'),
             backgroundColor: ZynkColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -558,23 +600,34 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     }
   }
 
-  Future<void> _showRoleAssignmentDialog(int userId, String name, String currentRole) async {
-    final controller = TextEditingController(text: currentRole);
+  Future<void> _showRoleAssignmentDialog(
+    int userId,
+    String name,
+    String systemRole, {
+    String? initialCustomRole,
+  }) async {
+    final customRoleController = TextEditingController(text: initialCustomRole ?? '');
+    String selectedSystemRole = ['admin', 'moderator', 'member'].contains(systemRole.toLowerCase())
+        ? systemRole.toLowerCase()
+        : 'member';
     final messenger = ScaffoldMessenger.of(context);
     final isDark = themeProvider.isDark;
+
+    final presetSuggestions = [
+      'President',
+      'Vice President',
+      'Lead Developer',
+      'Event Head',
+      'PR Lead',
+      'Designer',
+      'Coordinator',
+    ];
 
     await showDialog(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final selectedRole = controller.text.trim().toLowerCase();
-            final presets = [
-              {'role': 'admin', 'label': 'Admin', 'icon': Icons.admin_panel_settings_rounded},
-              {'role': 'moderator', 'label': 'Moderator', 'icon': Icons.security_rounded},
-              {'role': 'member', 'label': 'Member', 'icon': Icons.person_outline_rounded},
-            ];
-
             return AlertDialog(
               backgroundColor: isDark ? ZynkColors.darkSurface : Colors.white,
               shape: RoundedRectangleBorder(
@@ -584,7 +637,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   width: 1,
                 ),
               ),
-              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
               titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
               title: Row(
                 children: [
@@ -608,7 +661,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Assign Role',
+                          'Assign Custom Role',
                           style: TextStyle(
                             color: isDark ? Colors.white : const Color(0xFF0E1117),
                             fontWeight: FontWeight.bold,
@@ -636,28 +689,25 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 8),
                     Text(
-                      'Give this member a club role. You can type any custom title or select a preset below.',
+                      'Give this member a personalized club title (e.g. President, Tech Lead) and assign their system access tier.',
                       style: TextStyle(
                         color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
                         fontSize: 13,
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    // Role Name Input
+                    const SizedBox(height: 16),
                     TextField(
-                      controller: controller,
+                      controller: customRoleController,
                       style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF0E1117),
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
-                      onChanged: (_) => setDialogState(() {}),
                       decoration: InputDecoration(
-                        labelText: 'Role Name',
-                        hintText: 'e.g. Moderator, Lead, Organizer',
+                        labelText: 'Custom Designation / Title',
+                        hintText: 'e.g. President, Creative Head',
                         labelStyle: TextStyle(
                           color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
                         ),
@@ -693,9 +743,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
-                      'PRESETS',
+                      'POPULAR SUGGESTIONS',
                       style: TextStyle(
                         color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8),
                         fontSize: 11,
@@ -704,66 +754,113 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Preset Chips Row with interactive highlight
-                    Row(
-                      children: presets.map((preset) {
-                        final isSelected = selectedRole == (preset['role'] as String).toLowerCase();
-                        return Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                controller.text = preset['role'] as String;
-                                setDialogState(() {});
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 150),
-                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? (isDark
-                                          ? ZynkColors.primary.withValues(alpha: 0.18)
-                                          : const Color(0xFFEFF6FF))
-                                      : (isDark
-                                          ? ZynkColors.darkSurface2
-                                          : const Color(0xFFF1F5F9)),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
-                                        : (isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
-                                    width: isSelected ? 1.5 : 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      preset['icon'] as IconData,
-                                      size: 18,
-                                      color: isSelected
-                                          ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
-                                          : (isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      preset['label'] as String,
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? (isDark ? Colors.white : const Color(0xFF0E1117))
-                                            : (isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
-                                        fontSize: 12,
-                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: presetSuggestions.map((suggestion) {
+                        final isChosen = customRoleController.text.trim().toLowerCase() == suggestion.toLowerCase();
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () {
+                            customRoleController.text = suggestion;
+                            setDialogState(() {});
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isChosen
+                                  ? (isDark ? ZynkColors.primary.withValues(alpha: 0.2) : const Color(0xFFEFF6FF))
+                                  : (isDark ? ZynkColors.darkSurface2 : const Color(0xFFF1F5F9)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isChosen
+                                    ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                    : (isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
+                                width: isChosen ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              suggestion,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: isChosen ? FontWeight.w700 : FontWeight.w500,
+                                color: isChosen
+                                    ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                    : (isDark ? Colors.white : const Color(0xFF334155)),
                               ),
                             ),
                           ),
                         );
                       }).toList(),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'SYSTEM PERMISSION LEVEL',
+                      style: TextStyle(
+                        color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedSystemRole,
+                          isExpanded: true,
+                          dropdownColor: isDark ? ZynkColors.darkSurface : Colors.white,
+                          icon: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'admin',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.admin_panel_settings_rounded, color: ZynkColors.gold, size: 20),
+                                  SizedBox(width: 10),
+                                  Text('Admin (Full Club Management)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'moderator',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.security_rounded, color: ZynkColors.primary, size: 20),
+                                  SizedBox(width: 10),
+                                  Text('Moderator (Events & Feed)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'member',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.person_outline_rounded, color: Color(0xFF64748B), size: 20),
+                                  SizedBox(width: 10),
+                                  Text('Member (Standard Access)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setDialogState(() => selectedSystemRole = val);
+                            }
+                          },
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -803,77 +900,76 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () async {
-                          final newRole = controller.text.trim();
-                          if (newRole.isNotEmpty) {
-                            Navigator.pop(dialogContext);
-                            final success = await ApiService.updateClubMemberRole(
-                              int.parse(widget.clubId),
-                              userId,
-                              newRole,
-                            );
-                            if (success) {
-                              _loadMembers();
-                              if (mounted) {
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        const Icon(Icons.check_circle_rounded, color: ZynkColors.success, size: 20),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            'Successfully assigned "$newRole" role to $name.',
-                                            style: TextStyle(
-                                              color: isDark ? Colors.white : const Color(0xFF0E1117),
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                          final customRole = customRoleController.text.trim();
+                          Navigator.pop(dialogContext);
+                          final success = await ApiService.updateClubMemberRole(
+                            int.parse(widget.clubId),
+                            userId,
+                            selectedSystemRole,
+                            customRole: customRole.isNotEmpty ? customRole : null,
+                          );
+                          if (success) {
+                            _loadMembers();
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle_rounded, color: ZynkColors.success, size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Role updated for $name${customRole.isNotEmpty ? ' ($customRole)' : ''}.',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      side: BorderSide(
-                                        color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
                                       ),
-                                    ),
-                                    elevation: isDark ? 2 : 8,
+                                    ],
                                   ),
-                                );
-                              }
-                            } else {
-                              if (mounted) {
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            'Failed to update member role.',
-                                            style: TextStyle(
-                                              color: isDark ? Colors.white : const Color(0xFF0E1117),
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                  backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    side: BorderSide(
+                                      color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  elevation: isDark ? 2 : 8,
+                                ),
+                              );
+                            }
+                          } else {
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline_rounded, color: ZynkColors.error, size: 20),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Failed to update member role.',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.white : const Color(0xFF0E1117),
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      side: BorderSide(
-                                        color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
                                       ),
-                                    ),
-                                    elevation: isDark ? 2 : 8,
+                                    ],
                                   ),
-                                );
-                              }
+                                  backgroundColor: isDark ? ZynkColors.darkSurface2 : Colors.white,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    side: BorderSide(
+                                      color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  elevation: isDark ? 2 : 8,
+                                ),
+                              );
                             }
                           }
                         },
@@ -1181,7 +1277,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '${_club?['category'] ?? 'Community'} • ${_club?['member_count'] ?? 0} members',
+                              '${_club?['category'] ?? 'Community'} • ${_club?['member_count'] ?? 0} members • ${_club?['followers_count'] ?? 0} followers',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                                 fontSize: 14,
@@ -1221,15 +1317,51 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             ],
                             const SizedBox(height: 20),
                             if (_club == null || _currentUser == null || (_club!['creator_id']?.toString() != _currentUser!['id']?.toString()))
-                              SizedBox(
-                                width: double.infinity,
-                                child: ZynkButton(
-                                  height: 44,
-                                  label: _isMember ? 'Joined' : 'Join',
-                                  outlined: _isMember,
-                                  icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
-                                  onTap: _toggleMembership,
-                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ZynkButton(
+                                      height: 44,
+                                      label: _isMember ? 'Joined' : 'Join',
+                                      outlined: _isMember,
+                                      icon: _isMember ? Icons.check_rounded : Icons.add_rounded,
+                                      onTap: _toggleMembership,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size(0, 44),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        side: BorderSide(
+                                          color: _isFollowing
+                                              ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                              : (themeProvider.isDark ? ZynkColors.darkBorder : const Color(0xFFCBD5E1)),
+                                          width: _isFollowing ? 1.5 : 1,
+                                        ),
+                                        backgroundColor: _isFollowing
+                                            ? (themeProvider.isDark ? ZynkColors.primary.withValues(alpha: 0.15) : const Color(0xFFEFF6FF))
+                                            : Colors.transparent,
+                                        foregroundColor: _isFollowing
+                                            ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                            : (themeProvider.isDark ? Colors.white : const Color(0xFF0E1117)),
+                                      ),
+                                      icon: Icon(
+                                        _isFollowing ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+                                        size: 18,
+                                        color: _isFollowing
+                                            ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                            : (themeProvider.isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
+                                      ),
+                                      label: Text(
+                                        _isFollowing ? 'Following' : 'Follow',
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                      ),
+                                      onPressed: _toggleFollow,
+                                    ),
+                                  ),
+                                ],
                               ),
                             const SizedBox(height: 24),
                             Text(
@@ -1440,6 +1572,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         initialContent: post['content'] ?? '',
                         initialImageUrl: post['image_url'] ?? post['imageUrl'],
                         initialBannerUrl: post['banner_url'] ?? post['bannerUrl'],
+                        initialLinkUrl: post['link_url'],
+                        initialLinkTitle: post['link_title'],
+                        initialLinkType: post['link_type'],
                       ),
                     );
                     if (result != null) _loadFeed();
@@ -1816,6 +1951,9 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     
                 final isSelfCreator = userId.toString() == _club!['creator_id']?.toString();
 
+                final customRole = m['custom_role']?.toString();
+                final hasCustomRole = customRole != null && customRole.trim().isNotEmpty;
+
                 return ListTile(
                   onTap: () {
                     Navigator.push(
@@ -1831,10 +1969,12 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                   ),
                   title: Text(name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
                   subtitle: Text(
-                    isSelfCreator ? 'CLUB CREATOR' : 'ROLE: $role',
+                    isSelfCreator
+                        ? (hasCustomRole ? '${customRole.trim()} • CLUB CREATOR' : 'CLUB CREATOR')
+                        : (hasCustomRole ? '${customRole.trim()} • $role' : 'ROLE: $role'),
                     style: TextStyle(
-                      color: isSelfCreator ? ZynkColors.gold : ZynkColors.darkMuted,
-                      fontWeight: isSelfCreator ? FontWeight.bold : FontWeight.normal,
+                      color: isSelfCreator ? ZynkColors.gold : (hasCustomRole ? ZynkColors.primary : ZynkColors.darkMuted),
+                      fontWeight: (isSelfCreator || hasCustomRole) ? FontWeight.bold : FontWeight.normal,
                       fontSize: 12,
                     ),
                   ),
@@ -1845,7 +1985,12 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             IconButton(
                               icon: const Icon(Icons.shield_outlined, color: ZynkColors.gold),
                               tooltip: 'Assign custom role',
-                              onPressed: () => _showRoleAssignmentDialog(userId, name, m['role'] ?? 'member'),
+                              onPressed: () => _showRoleAssignmentDialog(
+                                userId,
+                                name,
+                                m['role'] ?? 'member',
+                                initialCustomRole: m['custom_role']?.toString(),
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.person_remove_rounded, color: ZynkColors.error),
