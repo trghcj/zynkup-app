@@ -1810,13 +1810,13 @@ class _EmbeddedLinkCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark
                     ? ZynkColors.primary.withValues(alpha: 0.15)
-                    : const Color(0xFFEFF6FF),
+                    : const Color(0xFFF7FEE7),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Icons.language_rounded,
                 size: 20,
-                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
               ),
             ),
             const SizedBox(width: 12),

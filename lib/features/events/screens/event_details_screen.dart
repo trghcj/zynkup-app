@@ -271,12 +271,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               decoration: BoxDecoration(
                 color: isDark
                     ? ZynkColors.primary.withValues(alpha: 0.15)
-                    : const Color(0xFFEFF6FF),
+                    : const Color(0xFFF7FEE7),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 Icons.assignment_outlined,
-                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                 size: 22,
               ),
             ),
@@ -1148,12 +1148,12 @@ class _FormCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark
                     ? ZynkColors.primary.withValues(alpha: 0.15)
-                    : const Color(0xFFEFF6FF),
+                    : const Color(0xFFF7FEE7),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Icons.assignment_outlined,
-                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                 size: 22,
               ),
             ),
@@ -1187,10 +1187,10 @@ class _FormCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark
                     ? ZynkColors.primary.withValues(alpha: 0.15)
-                    : const Color(0xFFEFF6FF),
+                    : const Color(0xFFF7FEE7),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                  color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                   width: 1,
                 ),
               ),
@@ -1200,13 +1200,13 @@ class _FormCard extends StatelessWidget {
                   Icon(
                     Icons.qr_code_2_rounded,
                     size: 16,
-                    color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                    color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Open',
                     style: TextStyle(
-                      color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                      color: isDark ? ZynkColors.primary : const Color(0xFF4D7C0F),
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),

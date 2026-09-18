@@ -109,9 +109,9 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+          indicatorColor: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
           indicatorWeight: 3,
-          labelColor: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+          labelColor: isDark ? ZynkColors.primary : const Color(0xFF3F6212),
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           tabs: [
@@ -187,7 +187,7 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                             icon: Icon(
                               Icons.filter_list_rounded,
                               size: 18,
-                              color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                              color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                             ),
                             dropdownColor: isDark ? ZynkColors.darkSurface : Colors.white,
                             style: TextStyle(
@@ -273,13 +273,13 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                 decoration: BoxDecoration(
                   color: isDark
                       ? ZynkColors.primary.withValues(alpha: 0.12)
-                      : const Color(0xFFEFF6FF),
+                      : const Color(0xFFF7FEE7),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.groups_outlined,
                   size: 36,
-                  color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                  color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                 ),
               ),
               const SizedBox(height: 18),
@@ -295,7 +295,7 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
               const SizedBox(height: 18),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                  backgroundColor: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                   foregroundColor: isDark ? Colors.black : Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -357,7 +357,7 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                 children: [
                   CircleAvatar(
                     radius: 26,
-                    backgroundColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF1F5F9),
+                    backgroundColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF7FEE7),
                     backgroundImage: (logoUrl.isNotEmpty)
                         ? CachedNetworkImageProvider(logoUrl)
                         : null,
@@ -365,7 +365,7 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                         ? Text(
                             name.isNotEmpty ? name[0].toUpperCase() : 'C',
                             style: TextStyle(
-                              color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                              color: isDark ? ZynkColors.primary : const Color(0xFF4D7C0F),
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -395,13 +395,19 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? ZynkColors.primary.withValues(alpha: 0.15)
-                                    : const Color(0xFFEFF6FF),
+                                    : const Color(0xFFF7FEE7),
                                 borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isDark
+                                      ? ZynkColors.primary.withValues(alpha: 0.3)
+                                      : const Color(0xFFD9F99D),
+                                  width: 0.8,
+                                ),
                               ),
                               child: Text(
                                 category.toString().toUpperCase(),
                                 style: TextStyle(
-                                  color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                                  color: isDark ? ZynkColors.primary : const Color(0xFF4D7C0F),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                 ),
