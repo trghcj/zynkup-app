@@ -20,6 +20,7 @@ import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -1559,7 +1560,7 @@ class ActionIcon extends StatelessWidget {
   }
 }
 
-class _EmbeddedLinkCard extends StatelessWidget {
+class _EmbeddedLinkCard extends StatefulWidget {
   final String linkUrl;
   final String? linkTitle;
   final String? linkType;
@@ -1570,6 +1571,38 @@ class _EmbeddedLinkCard extends StatelessWidget {
     this.linkType,
   });
 
+  @override
+  State<_EmbeddedLinkCard> createState() => _EmbeddedLinkCardState();
+}
+
+class _EmbeddedLinkCardState extends State<_EmbeddedLinkCard> {
+  bool _isPlaying = false;
+  YoutubePlayerController? _ytController;
+  String? _ytId;
+
+  @override
+  void initState() {
+    super.initState();
+    _ytId = _getYouTubeId(widget.linkUrl);
+  }
+
+  @override
+  void didUpdateWidget(covariant _EmbeddedLinkCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.linkUrl != widget.linkUrl) {
+      _ytController?.close();
+      _ytController = null;
+      _isPlaying = false;
+      _ytId = _getYouTubeId(widget.linkUrl);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ytController?.close();
+    super.dispose();
+  }
+
   String? _getYouTubeId(String url) {
     final regExp = RegExp(
       r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})',
@@ -1579,17 +1612,53 @@ class _EmbeddedLinkCard extends StatelessWidget {
     return match?.group(1);
   }
 
+  void _startInlinePlayback() {
+    if (_ytId == null) return;
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: _ytId!,
+      autoPlay: true,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        mute: false,
+        enableCaption: true,
+      ),
+    );
+    setState(() {
+      _ytController = controller;
+      _isPlaying = true;
+    });
+  }
+
+  void _stopInlinePlayback() {
+    _ytController?.close();
+    setState(() {
+      _ytController = null;
+      _isPlaying = false;
+    });
+  }
+
   Future<void> _openLink(BuildContext context) async {
     try {
-      final uri = Uri.parse(linkUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open link.')),
-          );
+      final uri = Uri.parse(widget.linkUrl);
+      bool launched = false;
+      if (!kIsWeb) {
+        try {
+          launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+        } catch (_) {
+          launched = false;
         }
+      }
+      if (!launched) {
+        launched = await launchUrl(
+          uri,
+          mode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+        );
+      }
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open link.')),
+        );
       }
     } catch (_) {
       if (context.mounted) {
@@ -1603,8 +1672,8 @@ class _EmbeddedLinkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lower = linkUrl.toLowerCase();
-    final effectiveType = linkType ??
+    final lower = widget.linkUrl.toLowerCase();
+    final effectiveType = widget.linkType ??
         (lower.contains('youtube.com') || lower.contains('youtu.be')
             ? 'youtube'
             : (lower.contains('instagram.com') || lower.contains('instagr.am')
@@ -1612,13 +1681,10 @@ class _EmbeddedLinkCard extends StatelessWidget {
                 : 'general'));
 
     if (effectiveType == 'youtube') {
-      final ytid = _getYouTubeId(linkUrl);
-      final thumbUrl = ytid != null ? 'https://img.youtube.com/vi/$ytid/hqdefault.jpg' : null;
+      final thumbUrl = _ytId != null ? 'https://img.youtube.com/vi/$_ytId/hqdefault.jpg' : null;
 
-      return InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () => _openLink(context),
-        child: Container(
+      if (_isPlaying && _ytController != null) {
+        return Container(
           decoration: BoxDecoration(
             color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(14),
@@ -1630,8 +1696,91 @@ class _EmbeddedLinkCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (thumbUrl != null)
-                Stack(
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: YoutubePlayer(
+                    controller: _ytController!,
+                    aspectRatio: 16 / 9,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.play_circle_fill_rounded, color: Colors.red, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        (widget.linkTitle != null && widget.linkTitle!.isNotEmpty)
+                            ? widget.linkTitle!
+                            : widget.linkUrl,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: _stopInlinePlayback,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? ZynkColors.darkSurface : const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.close_rounded,
+                              size: 14,
+                              color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Close',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return Container(
+        decoration: BoxDecoration(
+          color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (thumbUrl != null)
+              InkWell(
+                onTap: _startInlinePlayback,
+                child: Stack(
                   alignment: Alignment.center,
                   children: [
                     CachedNetworkImage(
@@ -1670,7 +1819,7 @@ class _EmbeddedLinkCard extends StatelessWidget {
                             Icon(Icons.play_circle_fill_rounded, color: Colors.red, size: 14),
                             SizedBox(width: 4),
                             Text(
-                              'YouTube',
+                              'YouTube • Tap to Play',
                               style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -1679,15 +1828,18 @@ class _EmbeddedLinkCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.open_in_new_rounded, size: 16, color: Colors.red),
-                    const SizedBox(width: 8),
-                    Expanded(
+              ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: _startInlinePlayback,
                       child: Text(
-                        (linkTitle != null && linkTitle!.isNotEmpty) ? linkTitle! : linkUrl,
+                        (widget.linkTitle != null && widget.linkTitle!.isNotEmpty)
+                            ? widget.linkTitle!
+                            : widget.linkUrl,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -1697,20 +1849,47 @@ class _EmbeddedLinkCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Watch',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: _startInlinePlayback,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.play_arrow_rounded, size: 14, color: Colors.red),
+                          SizedBox(width: 2),
+                          Text(
+                            'Play',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    tooltip: 'Open in YouTube App',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8),
+                    onPressed: () => _openLink(context),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
@@ -1767,7 +1946,7 @@ class _EmbeddedLinkCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      (linkTitle != null && linkTitle!.isNotEmpty) ? linkTitle! : linkUrl,
+                      (widget.linkTitle != null && widget.linkTitle!.isNotEmpty) ? widget.linkTitle! : widget.linkUrl,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -1788,7 +1967,7 @@ class _EmbeddedLinkCard extends StatelessWidget {
     }
 
     // General Web Link Card
-    final uri = Uri.tryParse(linkUrl);
+    final uri = Uri.tryParse(widget.linkUrl);
     final domain = uri?.host.isNotEmpty == true ? uri!.host : 'Website';
 
     return InkWell(
@@ -1825,7 +2004,7 @@ class _EmbeddedLinkCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    (linkTitle != null && linkTitle!.isNotEmpty) ? linkTitle! : domain,
+                    (widget.linkTitle != null && widget.linkTitle!.isNotEmpty) ? widget.linkTitle! : domain,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -1836,7 +2015,7 @@ class _EmbeddedLinkCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    linkUrl,
+                    widget.linkUrl,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
