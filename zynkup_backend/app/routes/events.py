@@ -193,6 +193,28 @@ def create_event(
         except Exception as xp_err:
             logger.warning(f"XP AWARD FAILED: {xp_err}")
 
+        # Broadcast notification to club followers
+        if event.club_id:
+            try:
+                from app.fcm import create_notification_helper
+                club = db.query(models.Club).filter(models.Club.id == event.club_id).first()
+                if club:
+                    followers = db.query(models.ClubFollower).filter(
+                        models.ClubFollower.club_id == event.club_id,
+                        models.ClubFollower.user_id != current_user.id
+                    ).all()
+                    for f in followers:
+                        create_notification_helper(
+                            db=db,
+                            user_id=f.user_id,
+                            title=f"New Event: {event.title} 🎯",
+                            body=f"{club.name} announced a new event. Tap to view & register!",
+                            type="CLUB_NEW_EVENT",
+                            data={"club_id": str(club.id), "event_id": str(event.id)}
+                        )
+            except Exception as notif_err:
+                logger.warning(f"Follower notification broadcast failed: {notif_err}")
+
         return _event_to_dict(event, current_user.id)
     except HTTPException:
         db.rollback()

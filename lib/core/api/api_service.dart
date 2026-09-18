@@ -805,6 +805,9 @@ class ApiService {
     required String content,
     String? imageUrl,
     String? bannerUrl,
+    String? linkUrl,
+    String? linkTitle,
+    String? linkType,
     int? clubId,
   }) async {
     await loadToken();
@@ -816,6 +819,9 @@ class ApiService {
           "content": content,
           if (imageUrl != null) "image_url": imageUrl,
           if (bannerUrl != null) "banner_url": bannerUrl,
+          if (linkUrl != null) "link_url": linkUrl,
+          if (linkTitle != null) "link_title": linkTitle,
+          if (linkType != null) "link_type": linkType,
           if (clubId != null) "club_id": clubId,
         }),
       );
@@ -1025,6 +1031,9 @@ class ApiService {
     String? content,
     String? imageUrl,
     String? bannerUrl,
+    String? linkUrl,
+    String? linkTitle,
+    String? linkType,
   }) async {
     try {
       await loadToken();
@@ -1035,6 +1044,9 @@ class ApiService {
           if (content != null) "content": content,
           if (imageUrl != null) "image_url": imageUrl,
           if (bannerUrl != null) "banner_url": bannerUrl,
+          if (linkUrl != null) "link_url": linkUrl,
+          if (linkTitle != null) "link_title": linkTitle,
+          if (linkType != null) "link_type": linkType,
         }),
       );
       if (res.statusCode == 200) {
@@ -1150,17 +1162,69 @@ class ApiService {
     }
   }
 
-  static Future<bool> updateClubMemberRole(int clubId, int userId, String role) async {
+  static Future<bool> updateClubMemberRole(int clubId, int userId, String role, {String? customRole}) async {
     try {
       await loadToken();
       final res = await http.put(
         Uri.parse("$baseUrl/clubs/$clubId/members/$userId/role"),
         headers: await _headers,
-        body: jsonEncode({"role": role}),
+        body: jsonEncode({
+          "role": role,
+          if (customRole != null) "custom_role": customRole,
+        }),
       );
       return res.statusCode == 200;
     } catch (_) {
       return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> toggleClubFollow(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/clubs/$clubId/follow"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> isClubFollowing(int clubId) async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/$clubId/is-following"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return data['is_following'] == true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getMyClubs() async {
+    try {
+      await loadToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/clubs/my/list"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return {"created": [], "joined": [], "following": []};
+    } catch (_) {
+      return {"created": [], "joined": [], "following": []};
     }
   }
 

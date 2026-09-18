@@ -19,6 +19,7 @@ import 'package:zynkup/features/events/screens/event_details_screen.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -191,6 +192,9 @@ class _FeedTabState extends State<FeedTab> {
                         initialContent: post['content'] ?? '',
                         initialImageUrl: post['image_url'] ?? post['imageUrl'],
                         initialBannerUrl: post['banner_url'] ?? post['bannerUrl'],
+                        initialLinkUrl: post['link_url'],
+                        initialLinkTitle: post['link_title'],
+                        initialLinkType: post['link_type'],
                       ),
                     );
                     if (result != null) { _load(); }
@@ -1115,6 +1119,9 @@ class FeedPostCard extends StatelessWidget {
     final String content = post['content'] ?? '';
     final String? imageUrl = post['image_url'];
     final String? bannerUrl = post['banner_url'];
+    final String? linkUrl = post['link_url'];
+    final String? linkTitle = post['link_title'];
+    final String? linkType = post['link_type'];
     final int likes = post['likes'] ?? 0;
     final bool isLiked = post['is_liked'] == true;
     final String? userReaction = post['user_reaction'] as String?;
@@ -1295,6 +1302,17 @@ class FeedPostCard extends StatelessWidget {
               ),
             ),
           ),
+
+          // Embedded Link Card
+          if (linkUrl != null && linkUrl.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: _EmbeddedLinkCard(
+                linkUrl: linkUrl,
+                linkTitle: linkTitle,
+                linkType: linkType,
+              ),
+            ),
 
           // Action Bar
           Padding(
@@ -1537,6 +1555,307 @@ class ActionIcon extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _EmbeddedLinkCard extends StatelessWidget {
+  final String linkUrl;
+  final String? linkTitle;
+  final String? linkType;
+
+  const _EmbeddedLinkCard({
+    required this.linkUrl,
+    this.linkTitle,
+    this.linkType,
+  });
+
+  String? _getYouTubeId(String url) {
+    final regExp = RegExp(
+      r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(url);
+    return match?.group(1);
+  }
+
+  Future<void> _openLink(BuildContext context) async {
+    try {
+      final uri = Uri.parse(linkUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open link.')),
+          );
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid link.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lower = linkUrl.toLowerCase();
+    final effectiveType = linkType ??
+        (lower.contains('youtube.com') || lower.contains('youtu.be')
+            ? 'youtube'
+            : (lower.contains('instagram.com') || lower.contains('instagr.am')
+                ? 'instagram'
+                : 'general'));
+
+    if (effectiveType == 'youtube') {
+      final ytid = _getYouTubeId(linkUrl);
+      final thumbUrl = ytid != null ? 'https://img.youtube.com/vi/$ytid/hqdefault.jpg' : null;
+
+      return InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openLink(context),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (thumbUrl != null)
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: thumbUrl,
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => const SizedBox.shrink(),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
+                    ),
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.75),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_circle_fill_rounded, color: Colors.red, size: 14),
+                            SizedBox(width: 4),
+                            Text(
+                              'YouTube',
+                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.open_in_new_rounded, size: 16, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        (linkTitle != null && linkTitle!.isNotEmpty) ? linkTitle! : linkUrl,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Watch',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (effectiveType == 'instagram') {
+      return InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openLink(context),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [
+                      const Color(0xFF833AB4).withValues(alpha: 0.2),
+                      const Color(0xFFFD1D1D).withValues(alpha: 0.2),
+                      const Color(0xFFFCB045).withValues(alpha: 0.2),
+                    ]
+                  : [
+                      const Color(0xFF833AB4).withValues(alpha: 0.08),
+                      const Color(0xFFFD1D1D).withValues(alpha: 0.08),
+                      const Color(0xFFFCB045).withValues(alpha: 0.08),
+                    ],
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: const Color(0xFFE1306C).withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFFCB045)],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Instagram Post',
+                      style: TextStyle(
+                        color: Color(0xFFE1306C),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      (linkTitle != null && linkTitle!.isNotEmpty) ? linkTitle! : linkUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFFE1306C)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // General Web Link Card
+    final uri = Uri.tryParse(linkUrl);
+    final domain = uri?.host.isNotEmpty == true ? uri!.host : 'Website';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => _openLink(context),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ZynkColors.primary.withValues(alpha: 0.15)
+                    : const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.language_rounded,
+                size: 20,
+                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (linkTitle != null && linkTitle!.isNotEmpty) ? linkTitle! : domain,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    linkUrl,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.open_in_new_rounded,
+              size: 16,
+              color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

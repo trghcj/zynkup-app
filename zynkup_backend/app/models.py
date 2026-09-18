@@ -1,6 +1,6 @@
 # app/models.py
 import uuid
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, func, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -148,19 +148,35 @@ class Club(Base):
 
     creator = relationship("User")
     members = relationship("ClubMember", back_populates="club", cascade="all, delete-orphan")
+    followers = relationship("ClubFollower", back_populates="club", cascade="all, delete-orphan")
 
 
 class ClubMember(Base):
     __tablename__ = "club_members"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=False)
-    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
-    role       = Column(String, default="member", nullable=False) # owner, moderator, member
-    joined_at  = Column(DateTime, server_default=func.now())
+    id          = Column(Integer, primary_key=True, index=True)
+    club_id     = Column(Integer, ForeignKey("clubs.id"), nullable=False)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role        = Column(String, default="member", nullable=False) # owner, admin, moderator, member
+    custom_role = Column(String, nullable=True) # e.g. "President", "Lead Developer", "PR Head"
+    joined_at   = Column(DateTime, server_default=func.now())
 
     club = relationship("Club", back_populates="members")
     user = relationship("User")
+
+
+class ClubFollower(Base):
+    __tablename__ = "club_followers"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    club_id    = Column(Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    club = relationship("Club", back_populates="followers")
+    user = relationship("User")
+
+    __table_args__ = (UniqueConstraint("club_id", "user_id", name="uq_club_user_follower"),)
 
 
 class Notification(Base):
@@ -180,16 +196,19 @@ class Notification(Base):
 class FeedPost(Base):
     __tablename__ = "feed_posts"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    author_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
-    content    = Column(Text, nullable=False)
-    image_url  = Column(Text, nullable=True)
-    banner_url = Column(Text, nullable=True)
-    likes      = Column(Integer, default=0)
+    id          = Column(Integer, primary_key=True, index=True)
+    author_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content     = Column(Text, nullable=False)
+    image_url   = Column(Text, nullable=True)
+    banner_url  = Column(Text, nullable=True)
+    link_url    = Column(Text, nullable=True)
+    link_title  = Column(String, nullable=True)
+    link_type   = Column(String, nullable=True) # youtube, instagram, twitter, spotify, github, general
+    likes       = Column(Integer, default=0)
     is_reported = Column(Boolean, default=False, nullable=False)
     report_count = Column(Integer, default=0, nullable=False)
-    club_id    = Column(Integer, ForeignKey("clubs.id"), nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
+    club_id     = Column(Integer, ForeignKey("clubs.id"), nullable=True)
+    created_at  = Column(DateTime, server_default=func.now())
 
     author = relationship("User")
     comments = relationship("FeedComment", back_populates="post", cascade="all, delete-orphan")

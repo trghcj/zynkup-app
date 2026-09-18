@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from urllib.parse import urlparse
 import json
 
 from ..database import get_db
@@ -15,6 +16,9 @@ class FeedPostCreate(BaseModel):
     content: str
     image_url: Optional[str] = None
     banner_url: Optional[str] = None
+    link_url: Optional[str] = None
+    link_title: Optional[str] = None
+    link_type: Optional[str] = None
     poll_question: Optional[str] = None
     poll_options: Optional[List[str]] = None
     club_id: Optional[int] = None
@@ -23,6 +27,9 @@ class FeedPostUpdate(BaseModel):
     content: Optional[str] = None
     image_url: Optional[str] = None
     banner_url: Optional[str] = None
+    link_url: Optional[str] = None
+    link_title: Optional[str] = None
+    link_type: Optional[str] = None
 
 class FeedPostResponse(BaseModel):
     id: int
@@ -35,6 +42,9 @@ class FeedPostResponse(BaseModel):
     content: str
     image_url: Optional[str]
     banner_url: Optional[str]
+    link_url: Optional[str] = None
+    link_title: Optional[str] = None
+    link_type: Optional[str] = None
     likes: int
     is_liked: bool = False
     created_at: datetime
@@ -60,13 +70,42 @@ class FeedCommentResponse(BaseModel):
     class Config:
         orm_mode = True
 
+def _detect_link_type(url: Optional[str], provided_type: Optional[str] = None) -> Optional[str]:
+    if not url or not url.strip():
+        return None
+    if provided_type and provided_type.strip():
+        return provided_type.strip().lower()
+    try:
+        candidate = url.strip()
+        if not candidate.startswith(("http://", "https://")):
+            candidate = "https://" + candidate
+        parsed = urlparse(candidate)
+        hostname = (parsed.hostname or "").lower()
+        if hostname == "youtube.com" or hostname.endswith(".youtube.com") or hostname == "youtu.be":
+            return "youtube"
+        if hostname == "instagram.com" or hostname.endswith(".instagram.com"):
+            return "instagram"
+        if hostname in ("twitter.com", "x.com") or hostname.endswith(".twitter.com") or hostname.endswith(".x.com"):
+            return "twitter"
+        if hostname == "spotify.com" or hostname.endswith(".spotify.com"):
+            return "spotify"
+        if hostname == "github.com" or hostname.endswith(".github.com"):
+            return "github"
+    except Exception:
+        pass
+    return "general"
+
 @router.post("/", response_model=FeedPostResponse)
 def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    detected_type = _detect_link_type(post_data.link_url, post_data.link_type)
     new_post = FeedPost(
         author_id=current_user.id,
         content=post_data.content,
         image_url=post_data.image_url,
         banner_url=post_data.banner_url,
+        link_url=post_data.link_url.strip() if post_data.link_url else None,
+        link_title=post_data.link_title.strip() if post_data.link_title else None,
+        link_type=detected_type,
         club_id=post_data.club_id
     )
     db.add(new_post)
@@ -101,6 +140,26 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
             club_name = club.name
             club_logo = club.logo_url
 
+        # Broadcast notification to club followers
+        try:
+            from app.fcm import create_notification_helper
+            from app.models import ClubFollower
+            followers = db.query(ClubFollower).filter(
+                ClubFollower.club_id == new_post.club_id,
+                ClubFollower.user_id != current_user.id
+            ).all()
+            for f in followers:
+                create_notification_helper(
+                    db=db,
+                    user_id=f.user_id,
+                    title=f"{club_name or 'Club'} posted an update 📢",
+                    body=f"{new_post.content[:80]}...",
+                    type="CLUB_NEW_POST",
+                    data={"club_id": str(new_post.club_id), "post_id": str(new_post.id)}
+                )
+        except Exception as notif_err:
+            logger.warning(f"Club follower feed notification failed: {notif_err}")
+
     # Award XP for creating a feed post
     try:
         from app.gamification import add_xp
@@ -119,6 +178,9 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         content=new_post.content,
         image_url=new_post.image_url,
         banner_url=new_post.banner_url,
+        link_url=new_post.link_url,
+        link_title=new_post.link_title,
+        link_type=new_post.link_type,
         likes=new_post.likes,
         is_liked=False,
         created_at=new_post.created_at,
@@ -189,6 +251,9 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
             content=p.content,
             image_url=p.image_url,
             banner_url=p.banner_url,
+            link_url=p.link_url,
+            link_title=p.link_title,
+            link_type=p.link_type,
             likes=p.likes,
             is_liked=(p.id in liked_post_ids),
             created_at=p.created_at,
@@ -234,6 +299,9 @@ def get_post(post_id: int, db: Session = Depends(get_db), current_user: Optional
         content=p.content,
         image_url=p.image_url,
         banner_url=p.banner_url,
+        link_url=p.link_url,
+        link_title=p.link_title,
+        link_type=p.link_type,
         likes=p.likes,
         is_liked=is_liked,
         created_at=p.created_at,
@@ -277,20 +345,34 @@ def update_post(post_id: int, post_data: FeedPostUpdate, db: Session = Depends(g
         post.image_url = None if post_data.image_url == "" else post_data.image_url
     if post_data.banner_url is not None:
         post.banner_url = None if post_data.banner_url == "" else post_data.banner_url
+    if post_data.link_url is not None:
+        clean_link = post_data.link_url.strip() if post_data.link_url else ""
+        post.link_url = None if clean_link == "" else clean_link
+        post.link_type = _detect_link_type(post.link_url, post_data.link_type) if post.link_url else None
+    if post_data.link_title is not None:
+        clean_title = post_data.link_title.strip() if post_data.link_title else ""
+        post.link_title = None if clean_title == "" else clean_title
 
     db.commit()
     db.refresh(post)
 
+    club_name = post.club.name if post.club else None
+    club_logo = post.club.logo_url if post.club else None
+
     return FeedPostResponse(
         id=post.id,
         author_id=post.author_id,
-        author_name=post.author.name or post.author.display_name,
-        author_avatar=post.author.resolved_avatar_url,
+        author_name=post.author.name or post.author.display_name if post.author else None,
+        author_avatar=post.author.resolved_avatar_url if post.author else None,
+        club_id=post.club_id,
+        club_name=club_name,
+        club_logo=club_logo,
         content=post.content,
         image_url=post.image_url,
         banner_url=post.banner_url,
-        imageUrl=post.image_url,
-        bannerUrl=post.banner_url,
+        link_url=post.link_url,
+        link_title=post.link_title,
+        link_type=post.link_type,
         likes=post.likes,
         is_liked=False,
         created_at=post.created_at

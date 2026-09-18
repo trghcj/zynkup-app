@@ -16,9 +16,14 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
   final _contentController = TextEditingController();
+  final _linkUrlController = TextEditingController();
+  final _linkTitleController = TextEditingController();
   final _picker = ImagePicker();
 
   bool _loading = false;
+  bool _showLinkInput = false;
+  String? _detectedLinkType;
+
   Uint8List? _photoBytes;
   String? _photoName;
 
@@ -28,7 +33,37 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   void dispose() {
     _contentController.dispose();
+    _linkUrlController.dispose();
+    _linkTitleController.dispose();
     super.dispose();
+  }
+
+  void _onLinkChanged(String val) {
+    final trimmed = val.trim().toLowerCase();
+    if (trimmed.isEmpty) {
+      setState(() => _detectedLinkType = null);
+      return;
+    }
+    if (trimmed.contains('youtube.com') || trimmed.contains('youtu.be')) {
+      setState(() => _detectedLinkType = 'youtube');
+    } else if (trimmed.contains('instagram.com') || trimmed.contains('instagr.am')) {
+      setState(() => _detectedLinkType = 'instagram');
+    } else {
+      setState(() => _detectedLinkType = 'general');
+    }
+  }
+
+  String? _getYouTubeThumbnail(String url) {
+    final regExp = RegExp(
+      r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(url);
+    final id = match?.group(1);
+    if (id != null) {
+      return 'https://img.youtube.com/vi/$id/hqdefault.jpg';
+    }
+    return null;
   }
 
   Future<void> _pickPhoto() async {
@@ -69,11 +104,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         bannerUrl = await ApiService.uploadImageBytes(_bannerBytes!, _bannerName!);
       }
 
+      final linkUrl = _linkUrlController.text.trim();
+      final linkTitle = _linkTitleController.text.trim();
+
       // 3. Create feed post
       await ApiService.createFeedPost(
         content: _contentController.text.trim(),
         imageUrl: photoUrl,
         bannerUrl: bannerUrl,
+        linkUrl: linkUrl.isNotEmpty ? linkUrl : null,
+        linkTitle: linkTitle.isNotEmpty ? linkTitle : null,
+        linkType: linkUrl.isNotEmpty ? _detectedLinkType : null,
         clubId: widget.clubId,
       );
 
@@ -216,7 +257,161 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Embedded Link (Optional)',
+                          style: TextStyle(
+                            color: ZynkColors.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (!_showLinkInput && _linkUrlController.text.isEmpty)
+                          TextButton.icon(
+                            onPressed: () => setState(() => _showLinkInput = true),
+                            icon: const Icon(Icons.add_link_rounded, size: 18),
+                            label: const Text('Add Link'),
+                          ),
+                      ],
+                    ),
+                    if (_showLinkInput || _linkUrlController.text.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(ZynkRadius.lg),
+                          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  _detectedLinkType == 'youtube'
+                                      ? Icons.play_circle_fill_rounded
+                                      : _detectedLinkType == 'instagram'
+                                          ? Icons.camera_alt_rounded
+                                          : Icons.link_rounded,
+                                  color: _detectedLinkType == 'youtube'
+                                      ? Colors.red
+                                      : _detectedLinkType == 'instagram'
+                                          ? Colors.purpleAccent
+                                          : ZynkColors.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _detectedLinkType == 'youtube'
+                                        ? 'YouTube Video Link'
+                                        : _detectedLinkType == 'instagram'
+                                            ? 'Instagram Post / Reel Link'
+                                            : 'Web Link',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close_rounded, size: 18),
+                                  onPressed: () {
+                                    setState(() {
+                                      _linkUrlController.clear();
+                                      _linkTitleController.clear();
+                                      _detectedLinkType = null;
+                                      _showLinkInput = false;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _linkUrlController,
+                              onChanged: _onLinkChanged,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontSize: 14,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'https://youtube.com/... or instagram.com/...',
+                                hintStyle: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? ZynkColors.darkMuted
+                                      : const Color(0xFF94A3B8),
+                                  fontSize: 13,
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context).brightness == Brightness.dark
+                                    ? ZynkColors.darkSurface2
+                                    : const Color(0xFFF1F5F9),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: _linkTitleController,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontSize: 14,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Link Title or Label (Optional)',
+                                hintStyle: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? ZynkColors.darkMuted
+                                      : const Color(0xFF94A3B8),
+                                  fontSize: 13,
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context).brightness == Brightness.dark
+                                    ? ZynkColors.darkSurface2
+                                    : const Color(0xFFF1F5F9),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            if (_detectedLinkType == 'youtube' && _getYouTubeThumbnail(_linkUrlController.text) != null) ...[
+                              const SizedBox(height: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Image.network(
+                                      _getYouTubeThumbnail(_linkUrlController.text)!,
+                                      height: 140,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 40),
 
                     // Publish Button
                     ZynkButton(
