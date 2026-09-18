@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from urllib.parse import urlparse
 import json
 
 from ..database import get_db
@@ -74,17 +75,24 @@ def _detect_link_type(url: Optional[str], provided_type: Optional[str] = None) -
         return None
     if provided_type and provided_type.strip():
         return provided_type.strip().lower()
-    u = url.lower()
-    if "youtube.com" in u or "youtu.be" in u:
-        return "youtube"
-    if "instagram.com" in u:
-        return "instagram"
-    if "twitter.com" in u or "x.com" in u:
-        return "twitter"
-    if "spotify.com" in u:
-        return "spotify"
-    if "github.com" in u:
-        return "github"
+    try:
+        candidate = url.strip()
+        if not candidate.startswith(("http://", "https://")):
+            candidate = "https://" + candidate
+        parsed = urlparse(candidate)
+        hostname = (parsed.hostname or "").lower()
+        if hostname == "youtube.com" or hostname.endswith(".youtube.com") or hostname == "youtu.be":
+            return "youtube"
+        if hostname == "instagram.com" or hostname.endswith(".instagram.com"):
+            return "instagram"
+        if hostname in ("twitter.com", "x.com") or hostname.endswith(".twitter.com") or hostname.endswith(".x.com"):
+            return "twitter"
+        if hostname == "spotify.com" or hostname.endswith(".spotify.com"):
+            return "spotify"
+        if hostname == "github.com" or hostname.endswith(".github.com"):
+            return "github"
+    except Exception:
+        pass
     return "general"
 
 @router.post("/", response_model=FeedPostResponse)
