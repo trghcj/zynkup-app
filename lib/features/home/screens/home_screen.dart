@@ -342,20 +342,6 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.group_add_outlined, size: 22),
-            tooltip: 'Found a Club',
-            onPressed: () async {
-              if (_isGuest) {
-                showLoginPrompt(context, message: 'Sign in to found a campus club.');
-                return;
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CreateClubScreen()),
-              );
-            },
-          ),
           Stack(
             alignment: Alignment.center,
             children: [

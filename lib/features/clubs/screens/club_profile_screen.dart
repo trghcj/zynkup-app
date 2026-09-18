@@ -457,7 +457,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2.2,
-                color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
               ),
             ),
             const SizedBox(width: 16),
@@ -646,12 +646,12 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     decoration: BoxDecoration(
                       color: isDark
                           ? ZynkColors.primary.withValues(alpha: 0.15)
-                          : const Color(0xFFEFF6FF),
+                          : const Color(0xFFF7FEE7),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       Icons.military_tech_rounded,
-                      color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                      color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                       size: 24,
                     ),
                   ),
@@ -737,7 +737,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide(
-                            color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                            color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                             width: 1.5,
                           ),
                         ),
@@ -769,12 +769,12 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               color: isChosen
-                                  ? (isDark ? ZynkColors.primary.withValues(alpha: 0.2) : const Color(0xFFEFF6FF))
+                                  ? (isDark ? ZynkColors.primary.withValues(alpha: 0.2) : const Color(0xFFF7FEE7))
                                   : (isDark ? ZynkColors.darkSurface2 : const Color(0xFFF1F5F9)),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: isChosen
-                                    ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                    ? (isDark ? ZynkColors.primary : const Color(0xFF65A30D))
                                     : (isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
                                 width: isChosen ? 1.5 : 1,
                               ),
@@ -785,7 +785,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                 fontSize: 12,
                                 fontWeight: isChosen ? FontWeight.w700 : FontWeight.w500,
                                 color: isChosen
-                                    ? (isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                    ? (isDark ? ZynkColors.primary : const Color(0xFF4D7C0F))
                                     : (isDark ? Colors.white : const Color(0xFF334155)),
                               ),
                             ),
@@ -1336,22 +1336,22 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         side: BorderSide(
                                           color: _isFollowing
-                                              ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                              ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF65A30D))
                                               : (themeProvider.isDark ? ZynkColors.darkBorder : const Color(0xFFCBD5E1)),
                                           width: _isFollowing ? 1.5 : 1,
                                         ),
                                         backgroundColor: _isFollowing
-                                            ? (themeProvider.isDark ? ZynkColors.primary.withValues(alpha: 0.15) : const Color(0xFFEFF6FF))
+                                            ? (themeProvider.isDark ? ZynkColors.primary.withValues(alpha: 0.15) : const Color(0xFFF7FEE7))
                                             : Colors.transparent,
                                         foregroundColor: _isFollowing
-                                            ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                            ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF3F6212))
                                             : (themeProvider.isDark ? Colors.white : const Color(0xFF0E1117)),
                                       ),
                                       icon: Icon(
                                         _isFollowing ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
                                         size: 18,
                                         color: _isFollowing
-                                            ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF2563EB))
+                                            ? (themeProvider.isDark ? ZynkColors.primary : const Color(0xFF65A30D))
                                             : (themeProvider.isDark ? ZynkColors.darkMuted : const Color(0xFF64748B)),
                                       ),
                                       label: Text(
@@ -1771,7 +1771,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                                 children: [
                                   Icon(
                                     Icons.check_circle_outline_rounded,
-                                    color: isDark ? ZynkColors.primary : const Color(0xFF2563EB),
+                                    color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
