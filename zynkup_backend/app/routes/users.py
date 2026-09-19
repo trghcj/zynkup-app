@@ -118,9 +118,6 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": str(user.id)})
 
-    # Award daily login XP
-    add_xp(db, user, "daily_login")
-
     logger.info(f"Login: id={user.id}")
     return _user_response(user, token)
 
@@ -184,9 +181,6 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
             logger.info(f"New Google user: id={user.id}")
 
         token = create_access_token({"sub": str(user.id)})
-
-        # Award daily login XP
-        add_xp(db, user, "daily_login")
 
         return _user_response(user, token)
 
