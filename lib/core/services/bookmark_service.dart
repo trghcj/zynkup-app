@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 
 class BookmarkService {
@@ -154,5 +155,33 @@ class BookmarkService {
     _cachedPostIds!.remove(id);
     await prefs.setString(_postsKey, jsonEncode(posts));
     bookmarkUpdateNotifier.value++;
+  }
+
+  static void showBookmarkToast(
+    BuildContext context, {
+    required bool isBookmarked,
+    String itemType = 'Post',
+  }) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isBookmarked
+              ? '$itemType saved to bookmarks.'
+              : '$itemType removed from bookmarks.',
+          style: const TextStyle(
+            color: Color(0xFF0E1117),
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        backgroundColor: ZynkColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 }

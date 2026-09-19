@@ -593,17 +593,10 @@ class _FeedTabState extends State<FeedTab> {
                         onBookmark: () async {
                           final bookmarked = await BookmarkService.togglePostBookmark(post);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  bookmarked
-                                      ? 'Post saved to bookmarks.'
-                                      : 'Post removed from bookmarks.',
-                                ),
-                                duration: const Duration(seconds: 2),
-                                behavior: SnackBarBehavior.floating,
-                              ),
+                            BookmarkService.showBookmarkToast(
+                              context,
+                              isBookmarked: bookmarked,
+                              itemType: 'Post',
                             );
                           }
                           setState(() {});

@@ -55,7 +55,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final bookmarked = await BookmarkService.toggleEventBookmark(_event);
     if (mounted) {
       setState(() => _isSaved = bookmarked);
-      _snack(_isSaved ? 'Event saved to bookmarks.' : 'Event removed from bookmarks.');
+      BookmarkService.showBookmarkToast(
+        context,
+        isBookmarked: _isSaved,
+        itemType: 'Event',
+      );
     }
   }
 
@@ -262,10 +266,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   void _snack(String message, {bool error = false}) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: error ? ZynkColors.error : ZynkColors.success,
+        content: Text(
+          message,
+          style: TextStyle(
+            color: error ? Colors.white : const Color(0xFF0E1117),
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        backgroundColor: error ? ZynkColors.error : ZynkColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

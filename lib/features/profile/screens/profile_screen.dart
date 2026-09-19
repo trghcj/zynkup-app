@@ -17,6 +17,7 @@ import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
 import 'package:zynkup/core/services/bookmark_service.dart';
 import 'package:intl/intl.dart';
+import 'package:zynkup/features/feed/screens/post_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final int? userId;
@@ -1268,69 +1269,11 @@ class _OverviewTab extends StatelessWidget {
     final unlockedBadges = _profileBadges(
       user,
     ).where((badge) => badge.unlocked).take(5).toList();
-    final college = (user['college'] as String?)?.trim() ?? '';
-    final hasCollege = college.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'College / University',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              if (isMe)
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit,
-                    size: 16,
-                    color: ZynkColors.gold,
-                  ),
-                  onPressed: () => _showEditCollegeDialog(
-                    context,
-                    college,
-                    onBioUpdated,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                Icons.school_rounded,
-                size: 16,
-                color: hasCollege
-                    ? ZynkColors.primary
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  hasCollege
-                      ? college
-                      : (isMe ? 'No college specified. Tap edit to add.' : 'Not specified'),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                          alpha: hasCollege ? 0.85 : 0.55,
-                        ),
-                    fontSize: 14,
-                    fontWeight: hasCollege ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -2166,6 +2109,28 @@ class _BookmarksTabState extends State<_BookmarksTab> {
     }
   }
 
+  Future<void> _handleRemoveEventBookmark(String eventId) async {
+    await BookmarkService.removeEventBookmark(eventId);
+    _loadBookmarks();
+    if (!mounted) return;
+    BookmarkService.showBookmarkToast(
+      context,
+      isBookmarked: false,
+      itemType: 'Event',
+    );
+  }
+
+  Future<void> _handleRemovePostBookmark(dynamic postId) async {
+    await BookmarkService.removePostBookmark(postId);
+    _loadBookmarks();
+    if (!mounted) return;
+    BookmarkService.showBookmarkToast(
+      context,
+      isBookmarked: false,
+      itemType: 'Post',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.isMe) {
@@ -2185,12 +2150,12 @@ class _BookmarksTabState extends State<_BookmarksTab> {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -2239,56 +2204,86 @@ class _BookmarksTabState extends State<_BookmarksTab> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (_filter == 'Events') ...[
-            if (_events.isEmpty)
-              const _EmptyState(
+        ),
+        const SizedBox(height: 8),
+        if (_filter == 'Events') ...[
+          if (_events.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: _EmptyState(
                 icon: Icons.bookmark_border_rounded,
                 title: 'No Saved Events',
                 message:
                     'Tap the bookmark icon on any event to save it for quick access.',
-              )
-            else
-              ListView.separated(
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _events.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
+                itemBuilder: (_, index) {
                   final event = _events[index];
                   return _SavedEventCard(
                     event: event,
-                    onRemove: () =>
-                        BookmarkService.removeEventBookmark(event.id),
+                    onRemove: () => _handleRemoveEventBookmark(event.id),
                   );
                 },
               ),
-          ] else ...[
-            if (_posts.isEmpty)
-              const _EmptyState(
+            ),
+        ] else ...[
+          if (_posts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: _EmptyState(
                 icon: Icons.bookmark_border_rounded,
                 title: 'No Saved Posts',
                 message:
                     'Tap the save button on any feed post to access it here.',
-              )
-            else
-              ListView.separated(
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _posts.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1.0,
+                ),
                 itemBuilder: (context, index) {
                   final post = _posts[index];
-                  return _SavedPostCard(
+                  final rawId = post['id'];
+                  final postId = rawId is int
+                      ? rawId
+                      : (int.tryParse(rawId?.toString() ?? '') ?? 0);
+                  return _SavedPostGridItem(
                     post: post,
-                    onRemove: () =>
-                        BookmarkService.removePostBookmark(post['id']),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PostDetailScreen(
+                            postId: postId,
+                            initialPost: post,
+                          ),
+                        ),
+                      );
+                    },
+                    onRemove: () => _handleRemovePostBookmark(rawId),
                   );
                 },
               ),
-          ],
+            ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -2485,35 +2480,176 @@ class _SavedEventCard extends StatelessWidget {
   }
 }
 
-class _SavedPostCard extends StatelessWidget {
+class _SavedPostGridItem extends StatelessWidget {
   final Map<String, dynamic> post;
+  final VoidCallback onTap;
   final VoidCallback onRemove;
-  const _SavedPostCard({required this.post, required this.onRemove});
+
+  const _SavedPostGridItem({
+    required this.post,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  static String? _getYouTubeId(String? url) {
+    if (url == null || url.isEmpty) return null;
+    final regExp = RegExp(
+      r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(url);
+    return match?.group(1);
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String authorName = post['author_name'] ?? 'Anonymous';
-    final String? authorAvatar = post['author_avatar'];
-    final String content = post['content'] ?? '';
-    final String? imageUrl = post['image_url'];
-    final int likes = post['likes'] ?? 0;
-    final String timeAgo =
-        ZynkDateUtils.formatTimeAgo(post['created_at'] as String?);
+    final bannerUrl = (post['banner_url'] as String?)?.trim();
+    final imageUrl = (post['image_url'] as String?)?.trim();
+    final linkUrl = (post['link_url'] as String?)?.trim();
+    final ytId = _getYouTubeId(linkUrl);
+    final ytThumbnail = ytId != null ? 'https://img.youtube.com/vi/$ytId/hqdefault.jpg' : null;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    final mediaUrl = (bannerUrl != null && bannerUrl.isNotEmpty)
+        ? bannerUrl
+        : (imageUrl != null && imageUrl.isNotEmpty)
+            ? imageUrl
+            : ytThumbnail;
+
+    final isVideo = ytThumbnail != null;
+    final authorName = (post['author_name'] as String?) ?? 'User';
+    final authorAvatar = (post['author_avatar'] as String?)?.trim();
+    final content = (post['content'] as String? ?? '').trim();
+    final likes = post['likes'] as int? ?? 0;
+
+    return InkWell(
+      onTap: onTap,
+      onLongPress: () => _showContextMenu(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
           ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (mediaUrl != null && mediaUrl.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: mediaUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  color: isDark ? ZynkColors.darkSurface : const Color(0xFFE2E8F0),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: ZynkColors.primary),
+                    ),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => _buildTextFallback(context, isDark, authorName, authorAvatar, content),
+              )
+            else
+              _buildTextFallback(context, isDark, authorName, authorAvatar, content),
+
+            // Vignette gradient overlay at bottom with stats and bookmark indicator
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.transparent, Colors.black87],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (likes > 0) ...[
+                      const Icon(Icons.favorite_rounded, size: 10, color: Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        '$likes',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                    ] else
+                      const Spacer(),
+                    const Icon(
+                      Icons.bookmark_rounded,
+                      size: 13,
+                      color: ZynkColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Top-right media badge (Video / Gallery / Text)
+            Positioned(
+              top: 5,
+              right: 5,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Icon(
+                  isVideo
+                      ? Icons.play_arrow_rounded
+                      : (mediaUrl != null
+                          ? (bannerUrl != null && imageUrl != null
+                              ? Icons.filter_none_rounded
+                              : Icons.image_rounded)
+                          : Icons.article_rounded),
+                  size: 11,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextFallback(
+    BuildContext context,
+    bool isDark,
+    String authorName,
+    String? authorAvatar,
+    String content,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [ZynkColors.darkSurface, ZynkColors.darkSurface2]
+              : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2521,109 +2657,93 @@ class _SavedPostCard extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                radius: 18,
-                backgroundImage:
-                    (authorAvatar != null && authorAvatar.isNotEmpty)
-                        ? CachedNetworkImageProvider(authorAvatar)
-                        : null,
-                backgroundColor: ZynkColors.primary.withValues(alpha: 0.15),
+                radius: 9,
+                backgroundImage: (authorAvatar != null && authorAvatar.isNotEmpty)
+                    ? CachedNetworkImageProvider(authorAvatar)
+                    : null,
+                backgroundColor: ZynkColors.primary.withValues(alpha: 0.2),
                 child: (authorAvatar == null || authorAvatar.isEmpty)
                     ? Text(
                         authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: ZynkColors.primary,
-                        ),
+                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: ZynkColors.primary),
                       )
                     : null,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 4),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      authorName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      timeAgo,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  authorName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.bookmark_rounded,
-                  color: ZynkColors.primary,
-                  size: 22,
-                ),
-                tooltip: 'Remove bookmark',
-                onPressed: onRemove,
               ),
             ],
           ),
-          if (content.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              content,
-              maxLines: 4,
+          const SizedBox(height: 5),
+          Expanded(
+            child: Text(
+              content.isNotEmpty ? content : 'Zynkup Post',
+              maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 14,
-                height: 1.4,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9),
+                fontSize: 10,
+                height: 1.25,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
               ),
             ),
-          ],
-          if (imageUrl != null && imageUrl.trim().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                height: 160,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
-                  height: 160,
-                  color: isDark
-                      ? ZynkColors.darkSurface2
-                      : const Color(0xFFF1F5F9),
-                ),
-                errorWidget: (_, __, ___) => const SizedBox(),
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(Icons.favorite_rounded, size: 14, color: ZynkColors.orange),
-              const SizedBox(width: 4),
-              Text(
-                '$likes',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                ),
-              ),
-            ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showContextMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: ZynkColors.darkMuted.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.fullscreen_rounded, color: ZynkColors.primary),
+              title: const Text('Open Post', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onTap();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.bookmark_remove_rounded, color: ZynkColors.error),
+              title: const Text('Remove from Bookmarks', style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onRemove();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
