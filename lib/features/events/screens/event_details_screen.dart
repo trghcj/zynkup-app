@@ -19,6 +19,7 @@ import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/features/events/screens/event_participants_screen.dart';
 import 'package:zynkup/features/events/widgets/edit_event_sheet.dart';
+import 'package:zynkup/core/services/bookmark_service.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
@@ -50,11 +51,28 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   bool _isCreator = false;
   bool _isSaved = false;
 
-  void _toggleSave() {
-    setState(() => _isSaved = !_isSaved);
-    _snack(_isSaved ? 'Event saved to bookmarks.' : 'Event removed from bookmarks.');
+  Future<void> _toggleSave() async {
+    final bookmarked = await BookmarkService.toggleEventBookmark(_event);
+    if (mounted) {
+      setState(() => _isSaved = bookmarked);
+      _snack(_isSaved ? 'Event saved to bookmarks.' : 'Event removed from bookmarks.');
+    }
   }
 
+  void _checkBookmarkStatus() {
+    _isSaved = BookmarkService.isEventBookmarkedSync(_event.id);
+    BookmarkService.isEventBookmarked(_event.id).then((saved) {
+      if (mounted) setState(() => _isSaved = saved);
+    });
+  }
+
+  void _onBookmarkUpdated() {
+    if (mounted) {
+      setState(() {
+        _isSaved = BookmarkService.isEventBookmarkedSync(_event.id);
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -73,8 +91,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         organizerId: '',
       );
     }
+    _checkBookmarkStatus();
     _load();
     ApiService.eventUpdated.addListener(_onEventUpdated);
+    BookmarkService.bookmarkUpdateNotifier.addListener(_onBookmarkUpdated);
   }
 
   void _onEventUpdated() {
@@ -83,12 +103,14 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       setState(() {
         _event = Event.fromJson(updated);
       });
+      _checkBookmarkStatus();
     }
   }
 
   @override
   void dispose() {
     ApiService.eventUpdated.removeListener(_onEventUpdated);
+    BookmarkService.bookmarkUpdateNotifier.removeListener(_onBookmarkUpdated);
     super.dispose();
   }
 
