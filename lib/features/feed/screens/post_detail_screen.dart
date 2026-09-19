@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
+import 'package:zynkup/core/services/bookmark_service.dart';
 import 'package:zynkup/features/feed/screens/feed_tab.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -109,6 +110,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     } catch (_) {}
   }
 
+  Future<void> _handleBookmark() async {
+    if (_post == null) return;
+    final bookmarked = await BookmarkService.togglePostBookmark(_post!);
+    if (!mounted) return;
+    BookmarkService.showBookmarkToast(
+      context,
+      isBookmarked: bookmarked,
+      itemType: 'Post',
+    );
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -174,6 +187,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           children: [
                             FeedPostCard(
                               post: _post!,
+                              isBookmarked: BookmarkService.isPostBookmarkedSync(widget.postId),
+                              onBookmark: _handleBookmark,
                               onLike: () async {
                                 if (!ApiService.hasToken) {
                                   showLoginPrompt(context, message: 'Join the campus to like this post.');

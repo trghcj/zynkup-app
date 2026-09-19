@@ -347,6 +347,11 @@ class AppTheme {
       dividerColor: ZynkColors.darkBorder,
       snackBarTheme: SnackBarThemeData(
         backgroundColor: ZynkColors.darkSurface2,
+        contentTextStyle: const TextStyle(color: ZynkColors.darkText, fontWeight: FontWeight.w500),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ZynkRadius.md),
+          side: const BorderSide(color: ZynkColors.darkBorder),
+        ),
         behavior: SnackBarBehavior.floating,
       ),
       canvasColor: ZynkColors.darkSurface,

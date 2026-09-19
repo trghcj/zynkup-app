@@ -17,6 +17,11 @@ import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
 import 'package:zynkup/core/services/bookmark_service.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:share_plus/share_plus.dart';
+import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
+import 'package:zynkup/features/feed/screens/feed_tab.dart';
+import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   final int? userId;
@@ -1268,69 +1273,11 @@ class _OverviewTab extends StatelessWidget {
     final unlockedBadges = _profileBadges(
       user,
     ).where((badge) => badge.unlocked).take(5).toList();
-    final college = (user['college'] as String?)?.trim() ?? '';
-    final hasCollege = college.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'College / University',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              if (isMe)
-                IconButton(
-                  icon: const Icon(
-                    Icons.edit,
-                    size: 16,
-                    color: ZynkColors.gold,
-                  ),
-                  onPressed: () => _showEditCollegeDialog(
-                    context,
-                    college,
-                    onBioUpdated,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                Icons.school_rounded,
-                size: 16,
-                color: hasCollege
-                    ? ZynkColors.primary
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  hasCollege
-                      ? college
-                      : (isMe ? 'No college specified. Tap edit to add.' : 'Not specified'),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                          alpha: hasCollege ? 0.85 : 0.55,
-                        ),
-                    fontSize: 14,
-                    fontWeight: hasCollege ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -2166,6 +2113,149 @@ class _BookmarksTabState extends State<_BookmarksTab> {
     }
   }
 
+  void _showComments(Map<String, dynamic> post) {
+    if (!ApiService.hasToken) {
+      showLoginPrompt(context, message: 'Join the campus to comment on posts.');
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PostCommentsSheet(
+        postId: post['id'],
+        authorName: post['author_name'] ?? 'Anonymous',
+        authorAvatar: post['author_avatar'],
+        postContent: post['content'] ?? '',
+        authorId: post['author_id'],
+      ),
+    );
+  }
+
+  Future<void> _sharePost(Map<String, dynamic> post) async {
+    final postId = post['id'];
+    final baseUrl = kIsWeb ? Uri.base.origin : 'https://zynkup-app.vercel.app';
+    final shareUrl = '$baseUrl/feed/$postId';
+    final snippet = (post['content'] ?? '').toString().trim();
+    final text = snippet.isNotEmpty
+        ? '$snippet\n\nCheck out this post on Zynkup:\n$shareUrl'
+        : 'Check out this post on Zynkup:\n$shareUrl';
+    try {
+      await Share.share(text);
+    } catch (_) {}
+  }
+
+  void _showMoreOptions(Map<String, dynamic> post) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: ZynkColors.darkMuted.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.bookmark_remove_rounded,
+                  color: ZynkColors.primary,
+                ),
+                title: const Text(
+                  'Remove from Bookmarks',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await BookmarkService.removePostBookmark(post['id']);
+                  _loadBookmarks();
+                  if (mounted) {
+                    BookmarkService.showBookmarkToast(
+                      context,
+                      isBookmarked: false,
+                      itemType: 'Post',
+                    );
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.flag_outlined,
+                  color: ZynkColors.error,
+                ),
+                title: const Text(
+                  'Report Bad Content',
+                  style: TextStyle(
+                    color: ZynkColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  if (!ApiService.hasToken) {
+                    showLoginPrompt(context, message: 'Join the campus to report content.');
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Report received. We will review this post.',
+                        style: TextStyle(
+                          color: Color(0xFF0E1117),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      backgroundColor: ZynkColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleRemoveEventBookmark(String eventId) async {
+    await BookmarkService.removeEventBookmark(eventId);
+    _loadBookmarks();
+    if (!mounted) return;
+    BookmarkService.showBookmarkToast(
+      context,
+      isBookmarked: false,
+      itemType: 'Event',
+    );
+  }
+
+  Future<void> _handleRemovePostBookmark(dynamic postId) async {
+    await BookmarkService.removePostBookmark(postId);
+    _loadBookmarks();
+    if (!mounted) return;
+    BookmarkService.showBookmarkToast(
+      context,
+      isBookmarked: false,
+      itemType: 'Post',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.isMe) {
@@ -2185,12 +2275,12 @@ class _BookmarksTabState extends State<_BookmarksTab> {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -2239,56 +2329,129 @@ class _BookmarksTabState extends State<_BookmarksTab> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (_filter == 'Events') ...[
-            if (_events.isEmpty)
-              const _EmptyState(
+        ),
+        const SizedBox(height: 8),
+        if (_filter == 'Events') ...[
+          if (_events.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: _EmptyState(
                 icon: Icons.bookmark_border_rounded,
                 title: 'No Saved Events',
                 message:
                     'Tap the bookmark icon on any event to save it for quick access.',
-              )
-            else
-              ListView.separated(
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _events.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
+                itemBuilder: (_, index) {
                   final event = _events[index];
                   return _SavedEventCard(
                     event: event,
-                    onRemove: () =>
-                        BookmarkService.removeEventBookmark(event.id),
+                    onRemove: () => _handleRemoveEventBookmark(event.id),
                   );
                 },
               ),
-          ] else ...[
-            if (_posts.isEmpty)
-              const _EmptyState(
+            ),
+        ] else ...[
+          if (_posts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: _EmptyState(
                 icon: Icons.bookmark_border_rounded,
                 title: 'No Saved Posts',
                 message:
                     'Tap the save button on any feed post to access it here.',
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _posts.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final post = _posts[index];
-                  return _SavedPostCard(
-                    post: post,
-                    onRemove: () =>
-                        BookmarkService.removePostBookmark(post['id']),
-                  );
-                },
               ),
-          ],
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _posts.length,
+              itemBuilder: (_, index) {
+                final post = _posts[index];
+                return FeedPostCard(
+                  post: post,
+                  isBookmarked: true,
+                  onBookmark: () => _handleRemovePostBookmark(post['id']),
+                  onLike: () async {
+                    if (!ApiService.hasToken) {
+                      showLoginPrompt(
+                        context,
+                        message: 'Join the campus to like this post.',
+                      );
+                      return;
+                    }
+                    final postId = post['id'] as int?;
+                    if (postId != null) {
+                      final isLiked = post['is_liked'] == true;
+                      setState(() {
+                        post['is_liked'] = !isLiked;
+                        post['likes'] =
+                            (post['likes'] ?? 0) + (isLiked ? -1 : 1);
+                      });
+                      await ApiService.likeFeedPost(postId);
+                    }
+                  },
+                  onReply: () => _showComments(post),
+                  onShare: () => _sharePost(post),
+                  onMore: () => _showMoreOptions(post),
+                  onReact: (emoji) async {
+                    if (!ApiService.hasToken) {
+                      showLoginPrompt(
+                        context,
+                        message: 'Join the campus to react.',
+                      );
+                      return;
+                    }
+                    final postId = post['id'] as int?;
+                    if (postId == null) return;
+                    final oldReaction = post['user_reaction'] as String?;
+                    setState(() {
+                      post['user_reaction'] =
+                          (oldReaction == emoji) ? null : emoji;
+                      final reactions =
+                          post['reactions'] as Map<String, dynamic>? ?? {};
+                      if (oldReaction != null) {
+                        reactions[oldReaction] =
+                            ((reactions[oldReaction] as int?) ?? 1) - 1;
+                        if (reactions[oldReaction] <= 0) {
+                          reactions.remove(oldReaction);
+                        }
+                      }
+                      if (oldReaction != emoji) {
+                        reactions[emoji] =
+                            ((reactions[emoji] as int?) ?? 0) + 1;
+                      }
+                      post['reactions'] = reactions;
+                    });
+                    await ApiService.reactToFeedPost(postId, emoji);
+                  },
+                  onVote: (idx) async {
+                    if (!ApiService.hasToken) {
+                      showLoginPrompt(
+                        context,
+                        message: 'Join the campus to vote.',
+                      );
+                      return;
+                    }
+                    final postId = post['id'] as int?;
+                    if (postId == null) return;
+                    await ApiService.votePoll(postId, idx);
+                    _loadBookmarks();
+                  },
+                );
+              },
+            ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -2480,150 +2643,6 @@ class _SavedEventCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SavedPostCard extends StatelessWidget {
-  final Map<String, dynamic> post;
-  final VoidCallback onRemove;
-  const _SavedPostCard({required this.post, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String authorName = post['author_name'] ?? 'Anonymous';
-    final String? authorAvatar = post['author_avatar'];
-    final String content = post['content'] ?? '';
-    final String? imageUrl = post['image_url'];
-    final int likes = post['likes'] ?? 0;
-    final String timeAgo =
-        ZynkDateUtils.formatTimeAgo(post['created_at'] as String?);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundImage:
-                    (authorAvatar != null && authorAvatar.isNotEmpty)
-                        ? CachedNetworkImageProvider(authorAvatar)
-                        : null,
-                backgroundColor: ZynkColors.primary.withValues(alpha: 0.15),
-                child: (authorAvatar == null || authorAvatar.isEmpty)
-                    ? Text(
-                        authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: ZynkColors.primary,
-                        ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      authorName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      timeAgo,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.bookmark_rounded,
-                  color: ZynkColors.primary,
-                  size: 22,
-                ),
-                tooltip: 'Remove bookmark',
-                onPressed: onRemove,
-              ),
-            ],
-          ),
-          if (content.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              content,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.4,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9),
-              ),
-            ),
-          ],
-          if (imageUrl != null && imageUrl.trim().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                height: 160,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
-                  height: 160,
-                  color: isDark
-                      ? ZynkColors.darkSurface2
-                      : const Color(0xFFF1F5F9),
-                ),
-                errorWidget: (_, __, ___) => const SizedBox(),
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(Icons.favorite_rounded, size: 14, color: ZynkColors.orange),
-              const SizedBox(width: 4),
-              Text(
-                '$likes',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
