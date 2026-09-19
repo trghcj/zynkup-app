@@ -22,6 +22,7 @@ import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
+import 'package:zynkup/core/services/bookmark_service.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -41,7 +42,19 @@ class _FeedTabState extends State<FeedTab> {
   @override
   void initState() {
     super.initState();
+    BookmarkService.init();
+    BookmarkService.bookmarkUpdateNotifier.addListener(_onBookmarksChanged);
     _load();
+  }
+
+  void _onBookmarksChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    BookmarkService.bookmarkUpdateNotifier.removeListener(_onBookmarksChanged);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -576,6 +589,25 @@ class _FeedTabState extends State<FeedTab> {
                       final post = filteredPosts[index] as Map<String, dynamic>;
                       return FeedPostCard(
                         post: post,
+                        isBookmarked: BookmarkService.isPostBookmarkedSync(post['id']),
+                        onBookmark: () async {
+                          final bookmarked = await BookmarkService.togglePostBookmark(post);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  bookmarked
+                                      ? 'Post saved to bookmarks.'
+                                      : 'Post removed from bookmarks.',
+                                ),
+                                duration: const Duration(seconds: 2),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                          setState(() {});
+                        },
                         onLike: () async {
                           if (!ApiService.hasToken) {
                             showLoginPrompt(
@@ -1303,6 +1335,8 @@ class FeedPostCard extends StatelessWidget {
   final VoidCallback onMore;
   final Function(String) onReact;
   final Function(int) onVote;
+  final VoidCallback? onBookmark;
+  final bool isBookmarked;
 
   const FeedPostCard({
     super.key,
@@ -1313,6 +1347,8 @@ class FeedPostCard extends StatelessWidget {
     required this.onMore,
     required this.onReact,
     required this.onVote,
+    this.onBookmark,
+    this.isBookmarked = false,
   });
 
   String _timeAgo(String? dateTimeStr) {
@@ -1550,6 +1586,21 @@ class FeedPostCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
+                if (onBookmark != null) ...[
+                  GestureDetector(
+                    onTap: onBookmark,
+                    child: ActionIcon(
+                      icon: isBookmarked
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      iconColor: isBookmarked
+                          ? ZynkColors.primary
+                          : ZynkColors.darkMuted,
+                      label: 'Save',
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                ],
                 GestureDetector(
                   onTap: onShare,
                   child: const ActionIcon(
