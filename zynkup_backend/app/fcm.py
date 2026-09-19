@@ -55,12 +55,25 @@ def send_fcm_notification(token: str, title: str, body: str, data: dict = None):
         logger.error(f"Error sending FCM message: {e}")
         return False
 
-def create_notification_helper(db, user_id: int, title: str, body: str, type: str, data: dict = None):
+def create_notification_helper(db, user_id: int, title: str, body: str, type: str, data: dict = None, send_push: bool = True):
     """
     Creates a persistent Notification record in the DB and attempts to deliver an FCM push notification.
+    Deduplicates identical notifications within a 5-minute window to avoid spamming the user.
     """
+    from datetime import datetime, timedelta
     from app import models
     try:
+        # Check for recent identical notification within 5 minutes to avoid duplicates
+        five_mins_ago = datetime.utcnow() - timedelta(minutes=5)
+        existing = db.query(models.Notification).filter(
+            models.Notification.user_id == user_id,
+            models.Notification.type == type,
+            models.Notification.title == title,
+            models.Notification.created_at >= five_mins_ago
+        ).first()
+        if existing:
+            return existing
+
         notif = models.Notification(
             user_id=user_id,
             title=title,
@@ -72,20 +85,18 @@ def create_notification_helper(db, user_id: int, title: str, body: str, type: st
         db.commit()
         db.refresh(notif)
 
-        recipient = db.query(models.User).filter(models.User.id == user_id).first()
-        if recipient and recipient.fcm_token:
-            payload = data or {}
-            payload["notification_id"] = str(notif.id)
-            payload["type"] = type
-            send_fcm_notification(
-                token=recipient.fcm_token,
-                title=title,
-                body=body,
-                data=payload
-            )
-
-        # WebSocket notifications temporarily disabled due to missing ws_manager
-        # (Remove this comment and restore when ws_manager is implemented)
+        if send_push:
+            recipient = db.query(models.User).filter(models.User.id == user_id).first()
+            if recipient and recipient.fcm_token:
+                payload = data or {}
+                payload["notification_id"] = str(notif.id)
+                payload["type"] = type
+                send_fcm_notification(
+                    token=recipient.fcm_token,
+                    title=title,
+                    body=body,
+                    data=payload
+                )
 
         return notif
     except Exception as e:

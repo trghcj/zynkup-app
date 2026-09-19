@@ -306,7 +306,6 @@ class _HomeTabState extends State<HomeTab> {
     final upcoming = filteredEvents.where((event) => event.date.isAfter(DateTime.now())).toList();
     final past = filteredEvents.where((event) => event.date.isBefore(DateTime.now())).toList();
     past.sort((a, b) => b.date.compareTo(a.date));
-    final displayedPast = isDesktop ? past.take(3).toList() : past.take(2).toList();
 
     return SliverToBoxAdapter(
       child: Center(
@@ -383,91 +382,17 @@ class _HomeTabState extends State<HomeTab> {
                     : Column(children: upcoming.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
                 ),
               
-              if (past.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                       Text(
-                        'Previous Events',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      if (past.length > displayedPast.length)
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PastEventsScreen(initialEvents: _events),
-                              ),
-                            );
-                          },
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'View All',
-                                style: TextStyle(
-                                  color: ZynkColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.arrow_forward_rounded, size: 14, color: ZynkColors.primary),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: isDesktop 
-                    ? GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, mainAxisSpacing: 20, crossAxisSpacing: 20, mainAxisExtent: 190),
-                        itemCount: displayedPast.length,
-                        itemBuilder: (context, index) => EventCardWidget(event: displayedPast[index], compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: displayedPast[index])))),
-                      )
-                    : Column(children: displayedPast.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, compact: true, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
-                ),
-                if (past.length > displayedPast.length)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                    child: Center(
-                      child: TextButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PastEventsScreen(initialEvents: _events),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.history_rounded, size: 16, color: ZynkColors.primary),
-                        label: Text(
-                          'View All Past Events (${past.length}) →',
-                          style: const TextStyle(
-                            color: ZynkColors.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-              
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
               _ClubsSection(clubs: _clubs, onRefresh: _load),
+
+              if (past.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _PastEventsSection(
+                  pastEvents: past,
+                  allEvents: _events,
+                  isDesktop: isDesktop,
+                ),
+              ],
               const SizedBox(height: 32),
             ],
           ),
@@ -734,20 +659,23 @@ class _ClubsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final accentGreen = isLight ? const Color(0xFF65A30D) : ZynkColors.primary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-               Row(
+              Row(
                 children: [
-                  Icon(Icons.groups_rounded, color: ZynkColors.primary, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.groups_rounded, color: accentGreen, size: 20),
+                  const SizedBox(width: 8),
                   Text(
-                    'Campus Clubs',
+                    'Campus Communities',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 18,
@@ -757,27 +685,27 @@ class _ClubsSection extends StatelessWidget {
                   ),
                 ],
               ),
-              TextButton(
-                onPressed: () async {
+              GestureDetector(
+                onTap: () async {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const AllClubsScreen()),
                   );
                   onRefresh();
                 },
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Clubs',
+                      'Explore Clubs',
                       style: TextStyle(
-                        color: ZynkColors.primary,
-                        fontWeight: FontWeight.w600,
+                        color: accentGreen,
+                        fontWeight: FontWeight.w700,
                         fontSize: 13,
                       ),
                     ),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_rounded, size: 14, color: ZynkColors.primary),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_rounded, size: 14, color: accentGreen),
                   ],
                 ),
               ),
@@ -788,14 +716,14 @@ class _ClubsSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
-              height: 100,
+              height: 90,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(ZynkRadius.lg),
                 border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
               ),
-              child:  Center(
+              child: Center(
                 child: Text(
                   'No clubs founded yet.',
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 13),
@@ -805,7 +733,7 @@ class _ClubsSection extends StatelessWidget {
           )
         else
           SizedBox(
-            height: 160,
+            height: 155,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -896,8 +824,260 @@ class _ClubsSection extends StatelessWidget {
               },
             ),
           ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+class _PastEventsSection extends StatelessWidget {
+  final List<Event> pastEvents;
+  final List<Event> allEvents;
+  final bool isDesktop;
+
+  const _PastEventsSection({
+    required this.pastEvents,
+    required this.allEvents,
+    required this.isDesktop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (pastEvents.isEmpty) return const SizedBox.shrink();
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final accentGreen = isLight ? const Color(0xFF65A30D) : ZynkColors.primary;
+    final displayedEvents = pastEvents.take(10).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.history_rounded, color: accentGreen, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Previous Events',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PastEventsScreen(initialEvents: allEvents),
+                    ),
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'View All (${pastEvents.length})',
+                      style: TextStyle(
+                        color: accentGreen,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_rounded, size: 14, color: accentGreen),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: displayedEvents.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final event = displayedEvents[index];
+              return _PastEventMiniCard(
+                event: event,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => EventDetailsScreen(event: event)),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PastEventMiniCard extends StatelessWidget {
+  final Event event;
+  final VoidCallback onTap;
+
+  const _PastEventMiniCard({
+    required this.event,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = event.imageUrls.isNotEmpty;
+    final imageUrl = hasImage ? event.imageUrls.first : null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 230,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Image / Header Banner
+            SizedBox(
+              height: 95,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (imageUrl != null)
+                    CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _fallbackCover(context),
+                    )
+                  else
+                    _fallbackCover(context),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.4),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.6),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        event.category.name.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle_outline_rounded, color: Color(0xFFD9F99D), size: 10),
+                          SizedBox(width: 3),
+                          Text(
+                            'Concluded',
+                            style: TextStyle(color: Color(0xFFD9F99D), fontSize: 9, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Bottom Info
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.place_outlined, size: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          event.venue,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _fallbackCover(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF334155), Color(0xFF1E293B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.event_available_rounded, size: 28, color: Colors.white24),
+      ),
     );
   }
 }

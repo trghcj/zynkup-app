@@ -1,8 +1,12 @@
 import math
 import json
+import threading
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app import models
+
+_daily_login_lock = threading.Lock()
+_awarded_daily_logins = set()
 
 XP_RULES = {
     "create_event": 50,
@@ -143,20 +147,30 @@ def calculate_level(xp: int) -> int:
     return math.floor(math.sqrt(xp_val / 25)) + 1
 
 def add_xp(db: Session, user: models.User, action: str, amount: int = None):
+    user_key = None
     try:
         if amount is None:
             amount = XP_RULES.get(action, 0)
 
-        # De-duplicate daily login XP (only once per calendar day in UTC)
+        # De-duplicate daily login XP (strictly once per calendar day in UTC)
         if action == "daily_login":
-            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
-            already_awarded = db.query(models.ActivityLog).filter(
-                models.ActivityLog.user_id == user.id,
-                models.ActivityLog.action == "daily_login",
-                models.ActivityLog.created_at >= today_start
-            ).first()
-            if already_awarded:
-                return
+            today_date = datetime.now(timezone.utc).date()
+            user_key = (user.id, str(today_date))
+            with _daily_login_lock:
+                if user_key in _awarded_daily_logins:
+                    return
+                # Check DB under lock
+                today_start = datetime.combine(today_date, datetime.min.time())
+                already_awarded = db.query(models.ActivityLog).filter(
+                    models.ActivityLog.user_id == user.id,
+                    models.ActivityLog.action == "daily_login",
+                    models.ActivityLog.created_at >= today_start
+                ).first()
+                if already_awarded:
+                    _awarded_daily_logins.add(user_key)
+                    return
+                # Reserve immediately to block parallel thread race conditions
+                _awarded_daily_logins.add(user_key)
 
         # Check for first event bonus
         bonus_awarded = False
@@ -194,16 +208,22 @@ def add_xp(db: Session, user: models.User, action: str, amount: int = None):
                 title = f"⚡ XP Gained! (+{amount} XP)"
                 body = f"You gained {amount} XP from {action.replace('_', ' ')}."
 
+            # Suppress OS push notifications on device lock screen for self-initiated actions
+            # (they will still appear cleanly in the in-app notification center)
+            SELF_ACTIONS_NO_PUSH = {"daily_login", "create_post", "create_comment", "register_event", "complete_profile"}
+            should_push = action not in SELF_ACTIONS_NO_PUSH
+
             create_notification_helper(
                 db=db,
                 user_id=user.id,
                 title=title,
                 body=body,
                 type=XP_GAINED,
-                data={"xp_gained": str(amount), "action": action, "total_xp": str(user.xp)}
+                data={"xp_gained": str(amount), "action": action, "total_xp": str(user.xp)},
+                send_push=should_push
             )
 
-            # Check if user leveled up
+            # Check if user leveled up (major achievement — always push!)
             if new_level > old_level:
                 create_notification_helper(
                     db=db,
@@ -211,11 +231,14 @@ def add_xp(db: Session, user: models.User, action: str, amount: int = None):
                     title=f"🎖️ Level Up! You're now Level {new_level}!",
                     body=f"Congratulations! You've reached Level {new_level}. Keep participating to unlock more badges and rank up!",
                     type=LEVEL_UP,
-                    data={"new_level": str(new_level), "old_level": str(old_level), "total_xp": str(user.xp)}
+                    data={"new_level": str(new_level), "old_level": str(old_level), "total_xp": str(user.xp)},
+                    send_push=True
                 )
         except Exception as e_xp:
             print(f"Failed to create XP notification: {e_xp}")
     except Exception as e:
+        if user_key and user_key in _awarded_daily_logins:
+            _awarded_daily_logins.discard(user_key)
         db.rollback()
         # We don't raise here — gamification should not break the core app
         print(f"GAMIFICATION ERROR: {e}")

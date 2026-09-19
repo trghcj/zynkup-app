@@ -683,124 +683,157 @@ class _FeedTabState extends State<FeedTab> {
 
   Widget _buildMobileDiscovery() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 80),
+      padding: const EdgeInsets.fromLTRB(0, 16, 0, 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 32),
-
-          // ── Trending Events ─────────────────────────────────────────────────
-          Row(
-            children: [
-              Icon(
-                Icons.local_fire_department_rounded,
-                color: Theme.of(context).brightness == Brightness.light
-                    ? const Color(0xFF65A30D)
-                    : ZynkColors.primary,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Trending Events',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 24),
           ),
-          const SizedBox(height: 12),
-          if (_loading)
-            Column(
-              children: List.generate(
-                3,
-                (i) => const Padding(
-                  padding: EdgeInsets.only(bottom: 10),
-                  child: ZSkeleton(width: double.infinity, height: 64, borderRadius: 12),
+
+          // ── Trending Events (Horizontal Carousel) ───────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? const Color(0xFF65A30D)
+                      : ZynkColors.primary,
+                  size: 18,
                 ),
+                const SizedBox(width: 8),
+                Text(
+                  'Trending Events',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_loading)
+            SizedBox(
+              height: 100,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: 3,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, __) => const ZSkeleton(width: 220, height: 100, borderRadius: 14),
               ),
             )
           else if (_events.isEmpty)
-            Text(
-              'No trending events right now.',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-                fontSize: 13,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'No trending events right now.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                  fontSize: 13,
+                ),
               ),
             )
           else
-            ..._trendingEvents.map((e) => _buildMiniEventCard(e)),
+            SizedBox(
+              height: 105,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _trendingEvents.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => _buildHorizontalEventCard(_trendingEvents[index]),
+              ),
+            ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
 
-          // ── Active Clubs ─────────────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.groups_rounded,
-                    color: Theme.of(context).brightness == Brightness.light
-                        ? const Color(0xFF65A30D)
-                        : ZynkColors.primary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Active Communities',
+          // ── Active Communities (Horizontal Carousel) ────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.groups_rounded,
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFF65A30D)
+                          : ZynkColors.primary,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Active Communities',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AllClubsScreen()),
+                    );
+                  },
+                  child: Text(
+                    'Clubs →',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 15,
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFF65A30D)
+                          : ZynkColors.primary,
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
                     ),
                   ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AllClubsScreen()),
-                  );
-                },
-                child: Text(
-                  'Clubs →',
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.light
-                        ? const Color(0xFF65A30D)
-                        : ZynkColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
           if (_loading)
-            Column(
-              children: List.generate(
-                2,
-                (i) => const Padding(
-                  padding: EdgeInsets.only(bottom: 10),
-                  child: ZSkeleton(width: double.infinity, height: 60, borderRadius: 12),
-                ),
+            SizedBox(
+              height: 85,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: 3,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, __) => const ZSkeleton(width: 160, height: 85, borderRadius: 14),
               ),
             )
           else if (_clubs.isEmpty)
-            Text(
-              'No communities found.',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-                fontSize: 13,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'No communities found.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                  fontSize: 13,
+                ),
               ),
             )
           else
-            ..._clubs.take(4).map((c) => _buildMiniClubCard(c)),
+            SizedBox(
+              height: 90,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _clubs.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => _buildHorizontalClubCard(_clubs[index]),
+              ),
+            ),
         ],
       ),
     );
@@ -1066,6 +1099,191 @@ class _FeedTabState extends State<FeedTab> {
                    Text(
                     'Campus Club',
                     style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHorizontalEventCard(dynamic event) {
+    final attendeeCount = (event['attendee_count'] as int?) ??
+        ((event['registered_users'] as List?)?.length) ?? 0;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EventDetailsScreen(event: Event.fromJson(event)),
+          ),
+        );
+      },
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(10),
+                image: event['cover_url'] != null
+                    ? DecorationImage(
+                        image: CachedNetworkImageProvider(event['cover_url']),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: event['cover_url'] == null
+                  ? Icon(
+                      Icons.event_rounded,
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFF65A30D)
+                          : ZynkColors.primary,
+                      size: 20,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    event['title'] ?? 'Unnamed Event',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        event['category'] ?? 'Event',
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.light
+                              ? const Color(0xFF65A30D)
+                              : ZynkColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (attendeeCount > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: ZynkColors.warmAccent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.local_fire_department_rounded, size: 9, color: ZynkColors.warmAccent),
+                              const SizedBox(width: 2),
+                              Text(
+                                '$attendeeCount',
+                                style: const TextStyle(
+                                  color: ZynkColors.warmAccent,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHorizontalClubCard(dynamic club) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ClubProfileScreen(
+              clubId: club['id'].toString(),
+              clubName: club['name']?.toString() ?? 'Club',
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 165,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: ZynkColors.darkSurface2,
+              backgroundImage: club['logo_url'] != null
+                  ? CachedNetworkImageProvider(club['logo_url'])
+                  : null,
+              child: club['logo_url'] == null
+                  ? Icon(
+                      Icons.groups_rounded,
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFF65A30D)
+                          : ZynkColors.primary,
+                      size: 18,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    club['name'] ?? 'Unnamed Club',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Campus Club',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
