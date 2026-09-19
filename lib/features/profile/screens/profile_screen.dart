@@ -17,11 +17,7 @@ import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
 import 'package:zynkup/core/services/bookmark_service.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:share_plus/share_plus.dart';
-import 'package:zynkup/core/widgets/login_prompt_sheet.dart';
-import 'package:zynkup/features/feed/screens/feed_tab.dart';
-import 'package:zynkup/features/feed/screens/post_comments_sheet.dart';
+import 'package:zynkup/features/feed/screens/post_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final int? userId;
@@ -2113,127 +2109,6 @@ class _BookmarksTabState extends State<_BookmarksTab> {
     }
   }
 
-  void _showComments(Map<String, dynamic> post) {
-    if (!ApiService.hasToken) {
-      showLoginPrompt(context, message: 'Join the campus to comment on posts.');
-      return;
-    }
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => PostCommentsSheet(
-        postId: post['id'],
-        authorName: post['author_name'] ?? 'Anonymous',
-        authorAvatar: post['author_avatar'],
-        postContent: post['content'] ?? '',
-        authorId: post['author_id'],
-      ),
-    );
-  }
-
-  Future<void> _sharePost(Map<String, dynamic> post) async {
-    final postId = post['id'];
-    final baseUrl = kIsWeb ? Uri.base.origin : 'https://zynkup-app.vercel.app';
-    final shareUrl = '$baseUrl/feed/$postId';
-    final snippet = (post['content'] ?? '').toString().trim();
-    final text = snippet.isNotEmpty
-        ? '$snippet\n\nCheck out this post on Zynkup:\n$shareUrl'
-        : 'Check out this post on Zynkup:\n$shareUrl';
-    try {
-      await Share.share(text);
-    } catch (_) {}
-  }
-
-  void _showMoreOptions(Map<String, dynamic> post) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: ZynkColors.darkMuted.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.bookmark_remove_rounded,
-                  color: ZynkColors.primary,
-                ),
-                title: const Text(
-                  'Remove from Bookmarks',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                onTap: () async {
-                  Navigator.pop(sheetContext);
-                  await BookmarkService.removePostBookmark(post['id']);
-                  _loadBookmarks();
-                  if (mounted) {
-                    BookmarkService.showBookmarkToast(
-                      context,
-                      isBookmarked: false,
-                      itemType: 'Post',
-                    );
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.flag_outlined,
-                  color: ZynkColors.error,
-                ),
-                title: const Text(
-                  'Report Bad Content',
-                  style: TextStyle(
-                    color: ZynkColors.error,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                onTap: () async {
-                  Navigator.pop(sheetContext);
-                  if (!ApiService.hasToken) {
-                    showLoginPrompt(context, message: 'Join the campus to report content.');
-                    return;
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text(
-                        'Report received. We will review this post.',
-                        style: TextStyle(
-                          color: Color(0xFF0E1117),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      backgroundColor: ZynkColors.primary,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _handleRemoveEventBookmark(String eventId) async {
     await BookmarkService.removeEventBookmark(eventId);
     _loadBookmarks();
@@ -2371,84 +2246,41 @@ class _BookmarksTabState extends State<_BookmarksTab> {
               ),
             )
           else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _posts.length,
-              itemBuilder: (_, index) {
-                final post = _posts[index];
-                return FeedPostCard(
-                  post: post,
-                  isBookmarked: true,
-                  onBookmark: () => _handleRemovePostBookmark(post['id']),
-                  onLike: () async {
-                    if (!ApiService.hasToken) {
-                      showLoginPrompt(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _posts.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1.0,
+                ),
+                itemBuilder: (context, index) {
+                  final post = _posts[index];
+                  final rawId = post['id'];
+                  final postId = rawId is int
+                      ? rawId
+                      : (int.tryParse(rawId?.toString() ?? '') ?? 0);
+                  return _SavedPostGridItem(
+                    post: post,
+                    onTap: () {
+                      Navigator.push(
                         context,
-                        message: 'Join the campus to like this post.',
+                        MaterialPageRoute(
+                          builder: (_) => PostDetailScreen(
+                            postId: postId,
+                            initialPost: post,
+                          ),
+                        ),
                       );
-                      return;
-                    }
-                    final postId = post['id'] as int?;
-                    if (postId != null) {
-                      final isLiked = post['is_liked'] == true;
-                      setState(() {
-                        post['is_liked'] = !isLiked;
-                        post['likes'] =
-                            (post['likes'] ?? 0) + (isLiked ? -1 : 1);
-                      });
-                      await ApiService.likeFeedPost(postId);
-                    }
-                  },
-                  onReply: () => _showComments(post),
-                  onShare: () => _sharePost(post),
-                  onMore: () => _showMoreOptions(post),
-                  onReact: (emoji) async {
-                    if (!ApiService.hasToken) {
-                      showLoginPrompt(
-                        context,
-                        message: 'Join the campus to react.',
-                      );
-                      return;
-                    }
-                    final postId = post['id'] as int?;
-                    if (postId == null) return;
-                    final oldReaction = post['user_reaction'] as String?;
-                    setState(() {
-                      post['user_reaction'] =
-                          (oldReaction == emoji) ? null : emoji;
-                      final reactions =
-                          post['reactions'] as Map<String, dynamic>? ?? {};
-                      if (oldReaction != null) {
-                        reactions[oldReaction] =
-                            ((reactions[oldReaction] as int?) ?? 1) - 1;
-                        if (reactions[oldReaction] <= 0) {
-                          reactions.remove(oldReaction);
-                        }
-                      }
-                      if (oldReaction != emoji) {
-                        reactions[emoji] =
-                            ((reactions[emoji] as int?) ?? 0) + 1;
-                      }
-                      post['reactions'] = reactions;
-                    });
-                    await ApiService.reactToFeedPost(postId, emoji);
-                  },
-                  onVote: (idx) async {
-                    if (!ApiService.hasToken) {
-                      showLoginPrompt(
-                        context,
-                        message: 'Join the campus to vote.',
-                      );
-                      return;
-                    }
-                    final postId = post['id'] as int?;
-                    if (postId == null) return;
-                    await ApiService.votePoll(postId, idx);
-                    _loadBookmarks();
-                  },
-                );
-              },
+                    },
+                    onRemove: () => _handleRemovePostBookmark(rawId),
+                  );
+                },
+              ),
             ),
         ],
       ],
@@ -2640,6 +2472,275 @@ class _SavedEventCard extends StatelessWidget {
               ),
               tooltip: 'Remove bookmark',
               onPressed: onRemove,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SavedPostGridItem extends StatelessWidget {
+  final Map<String, dynamic> post;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  const _SavedPostGridItem({
+    required this.post,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  static String? _getYouTubeId(String? url) {
+    if (url == null || url.isEmpty) return null;
+    final regExp = RegExp(
+      r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(url);
+    return match?.group(1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bannerUrl = (post['banner_url'] as String?)?.trim();
+    final imageUrl = (post['image_url'] as String?)?.trim();
+    final linkUrl = (post['link_url'] as String?)?.trim();
+    final ytId = _getYouTubeId(linkUrl);
+    final ytThumbnail = ytId != null ? 'https://img.youtube.com/vi/$ytId/hqdefault.jpg' : null;
+
+    final mediaUrl = (bannerUrl != null && bannerUrl.isNotEmpty)
+        ? bannerUrl
+        : (imageUrl != null && imageUrl.isNotEmpty)
+            ? imageUrl
+            : ytThumbnail;
+
+    final isVideo = ytThumbnail != null;
+    final authorName = (post['author_name'] as String?) ?? 'User';
+    final authorAvatar = (post['author_avatar'] as String?)?.trim();
+    final content = (post['content'] as String? ?? '').trim();
+    final likes = post['likes'] as int? ?? 0;
+
+    return InkWell(
+      onTap: onTap,
+      onLongPress: () => _showContextMenu(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (mediaUrl != null && mediaUrl.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: mediaUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  color: isDark ? ZynkColors.darkSurface : const Color(0xFFE2E8F0),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: ZynkColors.primary),
+                    ),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => _buildTextFallback(context, isDark, authorName, authorAvatar, content),
+              )
+            else
+              _buildTextFallback(context, isDark, authorName, authorAvatar, content),
+
+            // Vignette gradient overlay at bottom with stats and bookmark indicator
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.transparent, Colors.black87],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (likes > 0) ...[
+                      const Icon(Icons.favorite_rounded, size: 10, color: Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        '$likes',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                    ] else
+                      const Spacer(),
+                    const Icon(
+                      Icons.bookmark_rounded,
+                      size: 13,
+                      color: ZynkColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Top-right media badge (Video / Gallery / Text)
+            Positioned(
+              top: 5,
+              right: 5,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Icon(
+                  isVideo
+                      ? Icons.play_arrow_rounded
+                      : (mediaUrl != null
+                          ? (bannerUrl != null && imageUrl != null
+                              ? Icons.filter_none_rounded
+                              : Icons.image_rounded)
+                          : Icons.article_rounded),
+                  size: 11,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextFallback(
+    BuildContext context,
+    bool isDark,
+    String authorName,
+    String? authorAvatar,
+    String content,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [ZynkColors.darkSurface, ZynkColors.darkSurface2]
+              : [const Color(0xFFF8FAFC), const Color(0xFFE2E8F0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 9,
+                backgroundImage: (authorAvatar != null && authorAvatar.isNotEmpty)
+                    ? CachedNetworkImageProvider(authorAvatar)
+                    : null,
+                backgroundColor: ZynkColors.primary.withValues(alpha: 0.2),
+                child: (authorAvatar == null || authorAvatar.isEmpty)
+                    ? Text(
+                        authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U',
+                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: ZynkColors.primary),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  authorName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Expanded(
+            child: Text(
+              content.isNotEmpty ? content : 'Zynkup Post',
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                height: 1.25,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showContextMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: ZynkColors.darkMuted.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.fullscreen_rounded, color: ZynkColors.primary),
+              title: const Text('Open Post', style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onTap();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.bookmark_remove_rounded, color: ZynkColors.error),
+              title: const Text('Remove from Bookmarks', style: TextStyle(color: ZynkColors.error, fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onRemove();
+              },
             ),
           ],
         ),
