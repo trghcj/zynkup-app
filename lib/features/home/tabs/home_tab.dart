@@ -670,22 +670,29 @@ class _ClubsSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.groups_rounded, color: accentGreen, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Campus Communities',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.groups_rounded, color: accentGreen, size: 20),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Campus Communities',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              GestureDetector(
+              const SizedBox(width: 12),
+              InkWell(
                 onTap: () async {
                   await Navigator.push(
                     context,
@@ -693,20 +700,24 @@ class _ClubsSection extends StatelessWidget {
                   );
                   onRefresh();
                 },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Explore Clubs',
-                      style: TextStyle(
-                        color: accentGreen,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Explore',
+                        style: TextStyle(
+                          color: accentGreen,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_rounded, size: 14, color: accentGreen),
-                  ],
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded, size: 14, color: accentGreen),
+                    ],
+                  ),
                 ),
               ),
             ],
