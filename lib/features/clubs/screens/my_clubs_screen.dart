@@ -136,24 +136,25 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                         child: TextField(
                           controller: _searchController,
                           onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                           decoration: InputDecoration(
                             hintText: 'Search my clubs...',
                             hintStyle: TextStyle(
-                              color: isDark ? ZynkColors.darkMuted : const Color(0xFF94A3B8),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
                               fontSize: 14,
                             ),
                             prefixIcon: Icon(
                               Icons.search_rounded,
                               size: 20,
-                              color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                             ),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 18),
+                                    icon: Icon(
+                                      Icons.close_rounded,
+                                      size: 18,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                                    ),
                                     onPressed: () {
                                       _searchController.clear();
                                       setState(() => _searchQuery = '');
@@ -161,11 +162,19 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                                   )
                                 : null,
                             filled: true,
-                            fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF1F5F9),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            fillColor: Theme.of(context).colorScheme.surface,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
                             ),
                           ),
                         ),
@@ -173,23 +182,24 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                       const SizedBox(width: 10),
                       // Category Filter Dropdown
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0),
+                            color: Theme.of(context).colorScheme.outlineVariant,
                           ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: _selectedCategory,
-                            icon: Icon(
-                              Icons.filter_list_rounded,
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: ZynkColors.primary,
                               size: 18,
-                              color: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                             ),
-                            dropdownColor: isDark ? ZynkColors.darkSurface : Colors.white,
+                            dropdownColor: Theme.of(context).colorScheme.surface,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
                               fontSize: 13,

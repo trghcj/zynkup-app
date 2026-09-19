@@ -569,6 +569,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       fontSize: 14,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  _buildCollegeBadge(user, widget.userId == null),
                   const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -649,10 +651,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-
                       _InlineStat(
-                        count: '${user['attended'] ?? 0}',
-                        label: 'Attended',
+                        count: '${user['events_created'] ?? 0}',
+                        label: 'Created Events',
                       ),
                       Container(
                         width: 1,
@@ -661,8 +662,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                         margin: const EdgeInsets.symmetric(horizontal: 24),
                       ),
                       _InlineStat(
-                        count: '#${user['rank'] ?? 1}',
-                        label: 'Rank',
+                        count: '${user['total_registered'] ?? user['attended'] ?? 0}',
+                        label: 'Joined Events',
                       ),
                     ],
                   ),
@@ -829,6 +830,31 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
         ),
+        if (Navigator.canPop(context))
+          Positioned(
+            top: 14,
+            left: 14,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => Navigator.pop(context),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white24, width: 1),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
         if (widget.userId == null)
           Positioned(
             top: 14,
@@ -963,6 +989,217 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
   }
+
+  Widget _buildCollegeBadge(Map<String, dynamic> user, bool isMe) {
+    final college = (user['college'] as String?)?.trim() ?? '';
+    final hasCollege = college.isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: isMe
+          ? () => _showEditCollegeDialog(context, college, _load)
+          : null,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: hasCollege
+              ? (isDark
+                  ? ZynkColors.primary.withValues(alpha: 0.12)
+                  : ZynkColors.primary.withValues(alpha: 0.08))
+              : (isDark
+                  ? Theme.of(context).colorScheme.surface
+                  : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: hasCollege
+                ? ZynkColors.primary.withValues(alpha: 0.35)
+                : Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.school_rounded,
+              size: 15,
+              color: hasCollege
+                  ? ZynkColors.primary
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              hasCollege ? college : (isMe ? 'Add College' : 'No College Listed'),
+              style: TextStyle(
+                color: hasCollege
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (isMe) ...[
+              const SizedBox(width: 5),
+              Icon(
+                hasCollege ? Icons.edit_rounded : Icons.add_rounded,
+                size: 13,
+                color: ZynkColors.primary,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showEditCollegeDialog(
+  BuildContext context,
+  String currentCollege,
+  VoidCallback onUpdated,
+) async {
+  final controller = TextEditingController(text: currentCollege);
+  bool saving = false;
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        backgroundColor: Theme.of(context).brightness == Brightness.light
+            ? Colors.white
+            : ZynkColors.darkSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: ZynkColors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.school_rounded,
+                color: ZynkColors.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'College / Campus',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter your college or university name to show it on your profile and connect with campus peers.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
+                hintText: 'e.g. MAIT, IIT Delhi, DTU',
+                prefixIcon: const Icon(Icons.account_balance_outlined, size: 20),
+                filled: true,
+                fillColor: Theme.of(context).brightness == Brightness.light
+                    ? const Color(0xFFF8FAFC)
+                    : ZynkColors.darkSurface2,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: ZynkColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: saving ? null : () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: saving
+                ? null
+                : () async {
+                    setDialogState(() => saving = true);
+                    final success = await ApiService.updateProfile(
+                      college: controller.text.trim(),
+                    );
+                    if (success && ctx.mounted) {
+                      Navigator.pop(ctx, true);
+                    } else {
+                      setDialogState(() => saving = false);
+                    }
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ZynkColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: saving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+  controller.dispose();
+  if (result == true) {
+    onUpdated();
+  }
 }
 
 class _OverviewTab extends StatelessWidget {
@@ -1036,11 +1273,69 @@ class _OverviewTab extends StatelessWidget {
     final unlockedBadges = _profileBadges(
       user,
     ).where((badge) => badge.unlocked).take(5).toList();
+    final college = (user['college'] as String?)?.trim() ?? '';
+    final hasCollege = college.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'College / University',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              if (isMe)
+                IconButton(
+                  icon: const Icon(
+                    Icons.edit,
+                    size: 16,
+                    color: ZynkColors.gold,
+                  ),
+                  onPressed: () => _showEditCollegeDialog(
+                    context,
+                    college,
+                    onBioUpdated,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.school_rounded,
+                size: 16,
+                color: hasCollege
+                    ? ZynkColors.primary
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  hasCollege
+                      ? college
+                      : (isMe ? 'No college specified. Tap edit to add.' : 'Not specified'),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(
+                          alpha: hasCollege ? 0.85 : 0.55,
+                        ),
+                    fontSize: 14,
+                    fontWeight: hasCollege ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
