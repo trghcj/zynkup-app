@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -123,6 +122,21 @@ def _format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat()
 
 
+def _extract_parentheses(text: str) -> List[str]:
+    """Extracts strings inside parentheses without regex to eliminate ReDoS risk."""
+    tokens: List[str] = []
+    start = -1
+    for i, ch in enumerate(text):
+        if ch == '(':
+            start = i + 1
+        elif ch == ')' and start != -1:
+            token = text[start:i].strip()
+            if token:
+                tokens.append(token)
+            start = -1
+    return tokens
+
+
 def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
     if not user:
         return False
@@ -135,15 +149,23 @@ def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
             c_low = college_str.lower()
             if user_college in c_low or c_low in user_college:
                 return True
-            acronyms = [a.lower() for a in re.findall(r'\(([^)]+)\)', college_str)]
+
+            # Pure string extraction for parenthesized acronyms (e.g. DTU, MAIT)
+            acronyms = [a.lower() for a in _extract_parentheses(college_str)]
             if any(user_college == a or a in user_college or user_college in a for a in acronyms):
                 return True
-            parts = re.split(r'\s+(?:vs|×|x)\s+', college_str, flags=re.IGNORECASE)
+
+            # Split matchup parts using fixed substring replacement (no regex / no ReDoS)
+            norm = college_str
+            for sep in [" vs ", " VS ", " Vs ", " × ", " x ", " X "]:
+                norm = norm.replace(sep, "|||")
+            parts = [p.strip() for p in norm.split("|||") if p.strip()]
+
             for part in parts:
-                p_low = part.strip().lower()
+                p_low = part.lower()
                 if user_college in p_low or p_low in user_college:
                     return True
-                p_acros = [a.lower() for a in re.findall(r'\(([^)]+)\)', part)]
+                p_acros = [a.lower() for a in _extract_parentheses(part)]
                 if any(user_college == a or a in user_college or user_college in a for a in p_acros):
                     return True
     return False
