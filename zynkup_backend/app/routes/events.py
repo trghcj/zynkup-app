@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -122,12 +123,55 @@ def _format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat()
 
 
-def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> dict:
+def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
+    if not user:
+        return False
+    if event.creator_id == user.id or getattr(user, "role", None) == "admin":
+        return True
+    college_str = (event.college or "").strip()
+    if college_str and (" vs " in college_str or " × " in college_str or " x " in college_str):
+        user_college = (user.college or "").strip().lower()
+        if user_college:
+            c_low = college_str.lower()
+            if user_college in c_low or c_low in user_college:
+                return True
+            acronyms = [a.lower() for a in re.findall(r'\(([^)]+)\)', college_str)]
+            if any(user_college == a or a in user_college or user_college in a for a in acronyms):
+                return True
+            parts = re.split(r'\s+(?:vs|×|x)\s+', college_str, flags=re.IGNORECASE)
+            for part in parts:
+                p_low = part.strip().lower()
+                if user_college in p_low or p_low in user_college:
+                    return True
+                p_acros = [a.lower() for a in re.findall(r'\(([^)]+)\)', part)]
+                if any(user_college == a or a in user_college or user_college in a for a in p_acros):
+                    return True
+    return False
+
+
+def _event_to_dict(
+    event: models.Event, 
+    current_user_id: int | None = None,
+    current_user: Optional[models.User] = None
+) -> dict:
     raw_urls = _normalize_text_list(event.image_urls)
     urls = [url.strip() for url in raw_urls.split(",") if _is_valid_image_source(url.strip())]
     registration = None
     if current_user_id is not None:
         registration = next((item for item in event.registrations if item.user_id == current_user_id), None)
+
+    is_creator = False
+    can_manage = False
+    is_co_host = False
+
+    if current_user is not None:
+        is_creator = (event.creator_id == current_user.id)
+        can_manage = can_manage_event(event, current_user)
+        is_co_host = can_manage and not is_creator
+    elif current_user_id is not None:
+        is_creator = (event.creator_id == current_user_id)
+        can_manage = is_creator
+
     return {
         "id": event.id,
         "title": event.title,
@@ -149,6 +193,8 @@ def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> d
         "is_registered": registration is not None,
         "qr_code": registration.qr_code if registration else None,
         "is_inter_college": bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college)),
+        "can_manage": can_manage,
+        "is_co_host": is_co_host,
     }
 
 
@@ -259,7 +305,7 @@ def get_event(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    return _event_to_dict(event, current_user.id if current_user else None)
+    return _event_to_dict(event, current_user.id if current_user else None, current_user)
 
 
 @router.put("/{event_id}")
@@ -272,8 +318,8 @@ def update_event(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the creator can edit this event")
+    if not can_manage_event(event, current_user):
+        raise HTTPException(status_code=403, detail="Only event organizers can edit this event")
     if payload.title is not None:
         event.title = payload.title.strip()
     if payload.description is not None:
@@ -367,8 +413,8 @@ def mark_attendance(
     registration = db.query(models.Registration).filter(models.Registration.qr_code == qr_code).first()
     if not registration:
         raise HTTPException(status_code=404, detail="QR pass not found")
-    if registration.event.creator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the event creator can scan this QR")
+    if not can_manage_event(registration.event, current_user):
+        raise HTTPException(status_code=403, detail="Only event organizers can scan this QR")
     if not registration.attended:
         registration.attended = True
         registration.attended_at = datetime.utcnow()
@@ -405,8 +451,8 @@ async def upload_gallery(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the event creator can upload gallery files")
+    if not can_manage_event(event, current_user):
+        raise HTTPException(status_code=403, detail="Only event organizers can upload gallery files")
     existing = _parse_gallery(event.gallery_files)
     if len(existing) + len(files) > MAX_GALLERY_FILES:
         raise HTTPException(status_code=400, detail=f"Max {MAX_GALLERY_FILES} gallery files allowed")
@@ -456,8 +502,8 @@ def delete_gallery_file(
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if event.creator_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the event creator can delete gallery files")
+    if not can_manage_event(event, current_user):
+        raise HTTPException(status_code=403, detail="Only event organizers can delete gallery files")
     
     files = _parse_gallery(event.gallery_files)
     if index < 0 or index >= len(files):
@@ -493,7 +539,7 @@ def get_event_participants(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
         
-    if event.creator_id != current_user.id:
+    if not can_manage_event(event, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to view participants")
         
     registrations = db.query(models.Registration).filter(models.Registration.event_id == event_id).all()
