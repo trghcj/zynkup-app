@@ -24,6 +24,8 @@ class Event {
     this.galleryCount = 0,
     this.isRegistered = false,
     this.qrCode,
+    this.canManage = false,
+    this.isCoHost = false,
   });
 
   final String id;
@@ -44,6 +46,8 @@ class Event {
   final int galleryCount;
   final bool isRegistered;
   final String? qrCode;
+  final bool canManage;
+  final bool isCoHost;
 
   bool get isInterCollege {
     final c = college?.trim() ?? '';
@@ -95,6 +99,29 @@ class Event {
     return college ?? '';
   }
 
+  bool userCanManage(Map<String, dynamic>? currentUser) {
+    if (currentUser == null) return false;
+    final userId = currentUser['id']?.toString();
+    if (userId != null && userId == organizerId) return true;
+    if (canManage) return true;
+    if (isInterCollege) {
+      final userCollege = (currentUser['college'] as String?)?.trim().toLowerCase() ?? '';
+      if (userCollege.isNotEmpty) {
+        for (final c in interColleges) {
+          final cLow = c.toLowerCase();
+          final shortName = extractShortCollegeName(c).toLowerCase();
+          if (cLow.contains(userCollege) ||
+              userCollege.contains(cLow) ||
+              userCollege == shortName ||
+              userCollege.contains(shortName)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   factory Event.fromJson(Map<String, dynamic> json) {
     final registered = _parseStringList(
       json['registeredUsers'] ?? json['registered_users'],
@@ -125,6 +152,8 @@ class Event {
       galleryCount: _parseInt(json['gallery_count']) ?? 0,
       isRegistered: json['is_registered'] == true,
       qrCode: json['qr_code']?.toString(),
+      canManage: json['can_manage'] == true || json['canManage'] == true,
+      isCoHost: json['is_co_host'] == true || json['isCoHost'] == true,
     );
   }
 
@@ -147,6 +176,8 @@ class Event {
     'gallery_count': galleryCount,
     'is_registered': isRegistered,
     'qr_code': qrCode,
+    'can_manage': canManage,
+    'is_co_host': isCoHost,
   };
 
   static EventCategory _parseCategory(dynamic value) {

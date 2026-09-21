@@ -49,6 +49,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   // FIX: persist QR across _load() calls — never overwrite with null
   String? _qrCode;
   bool _isCreator = false;
+  bool _isCoHost = false;
+  bool get _canManage => _isCreator || _isCoHost;
   bool _isSaved = false;
 
   Future<void> _toggleSave() async {
@@ -136,7 +138,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         }
       }
       _isCreator = user != null && user['id'].toString() == _event.organizerId;
-      if (_isCreator) {
+      final canManage = _isCreator || _event.canManage || _event.userCanManage(user);
+      _isCoHost = canManage && !_isCreator;
+      if (_canManage) {
         _qrCode = null;
       }
       _loading = false;
@@ -572,7 +576,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                     ),
                   ),
-                if (_isCreator) ...[
+                if (_canManage) ...[
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                     decoration: BoxDecoration(
@@ -635,7 +639,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             children: [
                               Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
                               const SizedBox(width: 12),
-                              Text('Edit Event', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                              Text(_isCreator ? 'Edit Event' : 'Co-Edit Event', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                             ],
                           ),
                         ),
@@ -649,16 +653,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_rounded, color: ZynkColors.error, size: 20),
-                              SizedBox(width: 12),
-                              Text('Delete Event', style: TextStyle(color: ZynkColors.error)),
-                            ],
+                        if (_isCreator)
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_rounded, color: ZynkColors.error, size: 20),
+                                SizedBox(width: 12),
+                                Text('Delete Event', style: TextStyle(color: ZynkColors.error)),
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -734,7 +739,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           ],
                         ),
                         if (_event.isInterCollege)
-                          _MatchupBanner(event: _event),
+                          _MatchupBanner(
+                            event: _event,
+                            isCreator: _isCreator,
+                            isCoHost: _isCoHost,
+                          ),
                         const SizedBox(height: 22),
                         _Info(
                           icon: Icons.calendar_today_rounded,
@@ -788,8 +797,35 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
+                        if (_isCoHost) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.verified_user_rounded, color: Color(0xFF0284C7), size: 18),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Dual Organizer: You have co-host privileges to scan passes & manage this matchup.',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         _ActionRow(
-                          isCreator: _isCreator,
+                          isCreator: _canManage,
                           isGuest: widget.isGuest,
                           isRegistered: _event.isRegistered || _qrCode != null,
                           registering: _registering,
@@ -798,13 +834,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           onScan: _openScanner,
                         ),
                         // FIX: QR is now persistent — shown whenever _qrCode is non-null
-                        if (!_isCreator && _qrCode != null) ...[
+                        if (!_canManage && _qrCode != null) ...[
                           const SizedBox(height: 24),
                           _QrPass(qrCode: _qrCode!),
                         ],
                         const SizedBox(height: 18),
                         ZynkButton(
-                          label: _isCreator ? 'Manage Gallery' : 'View Gallery',
+                          label: _canManage ? 'Manage Gallery' : 'View Gallery',
                           icon: Icons.photo_library_rounded,
                           outlined: true,
                           onTap: () => Navigator.push(
@@ -812,7 +848,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             MaterialPageRoute(
                               builder: (_) => EventGalleryScreen(
                                 event: _event,
-                                canUpload: _isCreator,
+                                canUpload: _canManage,
                               ),
                             ),
                           ),
@@ -1272,7 +1308,13 @@ class _FormCard extends StatelessWidget {
 
 class _MatchupBanner extends StatelessWidget {
   final Event event;
-  const _MatchupBanner({required this.event});
+  final bool isCreator;
+  final bool isCoHost;
+  const _MatchupBanner({
+    required this.event,
+    this.isCreator = false,
+    this.isCoHost = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1427,6 +1469,39 @@ class _MatchupBanner extends StatelessWidget {
               ),
             ],
           ),
+          if (isCoHost || isCreator) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: isCreator
+                    ? ZynkColors.primary.withValues(alpha: 0.12)
+                    : const Color(0xFF0284C7).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isCreator ? Icons.star_rounded : Icons.verified_user_rounded,
+                    size: 14,
+                    color: isCreator ? ZynkColors.primary : const Color(0xFF0284C7),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isCreator
+                        ? '👑 Host Campus Lead'
+                        : '🛡️ Dual Access: Managing as $oppShort Co-Host',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isCreator ? ZynkColors.primary : const Color(0xFF0284C7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

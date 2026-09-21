@@ -296,11 +296,10 @@ def my_created_events(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    from app.routes.events import _event_to_dict
-    events = db.query(models.Event).filter(
-        models.Event.creator_id == current_user.id
-    ).order_by(models.Event.created_at.desc()).all()
-    return [_event_to_dict(e, current_user.id) for e in events]
+    from app.routes.events import _event_to_dict, can_manage_event
+    events = db.query(models.Event).order_by(models.Event.created_at.desc()).all()
+    managed_events = [e for e in events if can_manage_event(e, current_user)]
+    return [_event_to_dict(e, current_user.id, current_user) for e in managed_events]
 
 
 # ── My registrations ──────────────────────────────────────────────────────────
