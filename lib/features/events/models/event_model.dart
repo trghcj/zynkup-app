@@ -45,6 +45,56 @@ class Event {
   final bool isRegistered;
   final String? qrCode;
 
+  bool get isInterCollege {
+    final c = college?.trim() ?? '';
+    return c.contains(' vs ') || c.contains(' × ') || c.contains(' x ');
+  }
+
+  String get matchupType {
+    final c = college?.trim() ?? '';
+    if (c.contains(' vs ')) return 'vs';
+    if (c.contains(' × ') || c.contains(' x ')) return '×';
+    return '';
+  }
+
+  List<String> get interColleges {
+    final c = college?.trim() ?? '';
+    if (c.contains(' vs ')) {
+      return c.split(' vs ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    }
+    if (c.contains(' × ')) {
+      return c.split(' × ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    }
+    if (c.contains(' x ')) {
+      return c.split(' x ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    }
+    return c.isNotEmpty ? [c] : [];
+  }
+
+  static String extractShortCollegeName(String fullName) {
+    final match = RegExp(r'\(([^)]+)\)').firstMatch(fullName);
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!.trim();
+    }
+    if (fullName.length > 20) {
+      return '${fullName.substring(0, 17)}...';
+    }
+    return fullName;
+  }
+
+  String get shortMatchupLabel {
+    if (!isInterCollege) return college ?? '';
+    final list = interColleges;
+    if (list.length >= 2) {
+      final a = extractShortCollegeName(list[0]);
+      final b = extractShortCollegeName(list[1]);
+      final sep = matchupType == 'vs' ? 'vs' : '×';
+      final icon = matchupType == 'vs' ? '⚔️' : '🤝';
+      return '$icon $a $sep $b';
+    }
+    return college ?? '';
+  }
+
   factory Event.fromJson(Map<String, dynamic> json) {
     final registered = _parseStringList(
       json['registeredUsers'] ?? json['registered_users'],

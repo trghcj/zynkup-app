@@ -148,6 +148,7 @@ def _event_to_dict(event: models.Event, current_user_id: int | None = None) -> d
         "attendee_count": len(event.registrations),
         "is_registered": registration is not None,
         "qr_code": registration.qr_code if registration else None,
+        "is_inter_college": bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college)),
     }
 
 

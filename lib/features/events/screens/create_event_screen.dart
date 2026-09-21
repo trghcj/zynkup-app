@@ -34,6 +34,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   TimeOfDay _time = TimeOfDay.now();
   String _category = 'tech';
   String? _college;
+  bool _isInterCollege = false;
+  String? _opponentCollege;
+  String _matchupType = 'vs';
   int _step = 0;
   bool _loading = false;
   Uint8List? _pickedBytes;
@@ -121,11 +124,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
       final formLink = _registrationUrl.text.trim();
 
+      String? finalCollege = _college;
+      if (_isInterCollege && _opponentCollege != null && _opponentCollege!.trim().isNotEmpty) {
+        final host = (_college != null && _college!.trim().isNotEmpty) ? _college!.trim() : 'Host Campus';
+        final opp = _opponentCollege!.trim();
+        finalCollege = _matchupType == 'vs' ? '$host vs $opp' : '$host × $opp';
+      }
+
       await ApiService.createEvent(
         title: _title.text.trim(),
         description: _description.text.trim(),
         venue: _venue.text.trim(),
-        college: _college,
+        college: finalCollege,
         date: dateTime.toUtc().toIso8601String(),
         category: _category,
         imageUrls: images,
@@ -426,6 +436,266 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   ),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        // Inter-College Competition / Matchup Toggle Card
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(ZynkRadius.lg),
+            border: Border.all(
+              color: _isInterCollege
+                  ? ZynkColors.primary.withValues(alpha: 0.6)
+                  : Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SwitchListTile(
+                value: _isInterCollege,
+                onChanged: (val) {
+                  setState(() {
+                    _isInterCollege = val;
+                  });
+                },
+                activeThumbColor: ZynkColors.primary,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                title: Row(
+                  children: [
+                    Text(
+                      _matchupType == 'vs' ? '⚔️' : '🤝',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Inter-College Event',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text(
+                  'Host a competition (vs) or collaboration (×) with another college',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              if (_isInterCollege) ...[
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Matchup Type Selector (vs / ×)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _matchupType = 'vs'),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _matchupType == 'vs'
+                                      ? ZynkColors.primary.withValues(alpha: 0.15)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _matchupType == 'vs'
+                                        ? ZynkColors.primary
+                                        : Theme.of(context).colorScheme.outlineVariant,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text('⚔️', style: TextStyle(fontSize: 13)),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Matchup (vs)',
+                                      style: TextStyle(
+                                        color: _matchupType == 'vs'
+                                            ? ZynkColors.primary
+                                            : Theme.of(context).colorScheme.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setState(() => _matchupType = '×'),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _matchupType == '×'
+                                      ? ZynkColors.primary.withValues(alpha: 0.15)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _matchupType == '×'
+                                        ? ZynkColors.primary
+                                        : Theme.of(context).colorScheme.outlineVariant,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text('🤝', style: TextStyle(fontSize: 13)),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Joint / Collab (×)',
+                                      style: TextStyle(
+                                        color: _matchupType == '×'
+                                            ? ZynkColors.primary
+                                            : Theme.of(context).colorScheme.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Opponent / Partner College Picker
+                      InkWell(
+                        onTap: () async {
+                          final selected = await CollegePickerSheet.show(
+                            context,
+                            initialValue: _opponentCollege,
+                            allowNone: true,
+                          );
+                          if (selected != null) {
+                            setState(() {
+                              _opponentCollege = selected.isEmpty ? null : selected;
+                            });
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? ZynkColors.darkSurface2
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _opponentCollege != null
+                                  ? ZynkColors.primary.withValues(alpha: 0.5)
+                                  : Theme.of(context).colorScheme.outlineVariant,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.sports_kabaddi_rounded,
+                                color: _opponentCollege != null
+                                    ? ZynkColors.primary
+                                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _matchupType == 'vs'
+                                          ? 'Opponent College'
+                                          : 'Partner / Co-Host College',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _opponentCollege ?? 'Select Rival / Partner College',
+                                      style: TextStyle(
+                                        color: _opponentCollege != null
+                                            ? Theme.of(context).colorScheme.onSurface
+                                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                                        fontSize: 14,
+                                        fontWeight: _opponentCollege != null ? FontWeight.w600 : FontWeight.normal,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_opponentCollege != null)
+                                GestureDetector(
+                                  onTap: () => setState(() => _opponentCollege = null),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                    size: 16,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  Icons.arrow_drop_down_rounded,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_college != null && _opponentCollege != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: ZynkColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.flash_on_rounded, size: 14, color: ZynkColors.primary),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Preview: ${Event.extractShortCollegeName(_college!)} ${_matchupType == 'vs' ? 'vs' : '×'} ${Event.extractShortCollegeName(_opponentCollege!)}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: ZynkColors.primary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: 16),

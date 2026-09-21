@@ -70,9 +70,21 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        CategoryBadge(category),
-                        const Spacer(),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              CategoryBadge(category),
+                              if (widget.event.isInterCollege)
+                                _InterCollegePill(event: widget.event),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Text(
                           DateFormat('MMM d').format(widget.event.date),
                           style: TextStyle(
@@ -300,3 +312,54 @@ class _GradientBanner extends StatelessWidget {
     );
   }
 }
+
+class _InterCollegePill extends StatelessWidget {
+  final Event event;
+  const _InterCollegePill({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isVs = event.matchupType == 'vs';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isDark
+            ? (isVs ? const Color(0xFF3B1E1E) : const Color(0xFF1E2D3B))
+            : (isVs ? const Color(0xFFFEE2E2) : const Color(0xFFE0F2FE)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark
+              ? (isVs
+                  ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                  : const Color(0xFF38BDF8).withValues(alpha: 0.4))
+              : (isVs ? const Color(0xFFFCA5A5) : const Color(0xFFBAE6FD)),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            isVs ? '⚔️' : '🤝',
+            style: const TextStyle(fontSize: 11),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            event.shortMatchupLabel.replaceFirst(RegExp(r'^(⚔️|🤝)\s*'), ''),
+            style: TextStyle(
+              color: isDark
+                  ? (isVs ? const Color(0xFFFCA5A5) : const Color(0xFF7DD3FC))
+                  : (isVs ? const Color(0xFFB91C1C) : const Color(0xFF0369A1)),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

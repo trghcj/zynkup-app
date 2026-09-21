@@ -733,6 +733,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ),
                           ],
                         ),
+                        if (_event.isInterCollege)
+                          _MatchupBanner(event: _event),
                         const SizedBox(height: 22),
                         _Info(
                           icon: Icons.calendar_today_rounded,
@@ -748,8 +750,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         ),
                         if (_event.college != null && _event.college!.isNotEmpty)
                           _Info(
-                            icon: Icons.account_balance_rounded,
-                            label: 'College / University',
+                            icon: _event.isInterCollege
+                                ? (_event.matchupType == 'vs'
+                                    ? Icons.sports_kabaddi_rounded
+                                    : Icons.handshake_rounded)
+                                : Icons.account_balance_rounded,
+                            label: _event.isInterCollege
+                                ? (_event.matchupType == 'vs'
+                                    ? 'Inter-College Matchup'
+                                    : 'Joint Event')
+                                : 'College / University',
                             value: _event.college!,
                           ),
                         const SizedBox(height: 22),
@@ -1259,3 +1269,167 @@ class _FormCard extends StatelessWidget {
     );
   }
 }
+
+class _MatchupBanner extends StatelessWidget {
+  final Event event;
+  const _MatchupBanner({required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final colleges = event.interColleges;
+    if (colleges.length < 2) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isVs = event.matchupType == 'vs';
+    final hostShort = Event.extractShortCollegeName(colleges[0]);
+    final oppShort = Event.extractShortCollegeName(colleges[1]);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14, bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark
+            ? (isVs ? const Color(0xFF261212) : const Color(0xFF0F1E2E))
+            : (isVs ? const Color(0xFFFFF1F2) : const Color(0xFFF0F9FF)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? (isVs
+                  ? const Color(0xFFEF4444).withValues(alpha: 0.35)
+                  : const Color(0xFF38BDF8).withValues(alpha: 0.35))
+              : (isVs ? const Color(0xFFFECDD3) : const Color(0xFFBAE6FD)),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                isVs ? '⚔️ INTER-COLLEGE MATCHUP' : '🤝 INTER-COLLEGE COLLABORATION',
+                style: TextStyle(
+                  color: isDark
+                      ? (isVs ? const Color(0xFFFCA5A5) : const Color(0xFF7DD3FC))
+                      : (isVs ? const Color(0xFFB91C1C) : const Color(0xFF0369A1)),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              // Host College Box
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.school_rounded, size: 20, color: ZynkColors.primary),
+                      const SizedBox(height: 6),
+                      Text(
+                        hostShort,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Host',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Clash center badge
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isVs
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.15)
+                        : const Color(0xFF0284C7).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    isVs ? 'VS' : '×',
+                    style: TextStyle(
+                      color: isVs ? const Color(0xFFEF4444) : const Color(0xFF0284C7),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+              // Opponent / Partner College Box
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        isVs ? Icons.sports_kabaddi_rounded : Icons.handshake_rounded,
+                        size: 20,
+                        color: isVs ? const Color(0xFFEF4444) : const Color(0xFF0284C7),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        oppShort,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isVs ? 'Opponent' : 'Partner',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+

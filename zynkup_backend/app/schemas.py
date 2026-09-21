@@ -31,7 +31,7 @@ class ProfileCreate(BaseModel):
     branch:       Optional[str] = None
     year:         Optional[str] = None
     enrollment:   Optional[str] = None
-    college:      Optional[str] = "MAIT"
+    college:      Optional[str] = None
     bio:          Optional[str] = None
     avatar_url:   Optional[str] = None
 
