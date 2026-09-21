@@ -30,6 +30,7 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     name: Optional[str] = None
+    college: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -97,7 +98,7 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
         email    = req.email,
         password = hash_password(req.password),
         name     = req.name,
-        college  = "MAIT",
+        college  = req.college if req.college else None,
     )
     db.add(user)
     db.commit()
@@ -173,7 +174,7 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
                 google_id = google_id,
                 name      = name,
                 avatar_url= avatar,
-                college   = "MAIT",
+                college   = None,
             )
             db.add(user)
             db.commit()
@@ -252,7 +253,9 @@ def update_profile(
     if data.branch       is not None: current_user.branch       = data.branch
     if data.year         is not None: current_user.year         = data.year
     if data.enrollment   is not None: current_user.enrollment   = data.enrollment
-    if data.college      is not None: current_user.college      = data.college
+    if data.college      is not None:
+        c_val = data.college.strip()
+        current_user.college = c_val if c_val else None
     if data.bio          is not None: current_user.bio          = data.bio
     if data.avatar_url   is not None:
         current_user.avatar_url = data.avatar_url

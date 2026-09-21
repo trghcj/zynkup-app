@@ -14,6 +14,7 @@ import 'package:zynkup/features/profile/widgets/dice_bear_avatar.dart';
 import 'package:zynkup/features/profile/screens/avatar_gallery_screen.dart';
 
 import 'package:zynkup/core/widgets/zynk_background.dart';
+import 'package:zynkup/core/widgets/college_picker_sheet.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
 import 'package:zynkup/core/services/bookmark_service.dart';
 import 'package:intl/intl.dart';
@@ -1117,7 +1118,7 @@ Future<void> _showEditCollegeDialog(
                 fontSize: 14,
               ),
               decoration: InputDecoration(
-                hintText: 'e.g. MAIT, IIT Delhi, DTU',
+                hintText: 'e.g. IIT Delhi, DTU, NSUT, MAIT',
                 prefixIcon: const Icon(Icons.account_balance_outlined, size: 20),
                 filled: true,
                 fillColor: Theme.of(context).brightness == Brightness.light
@@ -1144,9 +1145,69 @@ Future<void> _showEditCollegeDialog(
                 ),
               ),
             ),
+            const SizedBox(height: 10),
+            InkWell(
+              onTap: () async {
+                final selected = await CollegePickerSheet.show(
+                  context,
+                  initialValue: controller.text.trim(),
+                  allowNone: true,
+                );
+                if (selected != null) {
+                  setDialogState(() {
+                    controller.text = selected;
+                  });
+                }
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: ZynkColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: ZynkColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.list_alt_rounded, size: 16, color: ZynkColors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Choose from Delhi Colleges list',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: ZynkColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
         actions: [
+          if (currentCollege.isNotEmpty || controller.text.isNotEmpty)
+            TextButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      setDialogState(() => saving = true);
+                      final success = await ApiService.updateProfile(college: '');
+                      if (success && ctx.mounted) {
+                        Navigator.pop(ctx, true);
+                      } else {
+                        setDialogState(() => saving = false);
+                      }
+                    },
+              child: const Text(
+                'Remove',
+                style: TextStyle(
+                  color: ZynkColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           TextButton(
             onPressed: saving ? null : () => Navigator.pop(ctx, false),
             child: Text(

@@ -25,7 +25,7 @@ class User(Base):
     branch       = Column(String, nullable=True)
     year         = Column(String, nullable=True)
     enrollment   = Column(String, nullable=True)
-    college      = Column(String, nullable=True, default="MAIT")
+    college      = Column(String, nullable=True, default=None)
     bio          = Column(String, nullable=True)
 
     # ── Gamification ──────────────────────────────────────────────────────────
