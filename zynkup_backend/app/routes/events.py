@@ -47,6 +47,7 @@ class EventCreate(BaseModel):
     image_urls: Optional[List[str]] = []
     registration_url: Optional[str] = None
     registration_url_type: Optional[str] = None
+    co_host_email: Optional[str] = None
     club_id: Optional[int] = None
 
 
@@ -60,6 +61,7 @@ class EventUpdate(BaseModel):
     image_urls: Optional[List[str]] = None
     registration_url: Optional[str] = None
     registration_url_type: Optional[str] = None
+    co_host_email: Optional[str] = None
 
 
 def _is_valid_image_source(value: str) -> bool:
@@ -142,32 +144,9 @@ def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
         return False
     if event.creator_id == user.id or getattr(user, "role", None) == "admin":
         return True
-    college_str = (event.college or "").strip()
-    if college_str and (" vs " in college_str or " × " in college_str or " x " in college_str):
-        user_college = (user.college or "").strip().lower()
-        if user_college:
-            c_low = college_str.lower()
-            if user_college in c_low or c_low in user_college:
-                return True
-
-            # Pure string extraction for parenthesized acronyms (e.g. DTU, MAIT)
-            acronyms = [a.lower() for a in _extract_parentheses(college_str)]
-            if any(user_college == a or a in user_college or user_college in a for a in acronyms):
-                return True
-
-            # Split matchup parts using fixed substring replacement (no regex / no ReDoS)
-            norm = college_str
-            for sep in [" vs ", " VS ", " Vs ", " × ", " x ", " X "]:
-                norm = norm.replace(sep, "|||")
-            parts = [p.strip() for p in norm.split("|||") if p.strip()]
-
-            for part in parts:
-                p_low = part.lower()
-                if user_college in p_low or p_low in user_college:
-                    return True
-                p_acros = [a.lower() for a in _extract_parentheses(part)]
-                if any(user_college == a or a in user_college or user_college in a for a in p_acros):
-                    return True
+    if event.co_host_email and user.email:
+        if event.co_host_email.strip().lower() == user.email.strip().lower():
+            return True
     return False
 
 
@@ -215,6 +194,7 @@ def _event_to_dict(
         "is_registered": registration is not None,
         "qr_code": registration.qr_code if registration else None,
         "is_inter_college": bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college)),
+        "co_host_email": event.co_host_email,
         "can_manage": can_manage,
         "is_co_host": is_co_host,
     }
@@ -248,11 +228,13 @@ def create_event(
             raise HTTPException(status_code=429, detail="You can create up to 5 events per day")
 
         image_urls = ",".join(url for url in (payload.image_urls or []) if _is_valid_image_source(url))
+        co_host_email = payload.co_host_email.strip().lower() if payload.co_host_email and payload.co_host_email.strip() else None
         event = models.Event(
             title=payload.title.strip(),
             description=payload.description.strip(),
             venue=payload.venue.strip(),
             college=payload.college.strip() if payload.college else None,
+            co_host_email=co_host_email,
             date=parsed_date,
             category=payload.category.strip().lower(),
             is_approved=True,
@@ -369,6 +351,8 @@ def update_event(
         event.registration_url = payload.registration_url.strip() if payload.registration_url.strip() else None
     if payload.registration_url_type is not None:
         event.registration_url_type = payload.registration_url_type.strip() if payload.registration_url_type.strip() else None
+    if payload.co_host_email is not None:
+        event.co_host_email = payload.co_host_email.strip().lower() if payload.co_host_email.strip() else None
     db.commit()
     db.refresh(event)
     return _event_to_dict(event, current_user.id)

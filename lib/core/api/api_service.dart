@@ -388,6 +388,7 @@ class ApiService {
     required String description,
     required String venue,
     String? college,
+    String? coHostEmail,
     required String date,
     required String category,
     List<String>? imageUrls,
@@ -405,6 +406,8 @@ class ApiService {
           "description": description,
           "venue": venue,
           if (college != null && college.isNotEmpty) "college": college,
+          if (coHostEmail != null && coHostEmail.trim().isNotEmpty)
+            "co_host_email": coHostEmail.trim().toLowerCase(),
           "date": date,
           "category": category,
           if (imageUrls != null && imageUrls.isNotEmpty)
@@ -454,6 +457,7 @@ class ApiService {
     String? description,
     String? venue,
     String? college,
+    String? coHostEmail,
     String? date,
     String? category,
     List<String>? imageUrls,
@@ -470,6 +474,8 @@ class ApiService {
           if (description != null) "description": description,
           if (venue != null) "venue": venue,
           if (college != null && college.isNotEmpty) "college": college,
+          if (coHostEmail != null)
+            "co_host_email": coHostEmail.trim().toLowerCase(),
           if (date != null) "date": date,
           if (category != null) "category": category,
           if (imageUrls != null) "image_urls": imageUrls,

@@ -88,6 +88,7 @@ class Event(Base):
     # Registration link / QR
     registration_url      = Column(String, nullable=True)
     registration_url_type = Column(String, nullable=True)
+    co_host_email         = Column(String, nullable=True)
 
     # Spam control: max events per day per user enforced in route
     is_reported           = Column(Boolean, default=False, nullable=False)

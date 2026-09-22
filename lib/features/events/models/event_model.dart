@@ -26,6 +26,7 @@ class Event {
     this.qrCode,
     this.canManage = false,
     this.isCoHost = false,
+    this.coHostEmail,
   });
 
   final String id;
@@ -48,6 +49,7 @@ class Event {
   final String? qrCode;
   final bool canManage;
   final bool isCoHost;
+  final String? coHostEmail;
 
   bool get isInterCollege {
     final c = college?.trim() ?? '';
@@ -104,19 +106,10 @@ class Event {
     final userId = currentUser['id']?.toString();
     if (userId != null && userId == organizerId) return true;
     if (canManage) return true;
-    if (isInterCollege) {
-      final userCollege = (currentUser['college'] as String?)?.trim().toLowerCase() ?? '';
-      if (userCollege.isNotEmpty) {
-        for (final c in interColleges) {
-          final cLow = c.toLowerCase();
-          final shortName = extractShortCollegeName(c).toLowerCase();
-          if (cLow.contains(userCollege) ||
-              userCollege.contains(cLow) ||
-              userCollege == shortName ||
-              userCollege.contains(shortName)) {
-            return true;
-          }
-        }
+    if (coHostEmail != null && coHostEmail!.trim().isNotEmpty) {
+      final userEmail = (currentUser['email'] as String?)?.trim().toLowerCase() ?? '';
+      if (userEmail.isNotEmpty && coHostEmail!.trim().toLowerCase() == userEmail) {
+        return true;
       }
     }
     return false;
@@ -154,6 +147,7 @@ class Event {
       qrCode: json['qr_code']?.toString(),
       canManage: json['can_manage'] == true || json['canManage'] == true,
       isCoHost: json['is_co_host'] == true || json['isCoHost'] == true,
+      coHostEmail: json['co_host_email']?.toString(),
     );
   }
 
@@ -178,6 +172,7 @@ class Event {
     'qr_code': qrCode,
     'can_manage': canManage,
     'is_co_host': isCoHost,
+    'co_host_email': coHostEmail,
   };
 
   static EventCategory _parseCategory(dynamic value) {
