@@ -49,9 +49,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   bool _registering = false;
   // FIX: persist QR across _load() calls — never overwrite with null
   String? _qrCode;
+  bool _isAdmin = false;
   bool _isCreator = false;
   bool _isCoHost = false;
-  bool get _canManage => _isCreator || _isCoHost;
+  bool get _canManage => _isCreator || _isCoHost || _isAdmin;
   bool _isSaved = false;
 
   Future<void> _toggleSave() async {
@@ -138,9 +139,14 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           _qrCode = freshQr;
         }
       }
+      final userRole = user?['role']?.toString().toLowerCase();
+      _isAdmin = userRole == 'admin';
       _isCreator = user != null && user['id'].toString() == _event.organizerId;
-      final canManage = _isCreator || _event.canManage || _event.userCanManage(user);
-      _isCoHost = canManage && !_isCreator;
+      if (_isCreator || _isAdmin || !_event.isInterCollege) {
+        _isCoHost = false;
+      } else {
+        _isCoHost = _event.isCoHost || _event.userCanManage(user);
+      }
       if (_canManage) {
         _qrCode = null;
       }
@@ -658,7 +664,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             children: [
                               Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.onSurface, size: 20),
                               const SizedBox(width: 12),
-                              Text(_isCreator ? 'Edit Event' : 'Co-Edit Event', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                              Text(_isCreator ? 'Edit Event' : (_isAdmin ? 'Admin Edit Event' : 'Co-Edit Event'), style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                             ],
                           ),
                         ),
@@ -672,7 +678,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ],
                           ),
                         ),
-                        if (_isCreator)
+                        if ((_isCreator || _isAdmin) && _event.isInterCollege)
                           PopupMenuItem(
                             value: 'cohosts',
                             child: Row(
@@ -683,7 +689,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                               ],
                             ),
                           ),
-                        if (_isCreator)
+                        if (_isCreator || _isAdmin)
                           const PopupMenuItem(
                             value: 'delete',
                             child: Row(
@@ -827,7 +833,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        if (_isCoHost) ...[
+                        if (_isCoHost && _event.isInterCollege) ...[
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -843,6 +849,32 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                 Expanded(
                                   child: Text(
                                     'Dual Organizer: You have co-host privileges to scan passes & manage this matchup.',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else if (_isAdmin && !_isCreator) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.35)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF6366F1), size: 18),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Platform Admin Mode: You have administrative access to manage this event.',
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.onSurface,
                                       fontSize: 12,
@@ -1587,6 +1619,11 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
     }
     if (_selectedCollege == null || _selectedCollege!.trim().isEmpty) {
       setState(() => _errorMsg = 'Please select a college for this co-host');
+      return;
+    }
+    final colleges = _currentEvent.interColleges;
+    if (colleges.isNotEmpty && Event.collegeMatches(_selectedCollege!, colleges.first)) {
+      setState(() => _errorMsg = 'Co-host must be from the partner college, not the host college.');
       return;
     }
 

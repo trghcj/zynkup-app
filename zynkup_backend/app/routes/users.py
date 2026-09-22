@@ -296,9 +296,38 @@ def my_created_events(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    from app.routes.events import _event_to_dict, can_manage_event
+    import re
+    from app.routes.events import _event_to_dict, _parse_co_hosts, _colleges_match
     events = db.query(models.Event).order_by(models.Event.created_at.desc()).all()
-    managed_events = [e for e in events if can_manage_event(e, current_user)]
+    user_email = (current_user.email or "").strip().lower()
+    user_college = (current_user.college or "").strip().lower()
+
+    def _is_my_managed_event(e: models.Event) -> bool:
+        if e.creator_id == current_user.id:
+            return True
+        # For co-hosts: must be inter-college, cannot be same college as creator
+        is_inter = bool(e.college and (" vs " in e.college or " × " in e.college or " x " in e.college))
+        if not is_inter:
+            return False
+        creator_college = (e.creator.college or "").strip() if e.creator else ""
+        if not creator_college and e.college:
+            parts = re.split(r'\s+(?:vs|×|x)\s+', e.college, flags=re.IGNORECASE)
+            if parts:
+                creator_college = parts[0].strip()
+        if creator_college and user_college and _colleges_match(user_college, creator_college):
+            return False
+        co_hosts = _parse_co_hosts(e.co_hosts)
+        if not co_hosts and e.co_host_email:
+            co_hosts = [{"email": e.co_host_email.strip().lower(), "college": ""}]
+        for ch in co_hosts:
+            ch_email = (ch.get("email") or "").strip().lower()
+            ch_col = (ch.get("college") or "").strip()
+            if ch_email and ch_email == user_email:
+                if not ch_col or (user_college and _colleges_match(user_college, ch_col)):
+                    return True
+        return False
+
+    managed_events = [e for e in events if _is_my_managed_event(e)]
     return [_event_to_dict(e, current_user.id, current_user) for e in managed_events]
 
 

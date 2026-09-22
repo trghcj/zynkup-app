@@ -120,22 +120,42 @@ class Event {
     if (currentUser == null) return false;
     final userId = currentUser['id']?.toString();
     if (userId != null && userId == organizerId) return true;
-    if (canManage) return true;
+    final role = currentUser['role']?.toString().toLowerCase();
+    if (role == 'admin') return true;
+
+    // Co-hosts are strictly for inter-college matchups!
+    if (!isInterCollege) return false;
+
     final userEmail = (currentUser['email'] as String?)?.trim().toLowerCase() ?? '';
     final userCollege = (currentUser['college'] as String?)?.trim().toLowerCase() ?? '';
+
+    // If user's college matches the host/creator college, they cannot be a co-host
+    final colleges = interColleges;
+    if (colleges.isNotEmpty && userCollege.isNotEmpty) {
+      final hostCollege = colleges.first;
+      if (collegeMatches(userCollege, hostCollege)) {
+        return false;
+      }
+    }
+
     if (userEmail.isNotEmpty) {
       for (final ch in coHosts) {
         final chEmail = (ch['email'] ?? '').trim().toLowerCase();
         final chCollege = (ch['college'] ?? '').trim().toLowerCase();
         if (chEmail == userEmail) {
           // When college is specified, BOTH email and college must match
-          if (chCollege.isEmpty || collegeMatches(userCollege, chCollege)) {
+          if (chCollege.isNotEmpty && collegeMatches(userCollege, chCollege)) {
+            if (colleges.isNotEmpty && collegeMatches(chCollege, colleges.first)) {
+              return false;
+            }
             return true;
           }
         }
       }
       if (coHostEmail != null && coHostEmail!.trim().isNotEmpty && coHostEmail!.trim().toLowerCase() == userEmail) {
-        return true;
+        if (colleges.length >= 2 && userCollege.isNotEmpty && collegeMatches(userCollege, colleges[1])) {
+          return true;
+        }
       }
     }
     return false;

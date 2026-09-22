@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import uuid
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -186,8 +187,28 @@ def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
     if event.creator_id == user.id or getattr(user, "role", None) == "admin":
         return True
 
+    # Co-hosts are strictly for inter-college matchup events
+    is_inter = bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college))
+    if not is_inter:
+        return False
+
     user_email = (user.email or "").strip().lower()
     user_college = (user.college or "").strip().lower()
+
+    if not user_email:
+        return False
+
+    # A co-host CANNOT belong to the same college as the event creator / host college
+    creator_college = ""
+    if event.creator and event.creator.college:
+        creator_college = event.creator.college.strip()
+    elif event.college:
+        parts = re.split(r'\s+(?:vs|×|x)\s+', event.college, flags=re.IGNORECASE)
+        if parts:
+            creator_college = parts[0].strip()
+
+    if creator_college and user_college and _colleges_match(user_college, creator_college):
+        return False
 
     # Check multi co-hosts
     co_hosts = _parse_co_hosts(event.co_hosts)
@@ -195,13 +216,15 @@ def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
         co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
 
     for ch in co_hosts:
-        ch_email = ch.get("email", "")
-        ch_college = ch.get("college", "")
+        ch_email = (ch.get("email") or "").strip().lower()
+        ch_college = (ch.get("college") or "").strip()
         if ch_email and user_email == ch_email:
             # When college is assigned, BOTH email and college must match
             if ch_college:
                 if _colleges_match(user_college, ch_college):
-                    return True
+                    # Co-host college also cannot be creator/host college
+                    if not (creator_college and _colleges_match(ch_college, creator_college)):
+                        return True
             else:
                 return True
     return False
@@ -219,16 +242,22 @@ def _event_to_dict(
         registration = next((item for item in event.registrations if item.user_id == current_user_id), None)
 
     is_creator = False
+    is_admin = False
     can_manage = False
     is_co_host = False
 
+    is_inter = bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college))
+
     if current_user is not None:
         is_creator = (event.creator_id == current_user.id)
+        is_admin = (getattr(current_user, "role", None) == "admin")
         can_manage = can_manage_event(event, current_user)
-        is_co_host = can_manage and not is_creator
+        # is_co_host is strictly for non-creator, non-admin users on inter-college events!
+        is_co_host = can_manage and not is_creator and not is_admin and is_inter
     elif current_user_id is not None:
         is_creator = (event.creator_id == current_user_id)
         can_manage = is_creator
+        is_co_host = False
 
     co_hosts = _parse_co_hosts(event.co_hosts)
     if not co_hosts and event.co_host_email:
@@ -254,11 +283,12 @@ def _event_to_dict(
         "attendee_count": len(event.registrations),
         "is_registered": registration is not None,
         "qr_code": registration.qr_code if registration else None,
-        "is_inter_college": bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college)),
+        "is_inter_college": is_inter,
         "co_host_email": event.co_host_email,
         "co_hosts": co_hosts,
         "can_manage": can_manage,
         "is_co_host": is_co_host,
+        "is_admin": is_admin,
     }
 
 
@@ -293,6 +323,9 @@ def create_event(
         co_host_email = payload.co_host_email.strip().lower() if payload.co_host_email and payload.co_host_email.strip() else None
         co_hosts = []
         if co_host_email:
+            is_inter = bool(payload.college and (" vs " in payload.college or " × " in payload.college or " x " in payload.college))
+            if not is_inter:
+                raise HTTPException(status_code=400, detail="Co-hosts can only be assigned to inter-college matchup events.")
             target_user = db.query(models.User).filter(func.lower(models.User.email) == co_host_email).first()
             if not target_user:
                 raise HTTPException(
@@ -301,9 +334,23 @@ def create_event(
                 )
             if target_user.id == current_user.id:
                 raise HTTPException(status_code=400, detail="Event creator cannot be added as a co-host.")
+            target_college = (target_user.college or "").strip()
+            creator_college = (current_user.college or "").strip()
+            if creator_college and target_college and _colleges_match(target_college, creator_college):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Co-host must be from the partner college, not the creator's college ({creator_college})."
+                )
+            if payload.college:
+                parts = re.split(r'\s+(?:vs|×|x)\s+', payload.college, flags=re.IGNORECASE)
+                if len(parts) >= 2 and target_college and _colleges_match(target_college, parts[0]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Co-host must be from partner college ({parts[1].strip()}), not the host college."
+                    )
             co_hosts.append({
                 "email": co_host_email,
-                "college": (target_user.college or "").strip(),
+                "college": target_college,
                 "name": (target_user.full_name or "").strip(),
             })
 
@@ -356,7 +403,7 @@ def create_event(
             except Exception as notif_err:
                 logger.warning(f"Follower notification broadcast failed: {notif_err}")
 
-        return _event_to_dict(event, current_user.id)
+        return _event_to_dict(event, current_user.id, current_user)
     except HTTPException:
         db.rollback()
         raise
@@ -433,6 +480,10 @@ def update_event(
     if payload.co_host_email is not None:
         raw_email = payload.co_host_email.strip().lower() if payload.co_host_email.strip() else None
         if raw_email:
+            effective_college = payload.college if payload.college is not None else event.college
+            is_inter = bool(effective_college and (" vs " in effective_college or " × " in effective_college or " x " in effective_college))
+            if not is_inter:
+                raise HTTPException(status_code=400, detail="Co-hosts can only be assigned to inter-college matchup events.")
             target_user = db.query(models.User).filter(func.lower(models.User.email) == raw_email).first()
             if not target_user:
                 raise HTTPException(
@@ -441,12 +492,26 @@ def update_event(
                 )
             if target_user.id == event.creator_id:
                 raise HTTPException(status_code=400, detail="Event creator cannot be added as a co-host.")
+            target_college = (target_user.college or "").strip()
+            creator_college = (event.creator.college or "").strip() if event.creator else ""
+            if creator_college and target_college and _colleges_match(target_college, creator_college):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Co-host must be from the partner college, not the creator's college ({creator_college})."
+                )
+            if effective_college:
+                parts = re.split(r'\s+(?:vs|×|x)\s+', effective_college, flags=re.IGNORECASE)
+                if len(parts) >= 2 and target_college and _colleges_match(target_college, parts[0]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Co-host must be from partner college ({parts[1].strip()}), not the host college."
+                    )
             event.co_host_email = raw_email
             existing_chs = _parse_co_hosts(event.co_hosts)
             if not any(ch["email"] == raw_email for ch in existing_chs):
                 existing_chs.append({
                     "email": raw_email,
-                    "college": (target_user.college or "").strip(),
+                    "college": target_college,
                     "name": (target_user.full_name or "").strip(),
                 })
                 event.co_hosts = json.dumps(existing_chs)
@@ -454,7 +519,7 @@ def update_event(
             event.co_host_email = None
     db.commit()
     db.refresh(event)
-    return _event_to_dict(event, current_user.id)
+    return _event_to_dict(event, current_user.id, current_user)
 
 
 @router.delete("/{event_id}")
@@ -683,6 +748,14 @@ def add_co_host(
     if event.creator_id != current_user.id and getattr(current_user, "role", None) != "admin":
         raise HTTPException(status_code=403, detail="Only the event creator can assign co-hosts")
 
+    # Co-hosts can ONLY be assigned to inter-college matchup events!
+    is_inter = bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college))
+    if not is_inter:
+        raise HTTPException(
+            status_code=400,
+            detail="Co-hosts can only be assigned to inter-college matchup events."
+        )
+
     email = payload.email.strip().lower()
     if not email or "@" not in email or "." not in email:
         raise HTTPException(status_code=422, detail="Please enter a valid email address")
@@ -717,6 +790,29 @@ def add_co_host(
             status_code=400,
             detail=f"User is registered under '{target_college}', which does not match '{college}'."
         )
+
+    # 4. Co-host CANNOT be from the creator's / host college!
+    creator_college = ""
+    if event.creator and event.creator.college:
+        creator_college = event.creator.college.strip()
+    elif event.college:
+        parts = re.split(r'\s+(?:vs|×|x)\s+', event.college, flags=re.IGNORECASE)
+        if parts:
+            creator_college = parts[0].strip()
+
+    if creator_college and _colleges_match(target_college, creator_college):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Co-host must be from the partner college, not the creator's college ({creator_college})."
+        )
+
+    if event.college:
+        parts = re.split(r'\s+(?:vs|×|x)\s+', event.college, flags=re.IGNORECASE)
+        if len(parts) >= 2 and _colleges_match(target_college, parts[0]):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Co-host must be from partner college ({parts[1].strip()}), not the host college."
+            )
 
     co_hosts = _parse_co_hosts(event.co_hosts)
     if not co_hosts and event.co_host_email:
