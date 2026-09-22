@@ -497,6 +497,63 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> addCoHost({
+    required int eventId,
+    required String email,
+    required String college,
+  }) async {
+    await loadToken();
+    try {
+      final res = await http.post(
+        Uri.parse("$baseUrl/events/$eventId/co-hosts"),
+        headers: await _headers,
+        body: jsonEncode({
+          "email": email.trim().toLowerCase(),
+          "college": college.trim(),
+        }),
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        _cachedEvents = null;
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data.containsKey("event")) {
+          eventUpdated.value = data["event"] as Map<String, dynamic>;
+        }
+        return data;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to add co-host.");
+    }
+  }
+
+  static Future<Map<String, dynamic>> removeCoHost({
+    required int eventId,
+    required String email,
+  }) async {
+    await loadToken();
+    try {
+      final res = await http.delete(
+        Uri.parse("$baseUrl/events/$eventId/co-hosts?email=${Uri.encodeComponent(email.trim().toLowerCase())}"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) {
+        _cachedEvents = null;
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data.containsKey("event")) {
+          eventUpdated.value = data["event"] as Map<String, dynamic>;
+        }
+        return data;
+      }
+      throw _parseError(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException("Failed to remove co-host.");
+    }
+  }
+
   // ── Registration ───────────────────────────────────────────────────────────
 
   /// Returns {qr_code, message} on success

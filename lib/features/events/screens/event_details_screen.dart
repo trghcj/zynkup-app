@@ -20,6 +20,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/features/events/screens/event_participants_screen.dart';
 import 'package:zynkup/features/events/widgets/edit_event_sheet.dart';
 import 'package:zynkup/core/services/bookmark_service.dart';
+import 'package:zynkup/core/widgets/college_picker_sheet.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
@@ -267,6 +268,22 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     } else {
       _snack('Could not delete this event.', error: true);
     }
+  }
+
+  void _manageCoHosts() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _ManageCoHostsSheet(
+        event: _event,
+        onCoHostsUpdated: (updatedEvent) {
+          setState(() {
+            _event = updatedEvent;
+          });
+        },
+      ),
+    );
   }
 
   void _snack(String message, {bool error = false}) {
@@ -628,6 +645,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                               ),
                             ),
                           );
+                        } else if (value == 'cohosts') {
+                          _manageCoHosts();
                         } else if (value == 'delete') {
                           _deleteEvent();
                         }
@@ -653,6 +672,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ],
                           ),
                         ),
+                        if (_isCreator)
+                          PopupMenuItem(
+                            value: 'cohosts',
+                            child: Row(
+                              children: [
+                                Icon(Icons.person_add_alt_1_rounded, color: ZynkColors.primary, size: 20),
+                                const SizedBox(width: 12),
+                                Text('Manage Co-Hosts', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                              ],
+                            ),
+                          ),
                         if (_isCreator)
                           const PopupMenuItem(
                             value: 'delete',
@@ -1490,10 +1520,12 @@ class _MatchupBanner extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     isCreator
-                        ? (event.coHostEmail != null && event.coHostEmail!.isNotEmpty
-                            ? '👑 Host Campus Lead • Co-Host: ${event.coHostEmail}'
-                            : '👑 Host Campus Lead')
-                        : '🛡️ Dual Access: Managing as $oppShort Co-Host',
+                        ? (event.coHosts.isNotEmpty
+                            ? 'Host Campus Lead • ${event.coHosts.length} Co-Host${event.coHosts.length > 1 ? "s" : ""}'
+                            : (event.coHostEmail != null && event.coHostEmail!.isNotEmpty
+                                ? 'Host Campus Lead • Co-Host: ${event.coHostEmail}'
+                                : 'Host Campus Lead'))
+                        : 'Dual Access: Managing as $oppShort Co-Host',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -1505,6 +1537,404 @@ class _MatchupBanner extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ManageCoHostsSheet extends StatefulWidget {
+  final Event event;
+  final ValueChanged<Event> onCoHostsUpdated;
+
+  const _ManageCoHostsSheet({
+    required this.event,
+    required this.onCoHostsUpdated,
+  });
+
+  @override
+  State<_ManageCoHostsSheet> createState() => _ManageCoHostsSheetState();
+}
+
+class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
+  late Event _currentEvent;
+  late List<Map<String, String>> _coHosts;
+  final _emailCtrl = TextEditingController();
+  String? _selectedCollege;
+  bool _isSubmitting = false;
+  String? _errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentEvent = widget.event;
+    _coHosts = List.from(widget.event.coHosts);
+    if (_currentEvent.isInterCollege && _currentEvent.interColleges.length > 1) {
+      _selectedCollege = _currentEvent.interColleges[1];
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addCoHost() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      setState(() => _errorMsg = 'Please enter a valid email address');
+      return;
+    }
+    if (_selectedCollege == null || _selectedCollege!.trim().isEmpty) {
+      setState(() => _errorMsg = 'Please select a college for this co-host');
+      return;
+    }
+
+    final eventId = int.tryParse(_currentEvent.id);
+    if (eventId == null) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMsg = null;
+    });
+
+    try {
+      final res = await ApiService.addCoHost(
+        eventId: eventId,
+        email: email,
+        college: _selectedCollege!,
+      );
+      if (res.containsKey('event') && res['event'] is Map<String, dynamic>) {
+        final updated = Event.fromJson(res['event'] as Map<String, dynamic>);
+        setState(() {
+          _currentEvent = updated;
+          _coHosts = List.from(updated.coHosts);
+          _emailCtrl.clear();
+        });
+        widget.onCoHostsUpdated(updated);
+      }
+    } catch (e) {
+      setState(() {
+        _errorMsg = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _removeCoHost(String email) async {
+    final eventId = int.tryParse(_currentEvent.id);
+    if (eventId == null) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMsg = null;
+    });
+
+    try {
+      final res = await ApiService.removeCoHost(
+        eventId: eventId,
+        email: email,
+      );
+      if (res.containsKey('event') && res['event'] is Map<String, dynamic>) {
+        final updated = Event.fromJson(res['event'] as Map<String, dynamic>);
+        setState(() {
+          _currentEvent = updated;
+          _coHosts = List.from(updated.coHosts);
+        });
+        widget.onCoHostsUpdated(updated);
+      }
+    } catch (e) {
+      setState(() {
+        _errorMsg = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.people_outline_rounded, color: ZynkColors.primary, size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  'Manage Event Co-Hosts',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_coHosts.length}/4',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Co-hosts have permission to scan QR tickets and manage this event. To grant access, their login email and profile college must match the records below.',
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_errorMsg != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: Colors.red, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMsg!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // List of existing co-hosts
+            if (_coHosts.isEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  'No co-hosts added yet. You can add up to 4 co-hosts from partner colleges.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ] else ...[
+              ...List.generate(_coHosts.length, (idx) {
+                final ch = _coHosts[idx];
+                final email = ch['email'] ?? '';
+                final college = ch['college'] ?? '';
+                final shortCollege = Event.extractShortCollegeName(college);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: ZynkColors.primary.withValues(alpha: 0.15),
+                        child: Text(
+                          email.isNotEmpty ? email[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            color: ZynkColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              email,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.school_outlined,
+                                  size: 13,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    shortCollege.isNotEmpty ? shortCollege : 'Any College',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent, size: 20),
+                        tooltip: 'Remove Co-Host',
+                        onPressed: _isSubmitting ? null : () => _removeCoHost(email),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
+            ],
+            // Add co-host section if under limit
+            if (_coHosts.length < 4) ...[
+              Text(
+                'Add Co-Host',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Google Account Email',
+                  hintText: 'e.g. lead@college.edu',
+                  prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                  filled: true,
+                  fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await CollegePickerSheet.show(
+                    context,
+                    initialValue: _selectedCollege,
+                    allowNone: false,
+                  );
+                  if (picked != null && picked.isNotEmpty) {
+                    setState(() => _selectedCollege = picked);
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.colorScheme.outlineVariant),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.account_balance_outlined, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _selectedCollege != null && _selectedCollege!.isNotEmpty
+                              ? _selectedCollege!
+                              : 'Select Student College',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _selectedCollege != null && _selectedCollege!.isNotEmpty
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down_rounded),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ZynkButton(
+                label: 'Grant Co-Host Access',
+                icon: Icons.person_add_rounded,
+                isLoading: _isSubmitting,
+                onTap: _addCoHost,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
