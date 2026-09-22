@@ -1721,7 +1721,7 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Co-hosts have permission to scan QR tickets and manage this event. To grant access, their login email and profile college must match the records below.',
+              'Co-hosts have permission to scan QR tickets and manage this event. The student must be registered on Zynkup with their Google email and their profile college must match.',
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
@@ -1775,9 +1775,13 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
             ] else ...[
               ...List.generate(_coHosts.length, (idx) {
                 final ch = _coHosts[idx];
+                final name = (ch['name'] ?? '').trim();
                 final email = ch['email'] ?? '';
                 final college = ch['college'] ?? '';
                 final shortCollege = Event.extractShortCollegeName(college);
+                final initialChar = name.isNotEmpty
+                    ? name[0].toUpperCase()
+                    : (email.isNotEmpty ? email[0].toUpperCase() : '?');
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1794,7 +1798,7 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
                         radius: 18,
                         backgroundColor: ZynkColors.primary.withValues(alpha: 0.15),
                         child: Text(
-                          email.isNotEmpty ? email[0].toUpperCase() : '?',
+                          initialChar,
                           style: const TextStyle(
                             color: ZynkColors.primary,
                             fontWeight: FontWeight.bold,
@@ -1808,7 +1812,7 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              email,
+                              name.isNotEmpty ? name : email,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -1817,6 +1821,18 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            if (name.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                email,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                             const SizedBox(height: 3),
                             Row(
                               children: [

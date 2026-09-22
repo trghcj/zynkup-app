@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import models
@@ -170,7 +171,8 @@ def _parse_co_hosts(raw: Optional[str]) -> List[dict]:
                 if isinstance(item, dict) and item.get("email"):
                     valid.append({
                         "email": str(item["email"]).strip().lower(),
-                        "college": str(item.get("college") or "").strip()
+                        "college": str(item.get("college") or "").strip(),
+                        "name": str(item.get("name") or "").strip(),
                     })
             return valid
     except Exception:
@@ -289,12 +291,29 @@ def create_event(
 
         image_urls = ",".join(url for url in (payload.image_urls or []) if _is_valid_image_source(url))
         co_host_email = payload.co_host_email.strip().lower() if payload.co_host_email and payload.co_host_email.strip() else None
+        co_hosts = []
+        if co_host_email:
+            target_user = db.query(models.User).filter(func.lower(models.User.email) == co_host_email).first()
+            if not target_user:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"User with email '{co_host_email}' is not registered on Zynkup. The student must sign up on Zynkup first."
+                )
+            if target_user.id == current_user.id:
+                raise HTTPException(status_code=400, detail="Event creator cannot be added as a co-host.")
+            co_hosts.append({
+                "email": co_host_email,
+                "college": (target_user.college or "").strip(),
+                "name": (target_user.full_name or "").strip(),
+            })
+
         event = models.Event(
             title=payload.title.strip(),
             description=payload.description.strip(),
             venue=payload.venue.strip(),
             college=payload.college.strip() if payload.college else None,
             co_host_email=co_host_email,
+            co_hosts=json.dumps(co_hosts),
             date=parsed_date,
             category=payload.category.strip().lower(),
             is_approved=True,
@@ -412,7 +431,27 @@ def update_event(
     if payload.registration_url_type is not None:
         event.registration_url_type = payload.registration_url_type.strip() if payload.registration_url_type.strip() else None
     if payload.co_host_email is not None:
-        event.co_host_email = payload.co_host_email.strip().lower() if payload.co_host_email.strip() else None
+        raw_email = payload.co_host_email.strip().lower() if payload.co_host_email.strip() else None
+        if raw_email:
+            target_user = db.query(models.User).filter(func.lower(models.User.email) == raw_email).first()
+            if not target_user:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"User with email '{raw_email}' is not registered on Zynkup. The student must sign up on Zynkup first."
+                )
+            if target_user.id == event.creator_id:
+                raise HTTPException(status_code=400, detail="Event creator cannot be added as a co-host.")
+            event.co_host_email = raw_email
+            existing_chs = _parse_co_hosts(event.co_hosts)
+            if not any(ch["email"] == raw_email for ch in existing_chs):
+                existing_chs.append({
+                    "email": raw_email,
+                    "college": (target_user.college or "").strip(),
+                    "name": (target_user.full_name or "").strip(),
+                })
+                event.co_hosts = json.dumps(existing_chs)
+        else:
+            event.co_host_email = None
     db.commit()
     db.refresh(event)
     return _event_to_dict(event, current_user.id)
@@ -652,19 +691,51 @@ def add_co_host(
     if not college:
         raise HTTPException(status_code=422, detail="College name is required for co-host access")
 
+    # 1. Lookup user in Zynkup registered users table
+    target_user = db.query(models.User).filter(func.lower(models.User.email) == email).first()
+    if not target_user:
+        raise HTTPException(
+            status_code=404,
+            detail=f"User with email '{email}' is not registered on Zynkup. The student must sign up on Zynkup first."
+        )
+
+    # 2. Cannot add yourself as co-host
+    if target_user.id == event.creator_id:
+        raise HTTPException(status_code=400, detail="Event creator cannot be added as a co-host.")
+
+    # 3. Check registered college in user's profile
+    target_college = (target_user.college or "").strip()
+    if not target_college:
+        student_name = target_user.full_name or email
+        raise HTTPException(
+            status_code=400,
+            detail=f"Student '{student_name}' has not set their college in their Zynkup profile yet."
+        )
+
+    if not _colleges_match(target_college, college):
+        raise HTTPException(
+            status_code=400,
+            detail=f"User is registered under '{target_college}', which does not match '{college}'."
+        )
+
     co_hosts = _parse_co_hosts(event.co_hosts)
     if not co_hosts and event.co_host_email:
-        co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
+        co_hosts = [{"email": event.co_host_email.strip().lower(), "college": target_college, "name": target_user.full_name or ""}]
 
     if len(co_hosts) >= 4 and not any(ch["email"] == email for ch in co_hosts):
         raise HTTPException(status_code=400, detail="Maximum 4 co-hosts allowed per event")
 
     for ch in co_hosts:
         if ch["email"] == email:
-            ch["college"] = college
+            ch["college"] = target_college
+            ch["name"] = target_user.full_name or ""
             break
     else:
-        co_hosts.append({"email": email, "college": college})
+        co_hosts.append({
+            "email": email,
+            "college": target_college,
+            "name": target_user.full_name or "",
+        })
 
     event.co_hosts = json.dumps(co_hosts)
     event.co_host_email = co_hosts[0]["email"] if co_hosts else None

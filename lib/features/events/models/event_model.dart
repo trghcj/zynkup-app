@@ -252,6 +252,7 @@ class Event {
               .map((m) => {
                     'email': (m['email'] ?? '').toString().trim(),
                     'college': (m['college'] ?? '').toString().trim(),
+                    'name': (m['name'] ?? '').toString().trim(),
                   })
               .where((m) => m['email']!.isNotEmpty)
               .toList();
@@ -264,6 +265,7 @@ class Event {
           .map((m) => {
                 'email': (m['email'] ?? '').toString().trim(),
                 'college': (m['college'] ?? '').toString().trim(),
+                'name': (m['name'] ?? '').toString().trim(),
               })
           .where((m) => m['email']!.isNotEmpty)
           .toList();
