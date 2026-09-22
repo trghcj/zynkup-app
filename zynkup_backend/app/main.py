@@ -93,6 +93,7 @@ def repair_event_schema() -> None:
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE NOT NULL",
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS report_count INTEGER DEFAULT 0 NOT NULL",
             "ALTER TABLE events ADD COLUMN IF NOT EXISTS college TEXT",
+            "ALTER TABLE events ADD COLUMN IF NOT EXISTS co_host_email VARCHAR",
             "ALTER TABLE clubs ADD COLUMN IF NOT EXISTS college TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_url TEXT",

@@ -1490,7 +1490,9 @@ class _MatchupBanner extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     isCreator
-                        ? '👑 Host Campus Lead'
+                        ? (event.coHostEmail != null && event.coHostEmail!.isNotEmpty
+                            ? '👑 Host Campus Lead • Co-Host: ${event.coHostEmail}'
+                            : '👑 Host Campus Lead')
                         : '🛡️ Dual Access: Managing as $oppShort Co-Host',
                     style: TextStyle(
                       fontSize: 11,

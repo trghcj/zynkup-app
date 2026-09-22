@@ -47,6 +47,7 @@ class EventCreate(BaseModel):
     image_urls:            Optional[List[str]] = []
     registration_url:      Optional[str] = None
     registration_url_type: Optional[str] = None
+    co_host_email:         Optional[str] = None
 
     @field_validator("title", "venue", "category")
     @classmethod
