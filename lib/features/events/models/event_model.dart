@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:zynkup/core/utils/date_utils.dart';
 
 enum EventCategory { tech, cultural, sports, workshop, seminar }
@@ -27,6 +28,7 @@ class Event {
     this.canManage = false,
     this.isCoHost = false,
     this.coHostEmail,
+    this.coHosts = const [],
   });
 
   final String id;
@@ -50,6 +52,7 @@ class Event {
   final bool canManage;
   final bool isCoHost;
   final String? coHostEmail;
+  final List<Map<String, String>> coHosts;
 
   bool get isInterCollege {
     final c = college?.trim() ?? '';
@@ -88,6 +91,18 @@ class Event {
     return fullName;
   }
 
+  static bool collegeMatches(String userCollege, String coHostCollege) {
+    final u = userCollege.trim().toLowerCase();
+    final c = coHostCollege.trim().toLowerCase();
+    if (u.isEmpty || c.isEmpty) return false;
+    if (u == c || u.contains(c) || c.contains(u)) return true;
+    final shortU = extractShortCollegeName(u).toLowerCase();
+    final shortC = extractShortCollegeName(c).toLowerCase();
+    if (shortU.isNotEmpty && (shortU == c || shortU == shortC || c.contains(shortU))) return true;
+    if (shortC.isNotEmpty && (shortC == u || shortC == shortU || u.contains(shortC))) return true;
+    return false;
+  }
+
   String get shortMatchupLabel {
     if (!isInterCollege) return college ?? '';
     final list = interColleges;
@@ -106,9 +121,20 @@ class Event {
     final userId = currentUser['id']?.toString();
     if (userId != null && userId == organizerId) return true;
     if (canManage) return true;
-    if (coHostEmail != null && coHostEmail!.trim().isNotEmpty) {
-      final userEmail = (currentUser['email'] as String?)?.trim().toLowerCase() ?? '';
-      if (userEmail.isNotEmpty && coHostEmail!.trim().toLowerCase() == userEmail) {
+    final userEmail = (currentUser['email'] as String?)?.trim().toLowerCase() ?? '';
+    final userCollege = (currentUser['college'] as String?)?.trim().toLowerCase() ?? '';
+    if (userEmail.isNotEmpty) {
+      for (final ch in coHosts) {
+        final chEmail = (ch['email'] ?? '').trim().toLowerCase();
+        final chCollege = (ch['college'] ?? '').trim().toLowerCase();
+        if (chEmail == userEmail) {
+          // When college is specified, BOTH email and college must match
+          if (chCollege.isEmpty || collegeMatches(userCollege, chCollege)) {
+            return true;
+          }
+        }
+      }
+      if (coHostEmail != null && coHostEmail!.trim().isNotEmpty && coHostEmail!.trim().toLowerCase() == userEmail) {
         return true;
       }
     }
@@ -148,6 +174,7 @@ class Event {
       canManage: json['can_manage'] == true || json['canManage'] == true,
       isCoHost: json['is_co_host'] == true || json['isCoHost'] == true,
       coHostEmail: json['co_host_email']?.toString(),
+      coHosts: _parseCoHosts(json['co_hosts']),
     );
   }
 
@@ -173,6 +200,7 @@ class Event {
     'can_manage': canManage,
     'is_co_host': isCoHost,
     'co_host_email': coHostEmail,
+    'co_hosts': coHosts,
   };
 
   static EventCategory _parseCategory(dynamic value) {
@@ -211,5 +239,35 @@ class Event {
   static int? _parseInt(dynamic value) {
     if (value is int) return value;
     return int.tryParse(value?.toString() ?? '');
+  }
+
+  static List<Map<String, String>> _parseCoHosts(dynamic val) {
+    if (val == null) return [];
+    if (val is String) {
+      try {
+        final decoded = jsonDecode(val);
+        if (decoded is List) {
+          return decoded
+              .whereType<Map>()
+              .map((m) => {
+                    'email': (m['email'] ?? '').toString().trim(),
+                    'college': (m['college'] ?? '').toString().trim(),
+                  })
+              .where((m) => m['email']!.isNotEmpty)
+              .toList();
+        }
+      } catch (_) {}
+    }
+    if (val is List) {
+      return val
+          .whereType<Map>()
+          .map((m) => {
+                'email': (m['email'] ?? '').toString().trim(),
+                'college': (m['college'] ?? '').toString().trim(),
+              })
+          .where((m) => m['email']!.isNotEmpty)
+          .toList();
+    }
+    return [];
   }
 }

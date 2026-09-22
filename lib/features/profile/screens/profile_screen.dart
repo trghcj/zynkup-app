@@ -998,6 +998,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           : null,
       borderRadius: BorderRadius.circular(20),
       child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width - 48,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: hasCollege
@@ -1025,14 +1028,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                   : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             const SizedBox(width: 7),
-            Text(
-              hasCollege ? college : (isMe ? 'Add College' : 'No College Listed'),
-              style: TextStyle(
-                color: hasCollege
-                    ? Theme.of(context).colorScheme.onSurface
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                hasCollege ? college : (isMe ? 'Add College' : 'No College Listed'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: hasCollege
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             if (isMe) ...[

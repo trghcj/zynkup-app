@@ -139,14 +139,69 @@ def _extract_parentheses(text: str) -> List[str]:
     return tokens
 
 
+def _colleges_match(user_college: str, ch_college: str) -> bool:
+    u = (user_college or "").strip().lower()
+    c = (ch_college or "").strip().lower()
+    if not u or not c:
+        return False
+    if u == c or u in c or c in u:
+        return True
+    u_acros = [a.lower() for a in _extract_parentheses(user_college)]
+    c_acros = [a.lower() for a in _extract_parentheses(ch_college)]
+    if any(a == c or a in c or c in a for a in u_acros):
+        return True
+    if any(a == u or a in u or u in a for a in c_acros):
+        return True
+    for ua in u_acros:
+        for ca in c_acros:
+            if ua == ca or ua in ca or ca in ua:
+                return True
+    return False
+
+
+def _parse_co_hosts(raw: Optional[str]) -> List[dict]:
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            valid = []
+            for item in data:
+                if isinstance(item, dict) and item.get("email"):
+                    valid.append({
+                        "email": str(item["email"]).strip().lower(),
+                        "college": str(item.get("college") or "").strip()
+                    })
+            return valid
+    except Exception:
+        pass
+    return []
+
+
 def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
     if not user:
         return False
     if event.creator_id == user.id or getattr(user, "role", None) == "admin":
         return True
-    if event.co_host_email and user.email:
-        if event.co_host_email.strip().lower() == user.email.strip().lower():
-            return True
+
+    user_email = (user.email or "").strip().lower()
+    user_college = (user.college or "").strip().lower()
+
+    # Check multi co-hosts
+    co_hosts = _parse_co_hosts(event.co_hosts)
+    if not co_hosts and event.co_host_email:
+        co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
+
+    for ch in co_hosts:
+        ch_email = ch.get("email", "")
+        ch_college = ch.get("college", "")
+        if ch_email and user_email == ch_email:
+            # When college is assigned, BOTH email and college must match
+            if ch_college:
+                if _colleges_match(user_college, ch_college):
+                    return True
+            else:
+                return True
     return False
 
 
@@ -173,6 +228,10 @@ def _event_to_dict(
         is_creator = (event.creator_id == current_user_id)
         can_manage = is_creator
 
+    co_hosts = _parse_co_hosts(event.co_hosts)
+    if not co_hosts and event.co_host_email:
+        co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
+
     return {
         "id": event.id,
         "title": event.title,
@@ -195,6 +254,7 @@ def _event_to_dict(
         "qr_code": registration.qr_code if registration else None,
         "is_inter_college": bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college)),
         "co_host_email": event.co_host_email,
+        "co_hosts": co_hosts,
         "can_manage": can_manage,
         "is_co_host": is_co_host,
     }
@@ -564,3 +624,72 @@ def get_event_participants(
         })
         
     return participants
+
+
+class CoHostPayload(BaseModel):
+    email: str
+    college: str
+
+
+@router.post("/{event_id}/co-hosts")
+def add_co_host(
+    event_id: int,
+    payload: CoHostPayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.creator_id != current_user.id and getattr(current_user, "role", None) != "admin":
+        raise HTTPException(status_code=403, detail="Only the event creator can assign co-hosts")
+
+    email = payload.email.strip().lower()
+    if not email or "@" not in email or "." not in email:
+        raise HTTPException(status_code=422, detail="Please enter a valid email address")
+
+    college = payload.college.strip()
+    if not college:
+        raise HTTPException(status_code=422, detail="College name is required for co-host access")
+
+    co_hosts = _parse_co_hosts(event.co_hosts)
+    if not co_hosts and event.co_host_email:
+        co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
+
+    if len(co_hosts) >= 4 and not any(ch["email"] == email for ch in co_hosts):
+        raise HTTPException(status_code=400, detail="Maximum 4 co-hosts allowed per event")
+
+    for ch in co_hosts:
+        if ch["email"] == email:
+            ch["college"] = college
+            break
+    else:
+        co_hosts.append({"email": email, "college": college})
+
+    event.co_hosts = json.dumps(co_hosts)
+    event.co_host_email = co_hosts[0]["email"] if co_hosts else None
+    db.commit()
+    db.refresh(event)
+    return {"co_hosts": co_hosts, "event": _event_to_dict(event, current_user.id, current_user)}
+
+
+@router.delete("/{event_id}/co-hosts")
+def remove_co_host(
+    event_id: int,
+    email: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if event.creator_id != current_user.id and getattr(current_user, "role", None) != "admin":
+        raise HTTPException(status_code=403, detail="Only the event creator can remove co-hosts")
+
+    target_email = email.strip().lower()
+    co_hosts = [ch for ch in _parse_co_hosts(event.co_hosts) if ch["email"] != target_email]
+    event.co_hosts = json.dumps(co_hosts)
+    event.co_host_email = co_hosts[0]["email"] if co_hosts else None
+    db.commit()
+    db.refresh(event)
+    return {"co_hosts": co_hosts, "event": _event_to_dict(event, current_user.id, current_user)}
