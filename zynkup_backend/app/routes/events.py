@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import uuid
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -189,14 +190,17 @@ def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
     user_email = (user.email or "").strip().lower()
     user_college = (user.college or "").strip().lower()
 
-    # Check multi co-hosts
+    if not user_email:
+        return False
+
+    # Check multi co-hosts: access is ONLY granted when explicitly provided via email
     co_hosts = _parse_co_hosts(event.co_hosts)
     if not co_hosts and event.co_host_email:
         co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
 
     for ch in co_hosts:
-        ch_email = ch.get("email", "")
-        ch_college = ch.get("college", "")
+        ch_email = (ch.get("email") or "").strip().lower()
+        ch_college = (ch.get("college") or "").strip()
         if ch_email and user_email == ch_email:
             # When college is assigned, BOTH email and college must match
             if ch_college:
@@ -219,16 +223,38 @@ def _event_to_dict(
         registration = next((item for item in event.registrations if item.user_id == current_user_id), None)
 
     is_creator = False
+    is_admin = False
     can_manage = False
     is_co_host = False
 
+    is_inter = bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college))
+
     if current_user is not None:
         is_creator = (event.creator_id == current_user.id)
-        can_manage = can_manage_event(event, current_user)
-        is_co_host = can_manage and not is_creator
+        is_admin = (getattr(current_user, "role", None) == "admin")
+        
+        # Explicit co-host match (access granted explicitly via email and college match)
+        user_email = (current_user.email or "").strip().lower()
+        user_college = (current_user.college or "").strip().lower()
+        explicit_co_host = False
+        if user_email:
+            co_hosts = _parse_co_hosts(event.co_hosts)
+            if not co_hosts and event.co_host_email:
+                co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
+            for ch in co_hosts:
+                ch_email = (ch.get("email") or "").strip().lower()
+                ch_college = (ch.get("college") or "").strip()
+                if ch_email and user_email == ch_email:
+                    if not ch_college or _colleges_match(user_college, ch_college):
+                        explicit_co_host = True
+                        break
+
+        can_manage = is_creator or is_admin or explicit_co_host
+        is_co_host = explicit_co_host and not is_creator
     elif current_user_id is not None:
         is_creator = (event.creator_id == current_user_id)
         can_manage = is_creator
+        is_co_host = False
 
     co_hosts = _parse_co_hosts(event.co_hosts)
     if not co_hosts and event.co_host_email:
@@ -254,11 +280,12 @@ def _event_to_dict(
         "attendee_count": len(event.registrations),
         "is_registered": registration is not None,
         "qr_code": registration.qr_code if registration else None,
-        "is_inter_college": bool(event.college and (" vs " in event.college or " × " in event.college or " x " in event.college)),
+        "is_inter_college": is_inter,
         "co_host_email": event.co_host_email,
         "co_hosts": co_hosts,
         "can_manage": can_manage,
         "is_co_host": is_co_host,
+        "is_admin": is_admin,
     }
 
 
@@ -301,9 +328,10 @@ def create_event(
                 )
             if target_user.id == current_user.id:
                 raise HTTPException(status_code=400, detail="Event creator cannot be added as a co-host.")
+            target_college = (target_user.college or "").strip()
             co_hosts.append({
                 "email": co_host_email,
-                "college": (target_user.college or "").strip(),
+                "college": target_college,
                 "name": (target_user.full_name or "").strip(),
             })
 
@@ -356,7 +384,7 @@ def create_event(
             except Exception as notif_err:
                 logger.warning(f"Follower notification broadcast failed: {notif_err}")
 
-        return _event_to_dict(event, current_user.id)
+        return _event_to_dict(event, current_user.id, current_user)
     except HTTPException:
         db.rollback()
         raise
@@ -441,12 +469,13 @@ def update_event(
                 )
             if target_user.id == event.creator_id:
                 raise HTTPException(status_code=400, detail="Event creator cannot be added as a co-host.")
+            target_college = (target_user.college or "").strip()
             event.co_host_email = raw_email
             existing_chs = _parse_co_hosts(event.co_hosts)
             if not any(ch["email"] == raw_email for ch in existing_chs):
                 existing_chs.append({
                     "email": raw_email,
-                    "college": (target_user.college or "").strip(),
+                    "college": target_college,
                     "name": (target_user.full_name or "").strip(),
                 })
                 event.co_hosts = json.dumps(existing_chs)
@@ -454,7 +483,7 @@ def update_event(
             event.co_host_email = None
     db.commit()
     db.refresh(event)
-    return _event_to_dict(event, current_user.id)
+    return _event_to_dict(event, current_user.id, current_user)
 
 
 @router.delete("/{event_id}")

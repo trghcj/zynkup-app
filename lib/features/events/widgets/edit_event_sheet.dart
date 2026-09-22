@@ -658,9 +658,9 @@ class _EditEventSheetState extends State<EditEventSheet> {
 
                     const SizedBox(height: 20),
 
-                    // Partner Co-Host Email
+                    // Co-Host Email
                     Text(
-                      'Partner Co-Host Gmail (Optional)',
+                      'Co-Host Gmail (Optional)',
                       style: TextStyle(
                         color: isDark ? Colors.white70 : const Color(0xFF475569),
                         fontSize: 13,
@@ -674,7 +674,7 @@ class _EditEventSheetState extends State<EditEventSheet> {
                       autocorrect: false,
                       style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0E1117)),
                       decoration: InputDecoration(
-                        hintText: 'e.g. partner.organizer@gmail.com',
+                        hintText: 'e.g. cohost.organizer@gmail.com',
                         hintStyle: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
                         helperText: 'Grants ticket scanning and dual co-management access to this user',
                         helperStyle: TextStyle(

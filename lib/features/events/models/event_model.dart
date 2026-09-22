@@ -120,9 +120,12 @@ class Event {
     if (currentUser == null) return false;
     final userId = currentUser['id']?.toString();
     if (userId != null && userId == organizerId) return true;
-    if (canManage) return true;
+    final role = currentUser['role']?.toString().toLowerCase();
+    if (role == 'admin') return true;
+
     final userEmail = (currentUser['email'] as String?)?.trim().toLowerCase() ?? '';
     final userCollege = (currentUser['college'] as String?)?.trim().toLowerCase() ?? '';
+
     if (userEmail.isNotEmpty) {
       for (final ch in coHosts) {
         final chEmail = (ch['email'] ?? '').trim().toLowerCase();

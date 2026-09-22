@@ -701,8 +701,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         autocorrect: false,
                         style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
                         decoration: InputDecoration(
-                          labelText: 'Partner Co-Host Gmail / Email (Optional)',
-                          hintText: 'e.g. partner.lead@gmail.com',
+                          labelText: 'Co-Host Gmail / Email (Optional)',
+                          hintText: 'e.g. cohost.lead@gmail.com',
                           helperText: 'Grants ticket scanning & co-management to this Gmail account',
                           helperMaxLines: 2,
                           helperStyle: TextStyle(
