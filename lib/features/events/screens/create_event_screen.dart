@@ -138,9 +138,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         description: _description.text.trim(),
         venue: _venue.text.trim(),
         college: finalCollege,
-        coHostEmail: (_isInterCollege && _opponentCollege != null && _opponentCollege!.trim().isNotEmpty && _coHostEmail.text.trim().isNotEmpty)
-            ? _coHostEmail.text.trim().toLowerCase()
-            : null,
+        coHostEmail: _coHostEmail.text.trim().isNotEmpty ? _coHostEmail.text.trim().toLowerCase() : null,
         date: dateTime.toUtc().toIso8601String(),
         category: _category,
         imageUrls: images,
@@ -695,53 +693,53 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _coHostEmail,
-                          keyboardType: TextInputType.emailAddress,
-                          autocorrect: false,
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
-                          decoration: InputDecoration(
-                            labelText: 'Partner Co-Host Gmail / Email (Optional)',
-                            hintText: 'e.g. partner.lead@gmail.com',
-                            helperText: 'Grants ticket scanning & co-management to this Gmail account',
-                            helperMaxLines: 2,
-                            helperStyle: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                      ],
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _coHostEmail,
+                        keyboardType: TextInputType.emailAddress,
+                        autocorrect: false,
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Co-Host Gmail / Email (Optional)',
+                          hintText: 'e.g. cohost.lead@gmail.com',
+                          helperText: 'Grants ticket scanning & co-management to this Gmail account',
+                          helperMaxLines: 2,
+                          helperStyle: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.person_add_alt_1_rounded,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).brightness == Brightness.dark
+                              ? ZynkColors.darkSurface2
+                              : const Color(0xFFF8FAFC),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant,
                             ),
-                            prefixIcon: Icon(
-                              Icons.person_add_alt_1_rounded,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.outlineVariant,
                             ),
-                            filled: true,
-                            fillColor: Theme.of(context).brightness == Brightness.dark
-                                ? ZynkColors.darkSurface2
-                                : const Color(0xFFF8FAFC),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: Theme.of(context).colorScheme.outlineVariant,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: Theme.of(context).colorScheme.outlineVariant,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(
-                                color: ZynkColors.primary,
-                                width: 1.5,
-                              ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                              color: ZynkColors.primary,
+                              width: 1.5,
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),

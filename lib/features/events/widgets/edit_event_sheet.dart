@@ -128,7 +128,7 @@ class _EditEventSheetState extends State<EditEventSheet> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         venue: _venueController.text.trim(),
-        coHostEmail: widget.event.isInterCollege ? _coHostEmailController.text.trim() : null,
+        coHostEmail: _coHostEmailController.text.trim(),
         date: combined.toUtc().toIso8601String(),
         category: _category,
         imageUrls: imageUrl != null ? [imageUrl] : null,
@@ -658,52 +658,50 @@ class _EditEventSheetState extends State<EditEventSheet> {
 
                     const SizedBox(height: 20),
 
-                    if (widget.event.isInterCollege) ...[
-                      // Partner Co-Host Email
-                      Text(
-                        'Partner Co-Host Gmail (Optional)',
-                        style: TextStyle(
-                          color: isDark ? Colors.white70 : const Color(0xFF475569),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                    // Co-Host Email
+                    Text(
+                      'Co-Host Gmail (Optional)',
+                      style: TextStyle(
+                        color: isDark ? Colors.white70 : const Color(0xFF475569),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _coHostEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
+                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0E1117)),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. cohost.organizer@gmail.com',
+                        hintStyle: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
+                        helperText: 'Grants ticket scanning and dual co-management access to this user',
+                        helperStyle: TextStyle(
+                          color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                          fontSize: 11,
+                        ),
+                        helperMaxLines: 2,
+                        filled: true,
+                        fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
+                        prefixIcon: Icon(
+                          Icons.person_add_alt_1_rounded,
+                          color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _coHostEmailController,
-                        keyboardType: TextInputType.emailAddress,
-                        autocorrect: false,
-                        style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0E1117)),
-                        decoration: InputDecoration(
-                          hintText: 'e.g. partner.organizer@gmail.com',
-                          hintStyle: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
-                          helperText: 'Grants ticket scanning and dual co-management access to this user',
-                          helperStyle: TextStyle(
-                            color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                            fontSize: 11,
-                          ),
-                          helperMaxLines: 2,
-                          filled: true,
-                          fillColor: isDark ? ZynkColors.darkSurface2 : const Color(0xFFF8FAFC),
-                          prefixIcon: Icon(
-                            Icons.person_add_alt_1_rounded,
-                            color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: isDark ? ZynkColors.darkBorder : const Color(0xFFE2E8F0)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: ZynkColors.primary, width: 1.5),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
 
                     const SizedBox(height: 32),
 

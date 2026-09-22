@@ -142,11 +142,27 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       final userRole = user?['role']?.toString().toLowerCase();
       _isAdmin = userRole == 'admin';
       _isCreator = user != null && user['id'].toString() == _event.organizerId;
-      if (_isCreator || _isAdmin || !_event.isInterCollege) {
-        _isCoHost = false;
-      } else {
-        _isCoHost = _event.isCoHost || _event.userCanManage(user);
+      
+      final userEmail = (user?['email'] as String?)?.trim().toLowerCase() ?? '';
+      final userCollege = (user?['college'] as String?)?.trim().toLowerCase() ?? '';
+      bool isExplicitCoHost = false;
+      if (userEmail.isNotEmpty) {
+        for (final ch in _event.coHosts) {
+          final chEmail = (ch['email'] ?? '').trim().toLowerCase();
+          final chCollege = (ch['college'] ?? '').trim().toLowerCase();
+          if (chEmail == userEmail) {
+            if (chCollege.isEmpty || Event.collegeMatches(userCollege, chCollege)) {
+              isExplicitCoHost = true;
+              break;
+            }
+          }
+        }
+        if (!isExplicitCoHost && _event.coHostEmail != null && _event.coHostEmail!.trim().toLowerCase() == userEmail) {
+          isExplicitCoHost = true;
+        }
       }
+
+      _isCoHost = !_isCreator && (isExplicitCoHost || _event.isCoHost);
       if (_canManage) {
         _qrCode = null;
       }
@@ -678,7 +694,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ],
                           ),
                         ),
-                        if ((_isCreator || _isAdmin) && _event.isInterCollege)
+                        if (_isCreator || _isAdmin)
                           PopupMenuItem(
                             value: 'cohosts',
                             child: Row(
@@ -833,7 +849,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        if (_isCoHost && _event.isInterCollege) ...[
+                        if (_isCoHost) ...[
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -848,7 +864,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    'Dual Organizer: You have co-host privileges to scan passes & manage this matchup.',
+                                    _event.isInterCollege
+                                        ? 'Dual Organizer: You have co-host privileges to scan passes & manage this matchup.'
+                                        : 'Event Co-Host: You have co-host privileges to scan passes & manage this event.',
                                     style: TextStyle(
                                       color: Theme.of(context).colorScheme.onSurface,
                                       fontSize: 12,
@@ -1602,6 +1620,8 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
     _coHosts = List.from(widget.event.coHosts);
     if (_currentEvent.isInterCollege && _currentEvent.interColleges.length > 1) {
       _selectedCollege = _currentEvent.interColleges[1];
+    } else if (_currentEvent.college != null && _currentEvent.college!.isNotEmpty) {
+      _selectedCollege = _currentEvent.college;
     }
   }
 
@@ -1619,11 +1639,6 @@ class _ManageCoHostsSheetState extends State<_ManageCoHostsSheet> {
     }
     if (_selectedCollege == null || _selectedCollege!.trim().isEmpty) {
       setState(() => _errorMsg = 'Please select a college for this co-host');
-      return;
-    }
-    final colleges = _currentEvent.interColleges;
-    if (colleges.isNotEmpty && Event.collegeMatches(_selectedCollege!, colleges.first)) {
-      setState(() => _errorMsg = 'Co-host must be from the partner college, not the host college.');
       return;
     }
 

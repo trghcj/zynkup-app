@@ -305,17 +305,6 @@ def my_created_events(
     def _is_my_managed_event(e: models.Event) -> bool:
         if e.creator_id == current_user.id:
             return True
-        # For co-hosts: must be inter-college, cannot be same college as creator
-        is_inter = bool(e.college and (" vs " in e.college or " × " in e.college or " x " in e.college))
-        if not is_inter:
-            return False
-        creator_college = (e.creator.college or "").strip() if e.creator else ""
-        if not creator_college and e.college:
-            parts = re.split(r'\s+(?:vs|×|x)\s+', e.college, flags=re.IGNORECASE)
-            if parts:
-                creator_college = parts[0].strip()
-        if creator_college and user_college and _colleges_match(user_college, creator_college):
-            return False
         co_hosts = _parse_co_hosts(e.co_hosts)
         if not co_hosts and e.co_host_email:
             co_hosts = [{"email": e.co_host_email.strip().lower(), "college": ""}]
