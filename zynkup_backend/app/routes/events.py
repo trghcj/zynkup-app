@@ -4,6 +4,7 @@ import os
 import uuid
 import re
 from datetime import datetime, timedelta, timezone
+from app.timeutils import utcnow_naive
 from pathlib import Path
 from typing import List, Optional
 
@@ -16,6 +17,7 @@ from app import models
 from app.database import get_db
 from app.auth import get_current_user, get_optional_current_user
 from app.gamification import add_xp
+from app.uploads import read_upload_limited
 from app.fcm import send_fcm_notification, EVENT_JOINED, ATTENDANCE_MARKED
 
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -308,7 +310,7 @@ def create_event(
         raise HTTPException(status_code=422, detail=f"Invalid date format: {str(e)}")
 
     try:
-        since = datetime.utcnow() - timedelta(days=1)
+        since = utcnow_naive() - timedelta(days=1)
         created_today = db.query(models.Event).filter(
             models.Event.creator_id == current_user.id,
             models.Event.created_at >= since,
@@ -401,8 +403,14 @@ def create_event(
         raise HTTPException(status_code=500, detail=f"Server error: {error_msg}")
 
 
+MAX_EVENTS_PAGE = 100
+
+
 @router.get("/")
 def get_events(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
+    # Clamp instead of rejecting so existing clients keep working.
+    skip = max(skip, 0)
+    limit = max(1, min(limit, MAX_EVENTS_PAGE))
     events = db.query(models.Event).filter(models.Event.is_approved == True).order_by(models.Event.date.asc()).offset(skip).limit(limit).all()
     return [_event_to_dict(event) for event in events]
 
@@ -551,7 +559,7 @@ def mark_attendance(
         raise HTTPException(status_code=403, detail="Only event organizers can scan this QR")
     if not registration.attended:
         registration.attended = True
-        registration.attended_at = datetime.utcnow()
+        registration.attended_at = utcnow_naive()
         db.commit()
         
         # Award XP to the ATTEENDEE (registration.user)
@@ -599,9 +607,7 @@ async def upload_gallery(
             raise HTTPException(status_code=400, detail="Unsupported file type")
         if mime not in ALLOWED_MIME:
             mime = EXT_MIME[ext]
-        contents = await file.read()
-        if len(contents) > 15 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File too large. Max 15MB")
+        contents = await read_upload_limited(file, 15 * 1024 * 1024)
         filename = f"{uuid.uuid4().hex}{ext}"
         file_path = Path(UPLOAD_DIR) / filename
         file_path.write_bytes(contents)

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, field_serializer
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
+from app.timeutils import utcnow_naive
 from urllib.parse import urlparse
 import json
 
@@ -204,7 +205,7 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
 def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
     posts = db.query(FeedPost).filter(FeedPost.report_count < 10).order_by(FeedPost.created_at.desc()).limit(100).all()
 
-    now = datetime.utcnow()
+    now = utcnow_naive()
     user_memberships = set()
     interacted_authors = set()
     if current_user:

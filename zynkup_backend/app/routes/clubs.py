@@ -9,10 +9,12 @@ from sqlalchemy import func
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
+from app.timeutils import utcnow_naive
 
 from ..database import get_db
 from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage
 from ..auth import get_current_user, get_optional_current_user
+from ..uploads import read_upload_limited
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
 logger = logging.getLogger(__name__)
@@ -578,9 +580,7 @@ async def upload_club_gallery(
             raise HTTPException(status_code=400, detail="Unsupported file type")
         if mime not in ALLOWED_MIME:
             mime = EXT_MIME[ext]
-        contents = await file.read()
-        if len(contents) > 15 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File too large. Max 15MB")
+        contents = await read_upload_limited(file, 15 * 1024 * 1024)
         filename = f"{uuid.uuid4().hex}{ext}"
         file_path = Path(UPLOAD_DIR) / filename
         file_path.write_bytes(contents)
@@ -884,7 +884,7 @@ async def edit_club_message(club_id: int, message_id: int, payload: EditMessageP
         raise HTTPException(status_code=400, detail="Cannot edit a deleted message")
         
     # Check 5 minutes
-    if datetime.utcnow() - msg.created_at > timedelta(minutes=5):
+    if utcnow_naive() - msg.created_at > timedelta(minutes=5):
         raise HTTPException(status_code=400, detail="Messages can only be edited within 5 minutes of sending")
         
     msg.content = payload.content
@@ -918,7 +918,7 @@ async def delete_club_message(club_id: int, message_id: int, db: Session = Depen
         raise HTTPException(status_code=404, detail="Message not found")
         
     # Check 5 minutes for "delete for everyone"
-    time_passed = datetime.utcnow() - msg.created_at
+    time_passed = utcnow_naive() - msg.created_at
     
     if msg.user_id == current_user.id and time_passed <= timedelta(minutes=5):
         # Delete for everyone
@@ -968,9 +968,7 @@ async def upload_club_chat_attachment(
     if not ext:
         raise HTTPException(status_code=400, detail="Unsupported file type")
 
-    contents = await file.read()
-    if len(contents) > MAX_CHAT_UPLOAD_BYTES:
-        raise HTTPException(status_code=400, detail="File too large. Max 10MB")
+    contents = await read_upload_limited(file, MAX_CHAT_UPLOAD_BYTES)
 
     # Remove club_id from filename to completely eliminate any user input from the path.
     # The UUID is sufficiently unique on its own.
@@ -993,4 +991,4 @@ async def upload_club_chat_attachment(
 
     url = _public_upload_url(request, filename)
     return {"url": url, "type": attachment_type}
-
+
