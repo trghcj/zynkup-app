@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import logging
 from pathlib import Path
@@ -52,27 +53,40 @@ cors_origins = [
 ]
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-# Using a more robust configuration to ensure headers are always present
+# Only this project's Vercel deployments (production + previews), not every *.vercel.app site.
+cors_origin_regex = os.getenv("CORS_ORIGIN_REGEX", r"https://zynkup[a-z0-9-]*\.vercel\.app")
+_cors_origin_pattern = re.compile(cors_origin_regex)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX", r"https://.*\.vercel\.app"),
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
 
+
+def _is_allowed_origin(origin: str) -> bool:
+    return origin in cors_origins or bool(_cors_origin_pattern.fullmatch(origin))
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"CRITICAL ERROR: {exc}", exc_info=True)
-    # Manually add CORS headers to the error response to prevent "CORS Blocked" mask
+    # Never send internal exception details to clients; they stay in the server log.
     response = JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"}
+        content={"detail": "Internal Server Error"}
     )
-    response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin") or "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    # Add CORS headers so the browser shows the real 500 instead of a "CORS blocked"
+    # error, but only for origins the CORS policy already allows.
+    origin = request.headers.get("origin")
+    if origin and _is_allowed_origin(origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
     return response
 
 # ── DB ────────────────────────────────────────────────────────────────────────

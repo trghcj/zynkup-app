@@ -126,3 +126,5 @@ service-account*.json
 !pubspec.yaml
 !analysis_options.yaml
 !devtools_options.yaml
+# Locally built APKs (build_split_apk.bat output)
+release/

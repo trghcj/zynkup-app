@@ -1,11 +1,14 @@
 # app/routes/users.py
 import logging
 import os
+import time
 import httpx
+from collections import defaultdict, deque
+from threading import Lock
 from typing import Optional
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -21,7 +24,22 @@ from app.gamification import add_xp, get_user_stats
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+# Google OAuth client IDs whose ID tokens we accept (the token's "aud" claim).
+# These are public identifiers (also shipped in the app). The audience check is
+# always enforced so tokens minted for other apps can never log in here.
+# Override with a comma-separated GOOGLE_CLIENT_ID env var if needed.
+_DEFAULT_GOOGLE_CLIENT_IDS = (
+    "659234851207-o80f3633j9f09j79d0ml7376o7v4iv58.apps.googleusercontent.com",  # web / serverClientId
+    "659234851207-0do8gsdvrn7pivdd65qdgrcb8301jn2u.apps.googleusercontent.com",  # android
+    "659234851207-fl9gfob5pr92m2gkjn0rthpboftgvtun.apps.googleusercontent.com",  # ios
+)
+GOOGLE_CLIENT_IDS = {
+    cid.strip()
+    for cid in (os.getenv("GOOGLE_CLIENT_ID") or ",".join(_DEFAULT_GOOGLE_CLIENT_IDS)).split(",")
+    if cid.strip()
+}
+
+MIN_PASSWORD_LENGTH = 8
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -88,8 +106,11 @@ def _user_response(user: models.User, token: str) -> dict:
 
 @router.post("/signup", status_code=201)
 def signup(req: SignupRequest, db: Session = Depends(get_db)):
-    if len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    if len(req.password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters",
+        )
 
     if db.query(models.User).filter(models.User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -111,11 +132,41 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
 
 # ── Email Login ───────────────────────────────────────────────────────────────
 
+# Simple in-process brute-force guard: max failed attempts per (client IP, email)
+# within a sliding window. Good enough for a single backend instance.
+_LOGIN_MAX_FAILURES = 10
+_LOGIN_WINDOW_SECONDS = 15 * 60
+_login_failures: dict[tuple[str, str], deque] = defaultdict(deque)
+_login_lock = Lock()
+
+
+def _recent_failures(key: tuple[str, str], now: float) -> deque:
+    attempts = _login_failures[key]
+    while attempts and now - attempts[0] > _LOGIN_WINDOW_SECONDS:
+        attempts.popleft()
+    return attempts
+
+
 @router.post("/login")
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    key = (client_ip, req.email.lower())
+    now = time.monotonic()
+    with _login_lock:
+        if len(_recent_failures(key, now)) >= _LOGIN_MAX_FAILURES:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed login attempts. Try again in a few minutes.",
+            )
+
     user = db.query(models.User).filter(models.User.email == req.email).first()
     if not user or not user.password or not verify_password(req.password, user.password):
+        with _login_lock:
+            _recent_failures(key, now).append(now)
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    with _login_lock:
+        _login_failures.pop(key, None)
 
     token = create_access_token({"sub": str(user.id)})
 
@@ -132,18 +183,24 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
     Flutter sends the idToken from google_sign_in package.
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             res = await client.get(
-                f"https://oauth2.googleapis.com/tokeninfo?id_token={req.id_token}"
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": req.id_token},
             )
         if res.status_code != 200:
             raise HTTPException(status_code=401, detail="Invalid Google token")
 
         payload = res.json()
 
-        # Verify audience if GOOGLE_CLIENT_ID is set
-        if GOOGLE_CLIENT_ID and payload.get("aud") != GOOGLE_CLIENT_ID:
+        # Always verify the token was issued for this app.
+        if payload.get("aud") not in GOOGLE_CLIENT_IDS:
             raise HTTPException(status_code=401, detail="Token audience mismatch")
+        if payload.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+            raise HTTPException(status_code=401, detail="Invalid token issuer")
+        # Only trust (and link accounts by) emails Google has verified.
+        if str(payload.get("email_verified", "")).lower() != "true":
+            raise HTTPException(status_code=401, detail="Google email not verified")
 
         google_id = payload.get("sub")
         email     = payload.get("email")
@@ -406,26 +463,9 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
     timeline.sort(key=lambda x: x["date"], reverse=True)
     return timeline[:50]
 
-# ── Admin: promote user ───────────────────────────────────────────────────────
+# Role changes live in app/routes/admin.py (PUT /admin/set-role).
 
-@router.put("/set-role")
-def set_role(
-    email: str,
-    role:  str,
-    setup_key: str,
-    db: Session = Depends(get_db),
-):
-    secret = os.getenv("ADMIN_SETUP_KEY", "")
-    if not secret or setup_key != secret:
-        raise HTTPException(status_code=403, detail="Invalid setup key")
-    if role not in ("user", "organizer", "admin"):
-        raise HTTPException(status_code=400, detail="Invalid role")
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    user.role = role
-    db.commit()
-    return {"message": f"{email} → {role}"}
+
 @router.get("/{user_id}")
 def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -451,10 +491,20 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: mo
                 friend_status = "pending_sent"
             else:
                 friend_status = "pending_received"
-    
+
+    # Contact details are private: only the user themselves, accepted friends and
+    # admins can see email / phone / enrollment. Everyone else gets the public handle.
+    can_see_private = (
+        user.id == current_user.id
+        or friend_status == "friends"
+        or current_user.role == "admin"
+    )
+    username = (user.email or "").split("@")[0] or "user"
+
     return {
         "id":           user.id,
-        "email":        user.email,
+        "username":     username,
+        "email":        user.email if can_see_private else None,
         "name":         user.name,
         "avatar_url":   user.resolved_avatar_url,
         "banner_url":   user.banner_url,
@@ -462,9 +512,9 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: mo
         "college":      user.college,
         "branch":       user.branch,
         "year":         user.year,
-        "enrollment":   user.enrollment,
+        "enrollment":   user.enrollment if can_see_private else None,
         "display_name": user.display_name,
-        "phone":        user.phone,
+        "phone":        user.phone if can_see_private else None,
         "bio":          user.bio,
         "xp":           user.xp,
         "level":        user.level,

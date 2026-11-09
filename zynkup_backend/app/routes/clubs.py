@@ -23,6 +23,8 @@ UPLOAD_DIR = "uploads"
 MAX_GALLERY_FILES = 50
 ALLOWED_MIME = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_CHAT_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_CHAT_MESSAGE_CHARS = 4000
 EXT_MIME = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -594,7 +596,7 @@ async def upload_club_gallery(
     except Exception as db_err:
         db.rollback()
         logger.error(f"CLUB GALLERY DB SAVE ERROR: {db_err}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to save club gallery: {str(db_err)}")
+        raise HTTPException(status_code=500, detail="Failed to save club gallery")
 
     return {
         "message": f"{len(additions)} file(s) uploaded",
@@ -632,7 +634,7 @@ def delete_club_gallery_by_index(
         db.commit()
     except Exception as db_err:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete club gallery image: {str(db_err)}")
+        raise HTTPException(status_code=500, detail="Failed to delete club gallery image")
         
     return {"message": "Image deleted successfully"}
 
@@ -733,13 +735,19 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
-        
-    hidden_message_ids = {h.message_id for h in db.query(UserHiddenMessage).filter(UserHiddenMessage.user_id == current_user.id).all()}
+
+    # Chat is members-only (same rule the websocket enforces).
+    is_member = db.query(ClubMember).filter(
+        ClubMember.club_id == club_id, ClubMember.user_id == current_user.id
+    ).first() is not None
+    if not is_member and club.creator_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Join this club to view its chat")
+
+    hidden_message_ids ={h.message_id for h in db.query(UserHiddenMessage).filter(UserHiddenMessage.user_id == current_user.id).all()}
         
     messages = db.query(ClubMessage).filter(ClubMessage.club_id == club_id).order_by(ClubMessage.created_at.desc()).limit(50).all()
-    
-    from ..models import ClubMember
-    memberships = {m.user_id: m.role for m in db.query(ClubMember).filter(ClubMember.club_id == club_id).all()}
+
+    memberships ={m.user_id: m.role for m in db.query(ClubMember).filter(ClubMember.club_id == club_id).all()}
     
     result = []
     for msg in messages:
@@ -779,8 +787,12 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
         
-    user_id = int(user_id_str)
-    
+    try:
+        user_id = int(user_id_str)
+    except (TypeError, ValueError):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     # check membership
     member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == user_id).first()
     if not member:
@@ -810,7 +822,17 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
                     attachment_type = payload.get("attachment_type")
             except Exception:
                 pass
-                
+
+            if not isinstance(content, str):
+                content = str(content or "")
+            content = content[:MAX_CHAT_MESSAGE_CHARS]
+            if not isinstance(attachment_url, str) or not attachment_url.startswith(("https://", "http://")):
+                attachment_url = None
+            if attachment_type not in (None, "image", "pdf", "doc"):
+                attachment_type = None
+            if not content.strip() and not attachment_url:
+                continue
+
             new_msg = ClubMessage(
                 club_id=club_id, 
                 user_id=user_id, 
@@ -942,8 +964,14 @@ async def upload_club_chat_attachment(
             ".webp": ".webp", ".gif": ".gif", ".pdf": ".pdf", 
             ".doc": ".doc", ".docx": ".docx", ".txt": ".txt"
         }
-        ext = ALLOWED_EXTS.get(raw_ext, ".bin")
-    
+        ext = ALLOWED_EXTS.get(raw_ext, "")
+    if not ext:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+
+    contents = await file.read()
+    if len(contents) > MAX_CHAT_UPLOAD_BYTES:
+        raise HTTPException(status_code=400, detail="File too large. Max 10MB")
+
     # Remove club_id from filename to completely eliminate any user input from the path.
     # The UUID is sufficiently unique on its own.
     filename = f"chat_{uuid.uuid4().hex}{ext}"
@@ -961,7 +989,7 @@ async def upload_club_chat_attachment(
         attachment_type = "pdf"
         
     with open(file_path, "wb") as f:
-        f.write(await file.read())
+        f.write(contents)
 
     url = _public_upload_url(request, filename)
     return {"url": url, "type": attachment_type}

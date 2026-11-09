@@ -617,7 +617,7 @@ async def upload_gallery(
     except Exception as db_err:
         db.rollback()
         logger.error(f"GALLERY DB SAVE ERROR: {db_err}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to save gallery: {str(db_err)}")
+        raise HTTPException(status_code=500, detail="Failed to save gallery")
         
     return {
         "message": f"{len(additions)} file(s) uploaded",
@@ -651,7 +651,7 @@ def delete_gallery_file(
     except Exception as db_err:
         db.rollback()
         logger.error(f"GALLERY DB SAVE ERROR: {db_err}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to save gallery: {str(db_err)}")
+        raise HTTPException(status_code=500, detail="Failed to save gallery")
         
     return {"message": "File deleted successfully"}
 

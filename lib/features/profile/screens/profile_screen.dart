@@ -567,115 +567,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '@${user['email']?.split('@')[0] ?? 'user'}',
+                    '@${user['username'] ?? user['email']?.split('@')[0] ?? 'user'}',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   _buildCollegeBadge(user, widget.userId == null),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.light
-                          ? const Color(0xFFF8FAFC)
-                          : Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _ProfileStatsCard(
+                      streak: '$streak',
+                      level: level is int ? level : int.tryParse('$level') ?? 1,
+                      progress: progress.clamp(0.0, 1.0).toDouble(),
+                      xpInLevel: '${xp - currentLevelXP}',
+                      xpForLevel: '${nextLevelXP - currentLevelXP}',
+                      created: '${user['events_created'] ?? 0}',
+                      joined: '${user['total_registered'] ?? user['attended'] ?? 0}',
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('🔥 ', style: TextStyle(fontSize: 13)),
-                        Text(
-                          '$streak day streak',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text('✨ ', style: TextStyle(fontSize: 13)),
-                        Text(
-                          'Level $level',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: SizedBox(
-                      width: 160,
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Theme.of(context).brightness == Brightness.light
-                                  ? Theme.of(context).colorScheme.outlineVariant
-                                  : ZynkColors.darkSurface2,
-                              color: ZynkColors.gold,
-                              minHeight: 5,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '${xp - currentLevelXP} / ${nextLevelXP - currentLevelXP} XP to Level ${level + 1}',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _InlineStat(
-                        count: '${user['events_created'] ?? 0}',
-                        label: 'Created Events',
-                      ),
-                      Container(
-                        width: 1,
-                        height: 24,
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                      ),
-                      _InlineStat(
-                        count: '${user['total_registered'] ?? user['attended'] ?? 0}',
-                        label: 'Joined Events',
-                      ),
-                    ],
                   ),
                   if (widget.userId != null) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     _buildFriendActionButton(user),
                   ],
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -3110,29 +3027,145 @@ class _ProfileSkeleton extends StatelessWidget {
   }
 }
 
-class _InlineStat extends StatelessWidget {
-  final String count;
-  final String label;
-  const _InlineStat({required this.count, required this.label});
+/// Compact card grouping streak, level, event counts and XP progress, so the
+/// profile header reads as one block instead of a tall stack of pills/rows.
+class _ProfileStatsCard extends StatelessWidget {
+  final String streak;
+  final int level;
+  final double progress;
+  final String xpInLevel;
+  final String xpForLevel;
+  final String created;
+  final String joined;
+
+  const _ProfileStatsCard({
+    required this.streak,
+    required this.level,
+    required this.progress,
+    required this.xpInLevel,
+    required this.xpForLevel,
+    required this.created,
+    required this.joined,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = scheme.onSurface.withValues(alpha: 0.55);
+
+    Widget divider() => Container(
+          width: 1,
+          height: 32,
+          color: scheme.outlineVariant,
+        );
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 14),
+      decoration: BoxDecoration(
+        color: isDark ? scheme.surface : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _StatCell(value: streak, label: 'Day streak', emoji: '🔥')),
+              divider(),
+              Expanded(child: _StatCell(value: '$level', label: 'Level', emoji: '✨')),
+              divider(),
+              Expanded(child: _StatCell(value: created, label: 'Created')),
+              divider(),
+              Expanded(child: _StatCell(value: joined, label: 'Joined')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: isDark
+                        ? ZynkColors.darkSurface2
+                        : scheme.outlineVariant.withValues(alpha: 0.6),
+                    color: ZynkColors.gold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      'Level $level',
+                      style: TextStyle(
+                        color: muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '$xpInLevel / $xpForLevel XP to Level ${level + 1}',
+                      style: TextStyle(
+                        color: muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatCell extends StatelessWidget {
+  final String value;
+  final String label;
+  final String? emoji;
+
+  const _StatCell({required this.value, required this.label, this.emoji});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          count,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            emoji != null ? '$emoji $value' : value,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
-            fontSize: 12,
+            color: scheme.onSurface.withValues(alpha: 0.55),
+            fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
         ),

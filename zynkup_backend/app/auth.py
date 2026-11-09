@@ -9,7 +9,8 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 import jwt
 from jwt import PyJWTError as JWTError
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException
+import hmac
+from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -113,6 +114,21 @@ def require_role(allowed_roles: list[str]):
         return current_user
         
     return role_checker
+
+def require_admin_setup_key(
+    x_admin_setup_key: Optional[str] = Header(default=None),
+) -> None:
+    """Guard for one-off admin maintenance endpoints.
+
+    The key must be sent in the `X-Admin-Setup-Key` header (never the URL, which
+    ends up in access logs) and is compared in constant time.
+    """
+    secret = os.getenv("ADMIN_SETUP_KEY", "")
+    if not secret or not x_admin_setup_key or not hmac.compare_digest(
+        x_admin_setup_key.encode("utf-8"), secret.encode("utf-8")
+    ):
+        raise HTTPException(status_code=403, detail="Invalid setup key")
+
 
 def verify_access_token(token: str) -> Optional[dict]:
     try:

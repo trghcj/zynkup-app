@@ -2278,19 +2278,23 @@ class _ClubEventCard extends StatelessWidget {
     final dt = ZynkDateUtils.parseUtc(dateStr);
 
     final dateFormatted = dt != null ? DateFormat('MMM d, yyyy • hh:mm a').format(dt) : 'Date TBD';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          gradient: ZynkGradients.cardSurface,
+          // Dark theme keeps the original dark card; light theme uses a white surface
+          // so the onSurface-colored title and venue stay readable.
+          gradient: isDark ? ZynkGradients.cardSurface : null,
+          color: isDark ? null : Colors.white,
           borderRadius: BorderRadius.circular(ZynkRadius.lg),
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
+              color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.06),
+              blurRadius: isDark ? 10 : 14,
               offset: const Offset(0, 4),
             ),
           ],
@@ -2327,7 +2331,9 @@ class _ClubEventCard extends StatelessWidget {
                       Text(
                         dateFormatted,
                         style: TextStyle(
-                          color: ZynkColors.darkMuted.withValues(alpha: 0.8),
+                          color: isDark
+                              ? ZynkColors.darkMuted.withValues(alpha: 0.8)
+                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
