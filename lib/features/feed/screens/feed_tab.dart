@@ -23,6 +23,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
 import 'package:zynkup/core/services/bookmark_service.dart';
+import 'package:zynkup/core/utils/safe_launch.dart';
 
 class FeedTab extends StatefulWidget {
   const FeedTab({super.key});
@@ -1893,7 +1894,8 @@ class _EmbeddedLinkCardState extends State<_EmbeddedLinkCard> {
 
   Future<void> _openLink(BuildContext context) async {
     try {
-      final uri = Uri.parse(widget.linkUrl);
+      final uri = safeHttpUri(widget.linkUrl);
+      if (uri == null) throw const FormatException('Unsafe or invalid link');
       bool launched = false;
       if (!kIsWeb) {
         try {

@@ -6,11 +6,17 @@ from datetime import datetime, timezone
 from app.timeutils import utcnow_naive
 from urllib.parse import urlparse
 import json
+import logging
 
 from ..database import get_db
 from ..models import FeedPost, User, FeedComment, FeedLike
 from ..auth import get_current_user, get_optional_current_user
+from ..validation import (
+    MAX_COMMENT, MAX_LINK_TITLE, MAX_POLL_OPTION, MAX_POLL_OPTIONS, MAX_POLL_QUESTION,
+    MAX_POST_CONTENT, MAX_REACTION, MIN_POLL_OPTIONS, check_length, safe_link, safe_url,
+)
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/feed", tags=["Feed"])
 
 class FeedPostCreate(BaseModel):
@@ -83,10 +89,38 @@ class FeedCommentResponse(BaseModel):
     class Config:
         orm_mode = True
 
+_KNOWN_LINK_TYPES = {"youtube", "instagram", "twitter", "spotify", "github", "general"}
+
+
+def _validate_post_fields(data) -> None:
+    """Length limits and URL safety for create/update payloads (400 on failure)."""
+    check_length(data.content, MAX_POST_CONTENT, "Post content")
+    check_length(data.link_title, MAX_LINK_TITLE, "Link title")
+    data.image_url = safe_url(data.image_url, "Image URL") if data.image_url else data.image_url
+    data.banner_url = safe_url(data.banner_url, "Banner URL") if data.banner_url else data.banner_url
+    data.link_url = safe_link(data.link_url, "Link") if data.link_url else data.link_url
+
+
+def _require_club_poster(db: Session, club_id: int, user: User) -> None:
+    """Only members (or the creator / a site admin) may post on a club's behalf;
+    otherwise anyone could impersonate a club and push-notify its followers."""
+    from ..models import Club, ClubMember
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+    if club.creator_id == user.id or user.role == "admin":
+        return
+    is_member = db.query(ClubMember).filter(
+        ClubMember.club_id == club_id, ClubMember.user_id == user.id
+    ).first() is not None
+    if not is_member:
+        raise HTTPException(status_code=403, detail="Only club members can post to this club")
+
+
 def _detect_link_type(url: Optional[str], provided_type: Optional[str] = None) -> Optional[str]:
     if not url or not url.strip():
         return None
-    if provided_type and provided_type.strip():
+    if provided_type and provided_type.strip().lower() in _KNOWN_LINK_TYPES:
         return provided_type.strip().lower()
     try:
         candidate = url.strip()
@@ -110,6 +144,23 @@ def _detect_link_type(url: Optional[str], provided_type: Optional[str] = None) -
 
 @router.post("/", response_model=FeedPostResponse)
 def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not (post_data.content or "").strip() and not post_data.image_url and not post_data.link_url and not post_data.poll_question:
+        raise HTTPException(status_code=400, detail="Post cannot be empty")
+    _validate_post_fields(post_data)
+    if post_data.poll_question or post_data.poll_options:
+        check_length(post_data.poll_question, MAX_POLL_QUESTION, "Poll question")
+        options = [o.strip() for o in (post_data.poll_options or []) if o and o.strip()]
+        if not (post_data.poll_question or "").strip() or not (MIN_POLL_OPTIONS <= len(options) <= MAX_POLL_OPTIONS):
+            raise HTTPException(
+                status_code=400,
+                detail=f"A poll needs a question and {MIN_POLL_OPTIONS}-{MAX_POLL_OPTIONS} options",
+            )
+        for option in options:
+            check_length(option, MAX_POLL_OPTION, "Poll option")
+        post_data.poll_options = options
+    if post_data.club_id is not None:
+        _require_club_poster(db, post_data.club_id, current_user)
+
     detected_type = _detect_link_type(post_data.link_url, post_data.link_type)
     new_post = FeedPost(
         author_id=current_user.id,
@@ -352,6 +403,8 @@ def update_post(post_id: int, post_data: FeedPostUpdate, db: Session = Depends(g
     if post.author_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to edit this post")
 
+    _validate_post_fields(post_data)
+
     if post_data.content is not None:
         post.content = post_data.content
     if post_data.image_url is not None:
@@ -409,8 +462,18 @@ def report_post(post_id: int, db: Session = Depends(get_db), current_user: User 
     if not post:
         raise HTTPException(status_code=404, detail="Feed post not found")
 
+    # Count each account once; otherwise one user reporting 10 times would hide
+    # any post (the feed filters out report_count >= 10).
+    from ..models import FeedReport
+    already = db.query(FeedReport).filter(
+        FeedReport.post_id == post_id, FeedReport.user_id == current_user.id
+    ).first()
+    if already:
+        return {"message": "You have already reported this post", "report_count": post.report_count}
+
+    db.add(FeedReport(post_id=post_id, user_id=current_user.id))
     post.is_reported = True
-    post.report_count += 1
+    post.report_count = (post.report_count or 0) + 1
     db.commit()
     return {"message": "Post reported successfully", "report_count": post.report_count}
 
@@ -419,6 +482,9 @@ def create_comment(post_id: int, comment_data: FeedCommentCreate, db: Session = 
     post = db.query(FeedPost).filter(FeedPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Feed post not found")
+    if not (comment_data.content or "").strip():
+        raise HTTPException(status_code=400, detail="Comment cannot be empty")
+    check_length(comment_data.content, MAX_COMMENT, "Comment")
 
     new_comment = FeedComment(
         post_id=post_id,
@@ -486,6 +552,9 @@ def react_post(post_id: int, data: ReactionCreate, db: Session = Depends(get_db)
     post = db.query(FeedPost).filter(FeedPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+    if not (data.emoji or "").strip():
+        raise HTTPException(status_code=400, detail="Reaction cannot be empty")
+    check_length(data.emoji, MAX_REACTION, "Reaction")
 
     existing = db.query(FeedReaction).filter(FeedReaction.post_id == post_id, FeedReaction.user_id == current_user.id).first()
     if existing:
@@ -512,6 +581,9 @@ def vote_poll(post_id: int, data: VoteCreate, db: Session = Depends(get_db), cur
     poll = db.query(FeedPoll).filter(FeedPoll.post_id == post_id).first()
     if not poll:
         raise HTTPException(status_code=404, detail="Poll not found")
+    options = json.loads(poll.options) if poll.options else []
+    if not (0 <= data.option_index < len(options)):
+        raise HTTPException(status_code=400, detail="Invalid poll option")
 
     votes = json.loads(poll.votes) if poll.votes else {}
     votes[str(current_user.id)] = data.option_index

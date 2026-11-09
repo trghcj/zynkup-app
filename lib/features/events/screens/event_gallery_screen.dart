@@ -8,6 +8,7 @@ import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zynkup/core/utils/safe_launch.dart';
 
 class EventGalleryScreen extends StatefulWidget {
   const EventGalleryScreen({
@@ -272,7 +273,7 @@ class _GalleryTile extends StatelessWidget {
       content = GestureDetector(
         onTap: () {
           if (url != null && url.isNotEmpty) {
-            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            launchSafeUrl(url, mode: LaunchMode.externalApplication);
           }
         },
         child: Container(

@@ -14,6 +14,7 @@ from app.database import normalize_database_url
 from app.main import _is_allowed_origin
 from app.timeutils import utcnow_naive
 from app.uploads import read_upload_limited
+from app.validation import check_length, safe_link, safe_url
 from app.routes import users as users_routes
 
 
@@ -138,6 +139,48 @@ class LoginLimiterTests(unittest.TestCase):
 
     def test_google_audience_defaults_used_when_env_blank(self):
         self.assertIn(_env.WEB_CLIENT_ID, users_routes.GOOGLE_CLIENT_IDS)
+
+
+class ValidationTests(unittest.TestCase):
+    def test_safe_url_accepts_http_and_https(self):
+        self.assertEqual(safe_url(" https://a.com/x ", "U"), "https://a.com/x")
+        self.assertEqual(safe_url("http://a.com", "U"), "http://a.com")
+        self.assertIsNone(safe_url("", "U"))
+        self.assertIsNone(safe_url(None, "U"))
+
+    def test_safe_url_rejects_dangerous_schemes(self):
+        for bad in (
+            "javascript:alert(1)",
+            "JAVASCRIPT:alert(1)",
+            "data:text/html,<b>x</b>",
+            "file:///etc/passwd",
+            "intent://x#Intent;end",
+            "ftp://a.com",
+            "https://",
+            "https://" + "a" * 3000 + ".com",
+        ):
+            with self.assertRaises(HTTPException, msg=bad) as ctx:
+                safe_url(bad, "U")
+            self.assertEqual(ctx.exception.status_code, 400)
+
+    def test_safe_link_adds_https_but_still_blocks_schemes(self):
+        self.assertEqual(safe_link("youtube.com/watch?v=1", "L"), "https://youtube.com/watch?v=1")
+        for bad in ("javascript:alert(1)", "data:text/html,x", "vbscript:x"):
+            with self.assertRaises(HTTPException):
+                safe_link(bad, "L")
+
+    def test_check_length(self):
+        self.assertEqual(check_length("abc", 3, "F"), "abc")
+        self.assertIsNone(check_length(None, 3, "F"))
+        with self.assertRaises(HTTPException):
+            check_length("abcd", 3, "F")
+
+
+class DailyXpCapTests(unittest.TestCase):
+    def test_caps_cover_repeatable_actions(self):
+        from app.gamification import DAILY_XP_CAPS
+        for action in ("create_post", "create_comment", "join_club"):
+            self.assertIn(action, DAILY_XP_CAPS)
 
 
 if __name__ == "__main__":

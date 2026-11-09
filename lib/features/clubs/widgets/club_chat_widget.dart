@@ -5,11 +5,11 @@ import 'package:zynkup/core/api/api_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart' as fp;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:zynkup/core/widgets/full_screen_image_viewer.dart';
 import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
+import 'package:zynkup/core/utils/safe_launch.dart';
 
 class ClubChatWidget extends StatefulWidget {
   final int clubId;
@@ -459,7 +459,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                     )
                                  else
                                     GestureDetector(
-                                      onTap: () => launchUrl(Uri.parse(msg['attachment_url'])),
+                                      onTap: () => launchSafeUrl(msg['attachment_url']?.toString()),
                                       child: Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8)),

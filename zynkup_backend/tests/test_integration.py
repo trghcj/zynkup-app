@@ -282,6 +282,164 @@ class AuthenticatedPagesTests(unittest.TestCase):
             self.assertEqual(client.get(path, headers=auth(token)).status_code, 200, path)
 
 
+def create_post(token: str, **fields):
+    body = {"content": "hello campus", **fields}
+    return client.post("/feed/", headers=auth(token), json=body)
+
+
+class FeedSecurityTests(unittest.TestCase):
+    def setUp(self):
+        self.owner, _, _ = signup("clubowner")
+        self.stranger, _, _ = signup("stranger")
+        self.club_id = create_club(self.owner)
+
+    def test_only_members_can_post_as_club(self):
+        r = create_post(self.stranger, club_id=self.club_id)
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(create_post(self.owner, club_id=self.club_id).status_code, 200)
+        client.post(f"/clubs/{self.club_id}/join", headers=auth(self.stranger))
+        self.assertEqual(create_post(self.stranger, club_id=self.club_id).status_code, 200)
+        self.assertEqual(create_post(self.owner, club_id=999999).status_code, 404)
+
+    def test_report_counts_each_account_once(self):
+        post_id = create_post(self.owner).json()["id"]
+        counts = [
+            client.post(f"/feed/{post_id}/report", headers=auth(self.stranger)).json()["report_count"]
+            for _ in range(12)
+        ]
+        self.assertEqual(counts, [1] * 12)
+        feed_ids = [p["id"] for p in client.get("/feed/", headers=auth(self.owner)).json()]
+        self.assertIn(post_id, feed_ids)
+
+    def test_reported_post_can_still_be_deleted(self):
+        post_id = create_post(self.owner).json()["id"]
+        client.post(f"/feed/{post_id}/report", headers=auth(self.stranger))
+        self.assertEqual(client.delete(f"/feed/{post_id}", headers=auth(self.owner)).status_code, 200)
+
+    def test_unsafe_urls_rejected(self):
+        for field, value in (
+            ("link_url", "javascript:alert(1)"),
+            ("image_url", "data:text/html,<script>x</script>"),
+            ("banner_url", "file:///etc/passwd"),
+        ):
+            r = create_post(self.owner, **{field: value})
+            self.assertEqual(r.status_code, 400, field)
+
+    def test_scheme_less_link_normalized_and_spoofed_type_ignored(self):
+        r = create_post(self.owner, link_url="youtube.com/watch?v=1", link_type="<script>")
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.json()["link_url"], "https://youtube.com/watch?v=1")
+        self.assertEqual(r.json()["link_type"], "youtube")
+
+    def test_edit_cannot_add_unsafe_link(self):
+        post_id = create_post(self.owner).json()["id"]
+        r = client.patch(f"/feed/{post_id}", headers=auth(self.owner), json={"link_url": "javascript:alert(1)"})
+        self.assertEqual(r.status_code, 400)
+
+    def test_length_limits(self):
+        self.assertEqual(create_post(self.owner, content="x" * 5001).status_code, 400)
+        self.assertEqual(create_post(self.owner, content="x" * 5000).status_code, 200)
+        self.assertEqual(create_post(self.owner, content="   ").status_code, 400)
+        post_id = create_post(self.owner).json()["id"]
+        r = client.post(f"/feed/{post_id}/comments", headers=auth(self.stranger), json={"content": "y" * 2001})
+        self.assertEqual(r.status_code, 400)
+        r = client.post(f"/feed/{post_id}/react", headers=auth(self.stranger), json={"emoji": "z" * 50})
+        self.assertEqual(r.status_code, 400)
+        r = client.post(f"/feed/{post_id}/react", headers=auth(self.stranger), json={"emoji": "fire"})
+        self.assertEqual(r.status_code, 200)
+
+    def test_poll_validation_and_votes(self):
+        r = create_post(self.owner, poll_question="Best?", poll_options=["only one"])
+        self.assertEqual(r.status_code, 400)
+        r = create_post(self.owner, poll_question="Best?", poll_options=[str(i) for i in range(11)])
+        self.assertEqual(r.status_code, 400)
+        r = create_post(self.owner, poll_question="Best?", poll_options=["A", "B"])
+        self.assertEqual(r.status_code, 200, r.text)
+        post_id = r.json()["id"]
+        for bad in (-1, 2, 999):
+            v = client.post(f"/feed/{post_id}/poll/vote", headers=auth(self.stranger), json={"option_index": bad})
+            self.assertEqual(v.status_code, 400, bad)
+        v = client.post(f"/feed/{post_id}/poll/vote", headers=auth(self.stranger), json={"option_index": 1})
+        self.assertEqual(v.status_code, 200)
+
+
+class XpCapTests(unittest.TestCase):
+    def test_post_xp_stops_after_daily_cap(self):
+        token, _, _ = signup("xpfarmer")
+        start = client.get("/users/me", headers=auth(token)).json()["xp"]
+        for _ in range(8):
+            self.assertEqual(create_post(token).status_code, 200)
+        xp = client.get("/users/me", headers=auth(token)).json()["xp"]
+        # 5 capped post awards x 20 XP; /users/me itself may add the 5 XP daily login once.
+        self.assertIn(xp - start, (100, 105))
+
+
+class ClubRulesTests(unittest.TestCase):
+    def setUp(self):
+        self.owner, _, _ = signup("owner2")
+        self.member, self.member_id, _ = signup("member2")
+        self.club_id = create_club(self.owner)
+        client.post(f"/clubs/{self.club_id}/join", headers=auth(self.member))
+
+    def test_role_allow_list(self):
+        url = f"/clubs/{self.club_id}/members/{self.member_id}/role"
+        for bad in ("superadmin", "owner", ""):
+            self.assertEqual(client.put(url, headers=auth(self.owner), json={"role": bad}).status_code, 400, bad)
+        r = client.put(url, headers=auth(self.owner), json={"role": "Moderator", "custom_role": "Tech Lead"})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.json()["role"], "moderator")
+        r = client.put(url, headers=auth(self.owner), json={"role": "member", "custom_role": "x" * 51})
+        self.assertEqual(r.status_code, 400)
+
+    def test_club_fields_validated(self):
+        r = client.put(f"/clubs/{self.club_id}", headers=auth(self.owner), json={"logo_url": "javascript:alert(1)"})
+        self.assertEqual(r.status_code, 400)
+        r = client.put(f"/clubs/{self.club_id}", headers=auth(self.owner), json={"name": "n" * 101})
+        self.assertEqual(r.status_code, 400)
+        r = client.post("/clubs/", headers=auth(self.owner), json={"name": "  ", "category": "tech"})
+        self.assertEqual(r.status_code, 400)
+
+    def test_removed_member_socket_is_closed(self):
+        with client.websocket_connect(f"/clubs/{self.club_id}/chat/ws?token={self.member}") as ws:
+            ws.send_text("first")
+            self.assertEqual(ws.receive_json()["message"]["content"], "first")
+            r = client.delete(f"/clubs/{self.club_id}/members/{self.member_id}", headers=auth(self.owner))
+            self.assertEqual(r.status_code, 200)
+            ws.send_text("after removal")
+            with self.assertRaises(WebSocketDisconnect):
+                ws.receive_json()
+        history = client.get(f"/clubs/{self.club_id}/chat", headers=auth(self.owner)).json()
+        self.assertEqual([m["content"] for m in history], ["first"])
+
+    def test_chat_edit_length(self):
+        with client.websocket_connect(f"/clubs/{self.club_id}/chat/ws?token={self.owner}") as ws:
+            ws.send_text("hi")
+            mid = ws.receive_json()["message"]["id"]
+        url = f"/clubs/{self.club_id}/chat/{mid}"
+        self.assertEqual(client.put(url, headers=auth(self.owner), json={"content": "x" * 4001}).status_code, 400)
+        self.assertEqual(client.put(url, headers=auth(self.owner), json={"content": " "}).status_code, 400)
+
+
+class EventAndProfileValidationTests(unittest.TestCase):
+    def test_event_registration_link_must_be_http(self):
+        token, _, _ = signup("organizer")
+        event_id = create_event(token)
+        r = client.put(f"/events/{event_id}", headers=auth(token), json={"registration_url": "javascript:alert(1)"})
+        self.assertEqual(r.status_code, 400)
+        r = client.put(f"/events/{event_id}", headers=auth(token), json={"registration_url": "forms.gle/abc"})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(client.get(f"/events/{event_id}").json()["registration_url"], "https://forms.gle/abc")
+        r = client.put(f"/events/{event_id}", headers=auth(token), json={"title": "t" * 201})
+        self.assertEqual(r.status_code, 400)
+
+    def test_profile_fields_validated(self):
+        token, _, _ = signup("profile")
+        for body in ({"avatar_url": "javascript:alert(1)"}, {"banner_url": "data:image/svg+xml,x"}, {"bio": "b" * 501}, {"name": "n" * 101}):
+            self.assertEqual(client.put("/users/me", headers=auth(token), json=body).status_code, 400, body)
+        ok = client.put("/users/me", headers=auth(token), json={"avatar_url": "https://cdn.example.com/a.png", "banner_url": "", "bio": "hi"})
+        self.assertEqual(ok.status_code, 200, ok.text)
+
+
 @app.get("/__test_boom")
 def _boom():
     raise RuntimeError("secret internal detail")

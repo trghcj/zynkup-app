@@ -58,7 +58,6 @@ graph TD
     B -->|Image and file uploads| D[Cloudinary]
     B -->|Push notifications| E[Firebase Cloud Messaging]
     E --> A
-    F[Firebase Cloud Functions] -->|Event approval alerts| E
 ```
 
 - The app signs users in with email and password or Google. The backend verifies credentials and issues its own JWT, which the app keeps in secure storage.
@@ -73,8 +72,9 @@ graph TD
 | Backend API | FastAPI (Python), SQLAlchemy, PyJWT |
 | Database | PostgreSQL (SQLite for local development and tests) |
 | Media storage | Cloudinary |
-| Notifications | Firebase Cloud Messaging, Firebase Cloud Functions |
-| Hosting | Render (API), Vercel and Firebase Hosting (web) |
+| Notifications | Firebase Cloud Messaging (sent by the backend) |
+| Authentication | Email and password, Google Sign-In (Firebase Auth on web) |
+| Hosting | Render (API), Vercel (web) |
 | CI | GitHub Actions: Flutter analyze and test, backend tests on SQLite and Postgres, CodeQL |
 
 ## Screenshots
@@ -181,7 +181,6 @@ zynkup-app/
 ├── zynkup_backend/         FastAPI backend
 │   ├── app/                Routes, models, auth and helpers
 │   └── tests/              Backend unit and integration tests
-├── functions/              Firebase Cloud Functions
 ├── release/                Prebuilt Android APKs
 ├── android/, ios/, web/    Platform projects
 └── .github/workflows/      CI and deployment pipelines

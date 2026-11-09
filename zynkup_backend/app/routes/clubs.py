@@ -15,6 +15,9 @@ from ..database import get_db
 from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage
 from ..auth import get_current_user, get_optional_current_user
 from ..uploads import read_upload_limited
+from ..validation import (
+    MAX_CLUB_DESCRIPTION, MAX_CUSTOM_ROLE, MAX_NAME, MAX_SHORT_TEXT, check_length, safe_url,
+)
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
 logger = logging.getLogger(__name__)
@@ -89,6 +92,21 @@ class MyClubsResponse(BaseModel):
     joined: List[ClubResponse]
     following: List[ClubResponse]
 
+ASSIGNABLE_CLUB_ROLES = {"admin", "moderator", "member"}
+
+
+def _validate_club_fields(data) -> None:
+    """Length limits and http(s)-only image URLs for club create/update."""
+    check_length(data.name, MAX_NAME, "Club name")
+    check_length(data.description, MAX_CLUB_DESCRIPTION, "Description")
+    check_length(data.category, MAX_SHORT_TEXT, "Category")
+    check_length(data.college, MAX_SHORT_TEXT, "College")
+    if data.banner_url:
+        data.banner_url = safe_url(data.banner_url, "Banner URL")
+    if data.logo_url:
+        data.logo_url = safe_url(data.logo_url, "Logo URL")
+
+
 def _is_valid_image_source(value: str) -> bool:
     value = value.strip()
     return value.startswith("http://") or value.startswith("https://") or value.startswith("data:image/")
@@ -132,6 +150,9 @@ def _public_upload_url(request: Request, filename: str) -> str:
 
 @router.post("/", response_model=ClubResponse)
 def create_club(club_data: ClubCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not (club_data.name or "").strip():
+        raise HTTPException(status_code=400, detail="Club name is required")
+    _validate_club_fields(club_data)
     existing = db.query(Club).filter(Club.name == club_data.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Club name already taken")
@@ -202,6 +223,7 @@ def update_club(
 
     if not is_owner and not is_admin:
         raise HTTPException(status_code=403, detail="Only club owner and admins can edit this club")
+    _validate_club_fields(club_data)
 
     if club_data.name is not None and club_data.name.strip():
         name_clean = club_data.name.strip()
@@ -499,7 +521,12 @@ def update_member_role(club_id: int, user_id: int, payload: MemberRoleUpdate, db
     if member.user_id == club.creator_id:
         raise HTTPException(status_code=400, detail="Cannot change creator's role")
 
-    member.role = payload.role.strip().lower()
+    new_role = (payload.role or "").strip().lower()
+    if new_role not in ASSIGNABLE_CLUB_ROLES:
+        raise HTTPException(status_code=400, detail="Role must be one of: admin, moderator, member")
+    check_length(payload.custom_role, MAX_CUSTOM_ROLE, "Custom role")
+
+    member.role = new_role
     if payload.custom_role is not None:
         member.custom_role = payload.custom_role.strip() if payload.custom_role.strip() else None
     db.commit()
@@ -833,6 +860,16 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
             if not content.strip() and not attachment_url:
                 continue
 
+            # Re-check membership on every message so someone who was removed
+            # (or left) can't keep posting through a socket opened earlier.
+            still_member = db.query(ClubMember).filter(
+                ClubMember.club_id == club_id, ClubMember.user_id == user_id
+            ).first() is not None
+            if not still_member:
+                manager.disconnect(websocket, club_id)
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+
             new_msg = ClubMessage(
                 club_id=club_id, 
                 user_id=user_id, 
@@ -882,6 +919,9 @@ async def edit_club_message(club_id: int, message_id: int, payload: EditMessageP
         
     if msg.is_deleted:
         raise HTTPException(status_code=400, detail="Cannot edit a deleted message")
+    if not payload.content.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    check_length(payload.content, MAX_CHAT_MESSAGE_CHARS, "Message")
         
     # Check 5 minutes
     if utcnow_naive() - msg.created_at > timedelta(minutes=5):
