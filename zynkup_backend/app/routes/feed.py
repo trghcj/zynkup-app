@@ -11,6 +11,7 @@ import logging
 from ..database import get_db
 from ..models import FeedPost, User, FeedComment, FeedLike
 from ..auth import get_current_user, get_optional_current_user
+from ..polls import poll_to_dict
 from ..validation import (
     MAX_COMMENT, MAX_LINK_TITLE, MAX_POLL_OPTION, MAX_POLL_OPTIONS, MAX_POLL_QUESTION,
     MAX_POST_CONTENT, MAX_REACTION, MIN_POLL_OPTIONS, check_length, safe_link, safe_url,
@@ -187,13 +188,7 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
         db.commit()
         db.refresh(new_post)
 
-    poll_dict = None
-    if getattr(new_post, 'poll', None):
-        poll_dict = {
-            "question": new_post.poll.question,
-            "options": json.loads(new_post.poll.options),
-            "votes": json.loads(new_post.poll.votes) if new_post.poll.votes else {}
-        }
+    poll_dict = poll_to_dict(getattr(new_post, 'poll', None), current_user.id if current_user else None)
         
     club_name = None
     club_logo = None
@@ -296,13 +291,7 @@ def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depen
             if current_user and r.user_id == current_user.id:
                 user_react = r.emoji
 
-        poll_dict = None
-        if p.poll:
-            poll_dict = {
-                "question": p.poll.question,
-                "options": json.loads(p.poll.options),
-                "votes": json.loads(p.poll.votes) if p.poll.votes else {}
-            }
+        poll_dict = poll_to_dict(getattr(p, 'poll', None), current_user.id if current_user else None)
 
         result.append(FeedPostResponse(
             id=p.id,
@@ -344,13 +333,7 @@ def get_post(post_id: int, db: Session = Depends(get_db), current_user: Optional
         if current_user and r.user_id == current_user.id:
             user_react = r.emoji
 
-    poll_dict = None
-    if p.poll:
-        poll_dict = {
-            "question": p.poll.question,
-            "options": json.loads(p.poll.options),
-            "votes": json.loads(p.poll.votes) if p.poll.votes else {}
-        }
+    poll_dict = poll_to_dict(getattr(p, 'poll', None), current_user.id if current_user else None)
 
     return FeedPostResponse(
         id=p.id,
@@ -589,4 +572,4 @@ def vote_poll(post_id: int, data: VoteCreate, db: Session = Depends(get_db), cur
     votes[str(current_user.id)] = data.option_index
     poll.votes = json.dumps(votes)
     db.commit()
-    return {"message": "Vote recorded"}
+    return {"message": "Vote recorded", "poll": poll_to_dict(poll, current_user.id)}

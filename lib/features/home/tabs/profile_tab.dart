@@ -52,7 +52,7 @@ class _ProfileTabState extends State<ProfileTab> {
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 110),
+              padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 22, ZynkLayout.gutter(context), 110),
               children: [
                 CircleAvatar(
                   radius: 38,
@@ -119,7 +119,7 @@ class _StatsGrid extends StatelessWidget {
         childAspectRatio: 1.55,
       ),
       itemBuilder: (_, index) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(ZynkLayout.cardPadding(context)),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),

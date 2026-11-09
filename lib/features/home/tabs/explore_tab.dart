@@ -58,7 +58,7 @@ class _ExploreTabState extends State<ExploreTab> {
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
+                padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 22, ZynkLayout.gutter(context), 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -181,7 +181,7 @@ class _ExploreTabState extends State<ExploreTab> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
+                padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 110),
                 sliver: SliverList.separated(
                   itemCount: events.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 14),

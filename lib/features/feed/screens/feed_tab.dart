@@ -391,7 +391,7 @@ class _FeedTabState extends State<FeedTab> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
                 child:  Padding(
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 16, ZynkLayout.gutter(context), 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -423,7 +423,7 @@ class _FeedTabState extends State<FeedTab> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 12),
                   child: GestureDetector(
                     onTap: _createNewPost,
                     child: Container(
@@ -479,7 +479,7 @@ class _FeedTabState extends State<FeedTab> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 700),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -677,15 +677,32 @@ class _FeedTabState extends State<FeedTab> {
                           if (postId == null) { return; }
                           final poll = post['poll'] as Map<String, dynamic>?;
                           if (poll == null) { return; }
-                          final votes =
-                              poll['votes'] as Map<String, dynamic>? ?? {};
+                          // Tapping your current choice does nothing; tapping
+                          // another option changes your vote.
+                          if (poll['my_vote'] == optionIndex) { return; }
+                          final previousVotes = Map<String, dynamic>.from(
+                              poll['votes'] as Map? ?? {});
+                          final previousMine = poll['my_vote'];
                           final userIdStr = _currentUserId?.toString() ?? '0';
-                          if (votes.containsKey(userIdStr)) { return; }
                           setState(() {
-                            votes[userIdStr] = optionIndex;
-                            poll['votes'] = votes;
+                            poll['votes'] = {...previousVotes, userIdStr: optionIndex};
+                            poll['my_vote'] = optionIndex;
                           });
-                          await ApiService.votePoll(postId, optionIndex);
+                          final updated = await ApiService.votePoll(postId, optionIndex);
+                          if (!mounted) { return; }
+                          setState(() {
+                            if (updated != null) {
+                              post['poll'] = updated;
+                            } else {
+                              poll['votes'] = previousVotes;
+                              poll['my_vote'] = previousMine;
+                            }
+                          });
+                          if (updated == null && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Could not record your vote')),
+                            );
+                          }
                         },
                       );
                     },
@@ -714,13 +731,13 @@ class _FeedTabState extends State<FeedTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
             child: Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 24),
           ),
 
           // ── Trending Events (Horizontal Carousel) ───────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+            padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 4, ZynkLayout.gutter(context), 10),
             child: Row(
               children: [
                 Icon(
@@ -748,7 +765,7 @@ class _FeedTabState extends State<FeedTab> {
               height: 100,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                 itemCount: 3,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (_, __) => const ZSkeleton(width: 220, height: 100, borderRadius: 14),
@@ -756,7 +773,7 @@ class _FeedTabState extends State<FeedTab> {
             )
           else if (_events.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
               child: Text(
                 'No trending events right now.',
                 style: TextStyle(
@@ -770,7 +787,7 @@ class _FeedTabState extends State<FeedTab> {
               height: 105,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                 itemCount: _trendingEvents.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (context, index) => _buildHorizontalEventCard(_trendingEvents[index]),
@@ -781,7 +798,7 @@ class _FeedTabState extends State<FeedTab> {
 
           // ── Active Communities (Horizontal Carousel) ────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -832,7 +849,7 @@ class _FeedTabState extends State<FeedTab> {
               height: 85,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                 itemCount: 3,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (_, __) => const ZSkeleton(width: 160, height: 85, borderRadius: 14),
@@ -840,7 +857,7 @@ class _FeedTabState extends State<FeedTab> {
             )
           else if (_clubs.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
               child: Text(
                 'No communities found.',
                 style: TextStyle(
@@ -854,7 +871,7 @@ class _FeedTabState extends State<FeedTab> {
               height: 90,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                 itemCount: _clubs.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (context, index) => _buildHorizontalClubCard(_clubs[index]),
@@ -1368,9 +1385,12 @@ class FeedPostCard extends StatelessWidget {
     final String timeStr = _timeAgo(post['created_at'] as String?);
 
     final hasBanner = bannerUrl != null && bannerUrl.isNotEmpty;
+    // Tighter spacing on phones; tablets and web keep the roomier layout.
+    final compact = ZynkLayout.isCompact(context);
+    final pad = ZynkLayout.cardPadding(context);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      margin: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), ZynkLayout.cardGap(context)),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(ZynkRadius.lg),
@@ -1407,7 +1427,7 @@ class FeedPostCard extends StatelessWidget {
 
           // Author Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(pad, compact ? 8 : 16, compact ? 0 : 16, compact ? 0 : 16),
             child: Row(
               children: [
                 GestureDetector(
@@ -1530,9 +1550,10 @@ class FeedPostCard extends StatelessWidget {
               ),
             ),
 
-          // Text Content
+          // Text Content (skipped for poll-only posts so no empty gap remains)
+          if (content.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(pad, compact ? 6 : 16, pad, compact ? 10 : 16),
             child: Text(
               content,
               style: TextStyle(
@@ -1546,7 +1567,7 @@ class FeedPostCard extends StatelessWidget {
           // Embedded Link Card
           if (linkUrl != null && linkUrl.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: EdgeInsets.fromLTRB(pad, 0, pad, compact ? 10 : 12),
               child: _EmbeddedLinkCard(
                 linkUrl: linkUrl,
                 linkTitle: linkTitle,
@@ -1556,7 +1577,7 @@ class FeedPostCard extends StatelessWidget {
 
           // Action Bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: EdgeInsets.fromLTRB(pad, content.isEmpty && compact ? 6 : 0, pad, compact ? 10 : 16),
             child: Row(
               children: [
                 GestureDetector(
@@ -1632,11 +1653,14 @@ class PollWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final question = poll['question'] as String? ?? '';
     final options = (poll['options'] as List<dynamic>?) ?? [];
-    final votes = poll['votes'] as Map<String, dynamic>? ?? {};
+    final votes = (poll['votes'] as Map?) ?? const {};
     final totalVotes = votes.length;
+    final myVote = poll['my_vote'];
+    final scheme = Theme.of(context).colorScheme;
 
+    final pad = ZynkLayout.cardPadding(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: EdgeInsets.fromLTRB(pad, 0, pad, ZynkLayout.isCompact(context) ? 10 : 16),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(12),
@@ -1660,6 +1684,14 @@ class PollWidget extends StatelessWidget {
               final optionText = options[index].toString();
               final voteCount = votes.values.where((v) => v == index).length;
               final percent = totalVotes > 0 ? voteCount / totalVotes : 0.0;
+              final isMine = myVote == index;
+              // Your choice uses the solid brand lime (like the other primary
+              // buttons); other results stay a light tint.
+              final barColor = isMine
+                  ? ZynkColors.primary
+                  : ZynkColors.primary.withValues(alpha: 0.25);
+              // Text on solid lime must stay dark in both themes.
+              final onBar = isMine ? ZynkColors.lightText : scheme.onSurface;
 
               return GestureDetector(
                 onTap: () => onVote(index),
@@ -1667,19 +1699,20 @@ class PollWidget extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 8),
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
+                    color: scheme.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                    border: Border.all(
+                      color: isMine ? ZynkColors.primary : scheme.outlineVariant,
+                      width: isMine ? 1.5 : 1,
+                    ),
                   ),
                   child: Stack(
                     children: [
-                      FractionallySizedBox(
-                        widthFactor: percent,
-                        child: Container(
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: ZynkColors.primary.withValues(alpha: 0.3),
-                          ),
+                      Positioned.fill(
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: percent,
+                          child: ColoredBox(color: barColor),
                         ),
                       ),
                       Padding(
@@ -1688,21 +1721,28 @@ class PollWidget extends StatelessWidget {
                           vertical: 8,
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              optionText,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 13,
+                            if (isMine) ...[
+                              Icon(Icons.check_circle_rounded, size: 16, color: onBar),
+                              const SizedBox(width: 6),
+                            ],
+                            Expanded(
+                              child: Text(
+                                optionText,
+                                style: TextStyle(
+                                  color: onBar,
+                                  fontSize: 13,
+                                  fontWeight: isMine ? FontWeight.w700 : FontWeight.w400,
+                                ),
                               ),
                             ),
                             if (totalVotes > 0)
                               Text(
                                 '${(percent * 100).toStringAsFixed(0)}%',
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                                  color: isMine ? onBar : scheme.onSurface.withValues(alpha: 0.55),
                                   fontSize: 12,
+                                  fontWeight: isMine ? FontWeight.w700 : FontWeight.w400,
                                 ),
                               ),
                           ],
@@ -1714,8 +1754,10 @@ class PollWidget extends StatelessWidget {
               );
             }),
             Text(
-              '$totalVotes votes',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 11),
+              myVote is int
+                  ? '${totalVotes == 1 ? '1 vote' : '$totalVotes votes'} · Tap another option to change your vote'
+                  : (totalVotes == 1 ? '1 vote' : '$totalVotes votes'),
+              style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.55), fontSize: 11),
             ),
           ],
         ),
@@ -1740,7 +1782,7 @@ class ReactionStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final emojis = ['🔥', '🎉', '💯', '👀'];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: EdgeInsets.fromLTRB(ZynkLayout.cardPadding(context), 0, ZynkLayout.cardPadding(context), ZynkLayout.isCompact(context) ? 10 : 12),
       child: Row(
         children: emojis.map((emoji) {
           final count = reactions[emoji] as int? ?? 0;

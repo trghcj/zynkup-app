@@ -105,7 +105,7 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+      padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 24, ZynkLayout.gutter(context), 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

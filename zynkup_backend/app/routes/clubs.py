@@ -14,6 +14,7 @@ from app.timeutils import utcnow_naive
 from ..database import get_db
 from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage, ClubChatPoll, FeedPoll, FeedReaction
 from ..auth import get_current_user, get_optional_current_user
+from ..polls import poll_to_dict
 from ..uploads import read_upload_limited
 from ..validation import (
     MAX_CLUB_DESCRIPTION, MAX_CUSTOM_ROLE, MAX_NAME, MAX_SHORT_TEXT, check_length, clean_poll, safe_url,
@@ -693,13 +694,7 @@ def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Opt
             if current_user and r.user_id == current_user.id:
                 user_react = r.emoji
 
-        poll_dict = None
-        if p.poll:
-            poll_dict = {
-                "question": p.poll.question,
-                "options": json.loads(p.poll.options),
-                "votes": json.loads(p.poll.votes) if p.poll.votes else {}
-            }
+        poll_dict = poll_to_dict(getattr(p, 'poll', None), current_user.id if current_user else None)
 
         result.append(FeedPostResponse(
             id=p.id,

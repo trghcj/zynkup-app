@@ -1397,7 +1397,9 @@ class ApiService {
     }
   }
 
-  static Future<bool> votePoll(int postId, int optionIndex) async {
+  /// Votes on (or changes a vote in) a feed poll. Returns the updated poll,
+  /// including `my_vote`, or null if the vote failed.
+  static Future<Map<String, dynamic>?> votePoll(int postId, int optionIndex) async {
     try {
       await loadToken();
       final res = await http.post(
@@ -1405,9 +1407,11 @@ class ApiService {
         headers: await _headers,
         body: jsonEncode({"option_index": optionIndex}),
       );
-      return res.statusCode == 200;
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      return body is Map<String, dynamic> ? body['poll'] as Map<String, dynamic>? : null;
     } catch (_) {
-      return false;
+      return null;
     }
   }
   

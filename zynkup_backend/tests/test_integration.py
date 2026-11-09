@@ -361,6 +361,25 @@ class FeedSecurityTests(unittest.TestCase):
             self.assertEqual(v.status_code, 400, bad)
         v = client.post(f"/feed/{post_id}/poll/vote", headers=auth(self.stranger), json={"option_index": 1})
         self.assertEqual(v.status_code, 200)
+        self.assertEqual(v.json()["poll"]["my_vote"], 1)
+
+    def test_poll_vote_can_be_changed_and_my_vote_is_per_user(self):
+        post_id = create_post(self.owner, poll_question="Best?", poll_options=["A", "B", "C"]).json()["id"]
+        url = f"/feed/{post_id}/poll/vote"
+        client.post(url, headers=auth(self.stranger), json={"option_index": 0})
+        client.post(url, headers=auth(self.stranger), json={"option_index": 2})  # change of mind
+        client.post(url, headers=auth(self.owner), json={"option_index": 1})
+
+        poll = client.get(f"/feed/{post_id}", headers=auth(self.stranger)).json()["poll"]
+        self.assertEqual(poll["my_vote"], 2)
+        self.assertEqual(sorted(poll["votes"].values()), [1, 2])  # one vote each, not three
+        poll = client.get(f"/feed/{post_id}", headers=auth(self.owner)).json()["poll"]
+        self.assertEqual(poll["my_vote"], 1)
+        poll = client.get(f"/feed/{post_id}").json()["poll"]
+        self.assertIsNone(poll["my_vote"])  # signed out
+
+        feed_post = next(p for p in client.get("/feed/", headers=auth(self.stranger)).json() if p["id"] == post_id)
+        self.assertEqual(feed_post["poll"]["my_vote"], 2)
 
 
 class XpCapTests(unittest.TestCase):

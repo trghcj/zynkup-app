@@ -199,7 +199,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                          padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 20, ZynkLayout.gutter(context), 8),
                           child: Text(
                             group.title,
                             style: const TextStyle(
@@ -290,7 +290,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
 
   Widget _buildSkeleton() {
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ZynkLayout.gutter(context)),
       itemCount: 5,
       itemBuilder: (context, index) => Padding(
         padding: const EdgeInsets.only(bottom: 16),

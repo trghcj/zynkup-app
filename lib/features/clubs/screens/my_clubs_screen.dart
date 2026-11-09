@@ -308,7 +308,7 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
                   backgroundColor: isDark ? ZynkColors.primary : const Color(0xFF65A30D),
                   foregroundColor: isDark ? Colors.black : Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context), vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: onEmptyAction,
@@ -327,7 +327,7 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
     return RefreshIndicator(
       onRefresh: _loadClubs,
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+        padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 8, ZynkLayout.gutter(context), 40),
         itemCount: clubs.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
@@ -355,7 +355,7 @@ class _MyClubsScreenState extends State<MyClubsScreen> with SingleTickerProvider
               _loadClubs();
             },
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(ZynkLayout.isCompact(context) ? 12 : 14),
               decoration: BoxDecoration(
                 color: isDark ? ZynkColors.darkSurface : Colors.white,
                 borderRadius: BorderRadius.circular(16),

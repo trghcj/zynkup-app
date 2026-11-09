@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zynkup/core/widgets/poll_composer.dart';
 import 'package:zynkup/features/clubs/widgets/club_chat_widget.dart';
+import 'package:zynkup/features/feed/screens/feed_tab.dart';
 
 void main() {
   group('validatePoll', () {
@@ -50,6 +51,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(result?.question, 'Meet when?');
     expect(result?.options, ['Monday', 'Tuesday']);
+  });
+
+  testWidgets('feed poll highlights my vote and lets me pick another option', (tester) async {
+    final tapped = <int>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: PollWidget(
+          poll: const {
+            'question': 'Hey',
+            'options': ['What', 'No', 'Yes'],
+            'votes': {'1': 1, '2': 2},
+            'my_vote': 2,
+          },
+          onVote: tapped.add,
+        ),
+      ),
+    ));
+
+    // Only my choice gets the tick and the change-vote hint is shown.
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    final yesRow = find.ancestor(of: find.text('Yes'), matching: find.byType(Row)).first;
+    expect(find.descendant(of: yesRow, matching: find.byIcon(Icons.check_circle_rounded)), findsOneWidget);
+    expect(find.textContaining('Tap another option to change your vote'), findsOneWidget);
+
+    await tester.tap(find.text('No'));
+    expect(tapped, [1]);
+  });
+
+  testWidgets('feed poll without my vote shows no tick', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: PollWidget(
+          poll: const {'question': 'Q', 'options': ['A', 'B'], 'votes': {}, 'my_vote': null},
+          onVote: (_) {},
+        ),
+      ),
+    ));
+    expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+    expect(find.text('0 votes'), findsOneWidget);
   });
 
   testWidgets('chat poll card shows results and reports taps', (tester) async {
