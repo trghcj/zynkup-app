@@ -12,11 +12,11 @@ from datetime import datetime, timezone
 from app.timeutils import utcnow_naive
 
 from ..database import get_db
-from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage
+from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage, ClubChatPoll, FeedPoll, FeedReaction
 from ..auth import get_current_user, get_optional_current_user
 from ..uploads import read_upload_limited
 from ..validation import (
-    MAX_CLUB_DESCRIPTION, MAX_CUSTOM_ROLE, MAX_NAME, MAX_SHORT_TEXT, check_length, safe_url,
+    MAX_CLUB_DESCRIPTION, MAX_CUSTOM_ROLE, MAX_NAME, MAX_SHORT_TEXT, check_length, clean_poll, safe_url,
 )
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
@@ -405,9 +405,14 @@ def delete_club(club_id: int, db: Session = Depends(get_db), current_user: User 
     if post_ids:
         db.query(FeedComment).filter(FeedComment.post_id.in_(post_ids)).delete(synchronize_session=False)
         db.query(FeedLike).filter(FeedLike.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(FeedReaction).filter(FeedReaction.post_id.in_(post_ids)).delete(synchronize_session=False)
+        db.query(FeedPoll).filter(FeedPoll.post_id.in_(post_ids)).delete(synchronize_session=False)
         db.query(FeedPost).filter(FeedPost.club_id == club_id).delete(synchronize_session=False)
-        
-    # 3. Club Messages
+
+    # 3. Club Messages (and the polls attached to them)
+    message_ids = [m.id for m in db.query(ClubMessage.id).filter(ClubMessage.club_id == club_id).all()]
+    if message_ids:
+        db.query(ClubChatPoll).filter(ClubChatPoll.message_id.in_(message_ids)).delete(synchronize_session=False)
     db.query(ClubMessage).filter(ClubMessage.club_id == club_id).delete(synchronize_session=False)
 
     # 4. Club Members
@@ -754,6 +759,17 @@ def _format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
     return dt.isoformat()
 
 
+def _chat_poll_dict(msg) -> Optional[dict]:
+    """Poll attached to a chat message, or None (also None once deleted)."""
+    if msg.is_deleted or msg.poll is None:
+        return None
+    return {
+        "question": msg.poll.question,
+        "options": json.loads(msg.poll.options or "[]"),
+        "votes": json.loads(msg.poll.votes or "{}"),
+    }
+
+
 manager = ClubConnectionManager()
 
 @router.get("/{club_id}/chat")
@@ -796,7 +812,8 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
             "user_id": msg.user_id,
             "user_name": msg.user.name or msg.user.display_name or "User",
             "user_avatar": msg.user.resolved_avatar_url,
-            "user_role": memberships.get(msg.user_id, "member")
+            "user_role": memberships.get(msg.user_id, "member"),
+            "poll": _chat_poll_dict(msg),
         })
     return result
 
@@ -840,15 +857,32 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
             content = data
             attachment_url = None
             attachment_type = None
-            
+            poll_data = None
+
             try:
                 payload = json.loads(data)
                 if isinstance(payload, dict):
                     content = payload.get("content", "")
                     attachment_url = payload.get("attachment_url")
                     attachment_type = payload.get("attachment_type")
+                    poll_data = payload.get("poll")
             except Exception:
                 pass
+
+            poll_question = poll_options = None
+            if poll_data is not None:
+                try:
+                    if not isinstance(poll_data, dict):
+                        raise HTTPException(status_code=400, detail="Invalid poll")
+                    poll_question, poll_options = clean_poll(
+                        poll_data.get("question"), poll_data.get("options")
+                    )
+                except HTTPException as exc:
+                    await websocket.send_json({"action": "error", "detail": exc.detail})
+                    continue
+                # A poll message carries just the question as its text.
+                content = poll_question
+                attachment_url = attachment_type = None
 
             if not isinstance(content, str):
                 content = str(content or "")
@@ -877,6 +911,12 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
                 attachment_url=attachment_url,
                 attachment_type=attachment_type
             )
+            if poll_question is not None:
+                new_msg.poll = ClubChatPoll(
+                    question=poll_question,
+                    options=json.dumps(poll_options),
+                    votes="{}",
+                )
             db.add(new_msg)
             db.commit()
             db.refresh(new_msg)
@@ -893,7 +933,8 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
                 "user_id": user_id,
                 "user_name": user.name or user.display_name or "User",
                 "user_avatar": user.resolved_avatar_url,
-                "user_role": member.role
+                "user_role": member.role,
+                "poll": _chat_poll_dict(new_msg),
             }
             
             await manager.broadcast({"action": "new", "message": msg_dict}, club_id)
@@ -919,6 +960,8 @@ async def edit_club_message(club_id: int, message_id: int, payload: EditMessageP
         
     if msg.is_deleted:
         raise HTTPException(status_code=400, detail="Cannot edit a deleted message")
+    if msg.poll is not None:
+        raise HTTPException(status_code=400, detail="Polls cannot be edited")
     if not payload.content.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
     check_length(payload.content, MAX_CHAT_MESSAGE_CHARS, "Message")
@@ -966,6 +1009,7 @@ async def delete_club_message(club_id: int, message_id: int, db: Session = Depen
         msg.content = ""
         msg.attachment_url = None
         msg.attachment_type = None
+        msg.poll = None
         db.commit()
         await manager.broadcast({"action": "delete_for_everyone", "message_id": msg.id}, club_id)
         return {"message": "Message deleted for everyone"}
@@ -975,6 +1019,37 @@ async def delete_club_message(club_id: int, message_id: int, db: Session = Depen
         db.add(hidden)
         db.commit()
         return {"message": "Message deleted for you"}
+
+class ChatPollVote(BaseModel):
+    option_index: int
+
+
+@router.post("/{club_id}/chat/{message_id}/poll/vote")
+async def vote_club_chat_poll(club_id: int, message_id: int, data: ChatPollVote, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Vote on (or change your vote in) a chat poll. Members only."""
+    is_member = db.query(ClubMember).filter(
+        ClubMember.club_id == club_id, ClubMember.user_id == current_user.id
+    ).first() is not None
+    if not is_member:
+        raise HTTPException(status_code=403, detail="Join this club to vote")
+
+    msg = db.query(ClubMessage).filter(ClubMessage.id == message_id, ClubMessage.club_id == club_id).first()
+    if not msg or msg.is_deleted or msg.poll is None:
+        raise HTTPException(status_code=404, detail="Poll not found")
+
+    options = json.loads(msg.poll.options or "[]")
+    if not (0 <= data.option_index < len(options)):
+        raise HTTPException(status_code=400, detail="Invalid poll option")
+
+    votes = json.loads(msg.poll.votes or "{}")
+    votes[str(current_user.id)] = data.option_index
+    msg.poll.votes = json.dumps(votes)
+    db.commit()
+
+    poll = _chat_poll_dict(msg)
+    await manager.broadcast({"action": "poll_vote", "message_id": msg.id, "poll": poll}, club_id)
+    return {"message": "Vote recorded", "poll": poll}
+
 
 @router.post("/{club_id}/chat/upload")
 async def upload_club_chat_attachment(

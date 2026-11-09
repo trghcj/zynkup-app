@@ -10,6 +10,7 @@ import 'package:zynkup/features/profile/screens/profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zynkup/core/utils/date_utils.dart';
 import 'package:zynkup/core/utils/safe_launch.dart';
+import 'package:zynkup/core/widgets/poll_composer.dart';
 
 class ClubChatWidget extends StatefulWidget {
   final int clubId;
@@ -59,9 +60,20 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     _channel = WebSocketChannel.connect(Uri.parse(url));
     _channel!.stream.listen((message) {
       if (mounted) {
+        final data = jsonDecode(message);
+        if (data is Map && data['action'] == 'error') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['detail']?.toString() ?? 'Message not sent')),
+          );
+          return;
+        }
         setState(() {
-          final data = jsonDecode(message);
-          if (data['action'] == 'new') {
+          if (data['action'] == 'poll_vote') {
+            final idx = _messages.indexWhere((m) => m['id'] == data['message_id']);
+            if (idx != -1) {
+              _messages[idx]['poll'] = data['poll'];
+            }
+          } else if (data['action'] == 'new') {
             _messages.add(data['message']);
             _scrollToBottom();
           } else if (data['action'] == 'edit') {
@@ -76,6 +88,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
               _messages[idx]['content'] = "This message was deleted";
               _messages[idx]['attachment_url'] = null;
               _messages[idx]['attachment_type'] = null;
+              _messages[idx]['poll'] = null;
             }
           } else {
             // legacy fallback
@@ -157,6 +170,14 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                   _showStickerPicker();
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.poll_rounded, color: ZynkColors.gold),
+                title: const Text('Create Poll', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _createPoll();
+                },
+              ),
             ],
           ),
         );
@@ -218,6 +239,35 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     }
   }
 
+  Future<void> _createPoll() async {
+    final poll = await showPollComposer(context, submitLabel: 'Send Poll');
+    if (poll == null || _channel == null) return;
+    _channel!.sink.add(jsonEncode({'content': '', 'poll': poll.toJson()}));
+  }
+
+  Future<void> _votePoll(Map<String, dynamic> msg, int optionIndex) async {
+    final userId = _currentUserId;
+    final messageId = msg['id'];
+    final poll = msg['poll'];
+    if (userId == null || messageId is! int || poll is! Map) return;
+
+    final previous = Map<String, dynamic>.from(poll['votes'] as Map? ?? {});
+    if (previous[userId.toString()] == optionIndex) return;
+
+    // Show the vote right away; the server broadcast keeps everyone in sync.
+    setState(() {
+      poll['votes'] = {...previous, userId.toString(): optionIndex};
+    });
+    final updated = await ApiService.voteClubChatPoll(widget.clubId, messageId, optionIndex);
+    if (!mounted) return;
+    if (updated == null) {
+      setState(() => poll['votes'] = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not record your vote')),
+      );
+    }
+  }
+
   Future<void> _pickAndUploadAttachment(fp.FileType type, {List<String>? allowedExtensions}) async {
     final result = await fp.FilePicker.pickFiles(
       type: type,
@@ -255,7 +305,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     final dt = ZynkDateUtils.parseUtc(msg['created_at']);
     final bool within5Mins = dt != null && DateTime.now().difference(dt).inMinutes <= 5;
     final bool isDeleted = msg['is_deleted'] == true;
-    
+    final bool isPoll = msg['poll'] != null;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: ZynkColors.darkSurface,
@@ -263,7 +314,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
         return SafeArea(
           child: Wrap(
             children: [
-              if (within5Mins && !isDeleted)
+              if (within5Mins && !isDeleted && !isPoll)
                 ListTile(
                   leading: const Icon(Icons.edit, color: ZynkColors.gold),
                   title: const Text('Edit', style: TextStyle(color: Colors.white)),
@@ -437,7 +488,14 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                   ],
                                 ),
                               ),
-                              if (content.isNotEmpty)
+                              if (msg['poll'] is Map && !isDeleted)
+                                ChatPollCard(
+                                  poll: Map<String, dynamic>.from(msg['poll'] as Map),
+                                  currentUserId: _currentUserId,
+                                  isMine: isMe,
+                                  onVote: (index) => _votePoll(msg, index),
+                                )
+                              else if (content.isNotEmpty)
                                 Text(
                                   content, 
                                   style: TextStyle(
@@ -561,6 +619,137 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
           ),
         )
       ],
+    );
+  }
+}
+
+/// A poll inside a chat bubble. Tap an option to vote; tap another to change
+/// the vote. Colors follow the bubble (gold for your own messages).
+class ChatPollCard extends StatelessWidget {
+  final Map<String, dynamic> poll;
+  final int? currentUserId;
+  final bool isMine;
+  final ValueChanged<int> onVote;
+
+  const ChatPollCard({
+    super.key,
+    required this.poll,
+    required this.currentUserId,
+    required this.isMine,
+    required this.onVote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final question = poll['question']?.toString() ?? '';
+    final options = (poll['options'] as List?)?.map((o) => o.toString()).toList() ?? const <String>[];
+    final votes = (poll['votes'] as Map?) ?? const {};
+    final total = votes.length;
+    final myVote = currentUserId == null ? null : votes[currentUserId.toString()];
+
+    final textColor = isMine ? Colors.black87 : ZynkColors.offWhite;
+    final mutedColor = isMine ? Colors.black54 : ZynkColors.darkMuted;
+    final fillColor = isMine ? Colors.black.withValues(alpha: 0.12) : ZynkColors.gold.withValues(alpha: 0.25);
+    final trackColor = isMine ? Colors.black.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.06);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.poll_rounded, size: 16, color: mutedColor),
+              const SizedBox(width: 4),
+              Text('POLL', style: TextStyle(color: mutedColor, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(question, style: TextStyle(color: textColor, fontWeight: FontWeight.w700, fontSize: 14)),
+          const SizedBox(height: 8),
+          for (var i = 0; i < options.length; i++)
+            _option(
+              text: options[i],
+              count: votes.values.where((v) => v == i).length,
+              total: total,
+              selected: myVote == i,
+              textColor: textColor,
+              mutedColor: mutedColor,
+              fillColor: fillColor,
+              trackColor: trackColor,
+              onTap: () => onVote(i),
+            ),
+          Text(
+            total == 1 ? '1 vote' : '$total votes',
+            style: TextStyle(color: mutedColor, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _option({
+    required String text,
+    required int count,
+    required int total,
+    required bool selected,
+    required Color textColor,
+    required Color mutedColor,
+    required Color fillColor,
+    required Color trackColor,
+    required VoidCallback onTap,
+  }) {
+    final fraction = total > 0 ? count / total : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: trackColor,
+        borderRadius: BorderRadius.circular(8),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: fraction,
+                  child: ColoredBox(color: fillColor),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      size: 16,
+                      color: selected ? textColor : mutedColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 13,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (total > 0)
+                      Text(
+                        '${(fraction * 100).round()}%',
+                        style: TextStyle(color: mutedColor, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

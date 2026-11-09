@@ -1,5 +1,5 @@
 """Input validation shared by routes: safe URLs and text length limits."""
-from typing import Optional
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 from fastapi import HTTPException
@@ -57,3 +57,28 @@ def check_length(value: Optional[str], limit: int, field: str) -> Optional[str]:
     if value is not None and len(value) > limit:
         raise HTTPException(status_code=400, detail=f"{field} must be at most {limit} characters")
     return value
+
+
+def clean_poll(question, options) -> Tuple[str, List[str]]:
+    """Return a trimmed (question, options) pair, or raise 400.
+
+    A poll needs a question and MIN_POLL_OPTIONS..MAX_POLL_OPTIONS distinct,
+    non-blank options, all within the length limits.
+    """
+    if not isinstance(question, str) or not question.strip():
+        raise HTTPException(status_code=400, detail="A poll needs a question")
+    question = question.strip()
+    check_length(question, MAX_POLL_QUESTION, "Poll question")
+    if not isinstance(options, list):
+        raise HTTPException(status_code=400, detail="Poll options must be a list")
+    cleaned = [o.strip() for o in options if isinstance(o, str) and o.strip()]
+    if not (MIN_POLL_OPTIONS <= len(cleaned) <= MAX_POLL_OPTIONS):
+        raise HTTPException(
+            status_code=400,
+            detail=f"A poll needs {MIN_POLL_OPTIONS}-{MAX_POLL_OPTIONS} options",
+        )
+    if len({o.lower() for o in cleaned}) != len(cleaned):
+        raise HTTPException(status_code=400, detail="Poll options must be different")
+    for option in cleaned:
+        check_length(option, MAX_POLL_OPTION, "Poll option")
+    return question, cleaned

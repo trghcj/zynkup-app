@@ -311,6 +311,20 @@ class ClubMessage(Base):
 
     club = relationship("Club")
     user = relationship("User")
+    poll = relationship("ClubChatPoll", uselist=False, cascade="all, delete-orphan", passive_deletes=True)
+
+
+class ClubChatPoll(Base):
+    """A poll attached to a club chat message. Votes are {user_id: option_index}."""
+    __tablename__ = "club_chat_polls"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    message_id = Column(Integer, ForeignKey("club_messages.id", ondelete="CASCADE"), nullable=False, unique=True)
+    question   = Column(Text, nullable=False)
+    options    = Column(Text, nullable=False, default="[]")
+    votes      = Column(Text, nullable=False, default="{}")
+    created_at = Column(DateTime, server_default=func.now())
+
 
 class UserHiddenMessage(Base):
     __tablename__ = "user_hidden_messages"

@@ -420,6 +420,95 @@ class ClubRulesTests(unittest.TestCase):
         self.assertEqual(client.put(url, headers=auth(self.owner), json={"content": " "}).status_code, 400)
 
 
+class ChatPollTests(unittest.TestCase):
+    def setUp(self):
+        self.owner, _, _ = signup("pollowner")
+        self.member, self.member_id, _ = signup("pollmember")
+        self.stranger, _, _ = signup("pollstranger")
+        self.club_id = create_club(self.owner)
+        client.post(f"/clubs/{self.club_id}/join", headers=auth(self.member))
+
+    def _send_poll(self, ws, question, options):
+        ws.send_text(json.dumps({"poll": {"question": question, "options": options}}))
+        return ws.receive_json()
+
+    def _vote(self, token, message_id, index):
+        return client.post(
+            f"/clubs/{self.club_id}/chat/{message_id}/poll/vote",
+            headers=auth(token), json={"option_index": index},
+        )
+
+    def test_invalid_polls_get_error_and_are_not_saved(self):
+        with client.websocket_connect(f"/clubs/{self.club_id}/chat/ws?token={self.owner}") as ws:
+            for question, options in (
+                ("", ["A", "B"]),
+                ("Q?", ["only"]),
+                ("Q?", [str(i) for i in range(11)]),
+                ("Q?", ["Same", "same"]),
+                ("Q?", ["A", "x" * 101]),
+                ("q" * 301, ["A", "B"]),
+            ):
+                reply = self._send_poll(ws, question, options)
+                self.assertEqual(reply["action"], "error", (question, options))
+            ws.send_json({"poll": "not-a-dict"})
+            self.assertEqual(ws.receive_json()["action"], "error")
+        history = client.get(f"/clubs/{self.club_id}/chat", headers=auth(self.owner)).json()
+        self.assertEqual(history, [])
+
+    def test_create_vote_and_change_vote(self):
+        with client.websocket_connect(f"/clubs/{self.club_id}/chat/ws?token={self.member}") as ws:
+            reply = self._send_poll(ws, "  Meet when? ", [" Mon ", "Tue", "  "])
+            self.assertEqual(reply["action"], "new")
+            msg = reply["message"]
+            self.assertEqual(msg["content"], "Meet when?")
+            self.assertEqual(msg["poll"], {"question": "Meet when?", "options": ["Mon", "Tue"], "votes": {}})
+
+            r = self._vote(self.owner, msg["id"], 1)
+            self.assertEqual(r.status_code, 200, r.text)
+            update = ws.receive_json()
+            self.assertEqual(update["action"], "poll_vote")
+            self.assertEqual(update["message_id"], msg["id"])
+            self.assertEqual(list(update["poll"]["votes"].values()), [1])
+
+            # Voting again changes the vote instead of adding one.
+            self.assertEqual(self._vote(self.owner, msg["id"], 0).status_code, 200)
+            self.assertEqual(list(ws.receive_json()["poll"]["votes"].values()), [0])
+
+        for bad in (-1, 2):
+            self.assertEqual(self._vote(self.owner, msg["id"], bad).status_code, 400, bad)
+        self.assertEqual(self._vote(self.stranger, msg["id"], 0).status_code, 403)
+
+        history = client.get(f"/clubs/{self.club_id}/chat", headers=auth(self.member)).json()
+        self.assertEqual(history[0]["poll"]["votes"], {next(iter(history[0]["poll"]["votes"])): 0})
+
+    def test_plain_messages_have_no_poll_and_cannot_be_voted(self):
+        with client.websocket_connect(f"/clubs/{self.club_id}/chat/ws?token={self.owner}") as ws:
+            ws.send_text("hello")
+            msg = ws.receive_json()["message"]
+        self.assertIsNone(msg["poll"])
+        self.assertEqual(self._vote(self.owner, msg["id"], 0).status_code, 404)
+
+    def test_poll_cannot_be_edited_and_delete_removes_it(self):
+        with client.websocket_connect(f"/clubs/{self.club_id}/chat/ws?token={self.owner}") as ws:
+            msg = self._send_poll(ws, "Pizza?", ["Yes", "No"])["message"]
+        url = f"/clubs/{self.club_id}/chat/{msg['id']}"
+        self.assertEqual(client.put(url, headers=auth(self.owner), json={"content": "x"}).status_code, 400)
+        self.assertEqual(client.delete(url, headers=auth(self.owner)).status_code, 200)
+        history = client.get(f"/clubs/{self.club_id}/chat", headers=auth(self.owner)).json()
+        self.assertTrue(history[0]["is_deleted"])
+        self.assertIsNone(history[0]["poll"])
+        self.assertEqual(self._vote(self.member, msg["id"], 0).status_code, 404)
+
+    def test_club_with_feed_and_chat_polls_can_be_deleted(self):
+        r = create_post(self.owner, club_id=self.club_id, poll_question="Q?", poll_options=["A", "B"])
+        self.assertEqual(r.status_code, 200, r.text)
+        client.post(f"/feed/{r.json()['id']}/react", headers=auth(self.member), json={"emoji": "fire"})
+        with client.websocket_connect(f"/clubs/{self.club_id}/chat/ws?token={self.owner}") as ws:
+            self._send_poll(ws, "Q?", ["A", "B"])
+        r = client.delete(f"/clubs/{self.club_id}", headers=auth(self.owner))
+        self.assertEqual(r.status_code, 200, r.text)
+
+
 class EventAndProfileValidationTests(unittest.TestCase):
     def test_event_registration_link_must_be_http(self):
         token, _, _ = signup("organizer")

@@ -14,7 +14,7 @@ from app.database import normalize_database_url
 from app.main import _is_allowed_origin
 from app.timeutils import utcnow_naive
 from app.uploads import read_upload_limited
-from app.validation import check_length, safe_link, safe_url
+from app.validation import check_length, clean_poll, safe_link, safe_url
 from app.routes import users as users_routes
 
 
@@ -174,6 +174,29 @@ class ValidationTests(unittest.TestCase):
         self.assertIsNone(check_length(None, 3, "F"))
         with self.assertRaises(HTTPException):
             check_length("abcd", 3, "F")
+
+
+class CleanPollTests(unittest.TestCase):
+    def test_trims_and_drops_blank_options(self):
+        self.assertEqual(
+            clean_poll("  Q? ", [" A ", "", "  ", "B", 3]),
+            ("Q?", ["A", "B"]),
+        )
+
+    def test_rejects_bad_polls(self):
+        for question, options in (
+            (None, ["A", "B"]),
+            ("  ", ["A", "B"]),
+            ("Q", "A,B"),
+            ("Q", ["A"]),
+            ("Q", [str(i) for i in range(11)]),
+            ("Q", ["Yes", "yes "]),
+            ("Q", ["A", "b" * 101]),
+            ("q" * 301, ["A", "B"]),
+        ):
+            with self.assertRaises(HTTPException, msg=(question, options)) as ctx:
+                clean_poll(question, options)
+            self.assertEqual(ctx.exception.status_code, 400)
 
 
 class DailyXpCapTests(unittest.TestCase):
