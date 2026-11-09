@@ -31,7 +31,14 @@ class NotificationResponse(BaseModel):
 
 @router.get("", response_model=List[NotificationResponse])
 def get_notifications(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Notification).filter(Notification.user_id == current_user.id).order_by(Notification.created_at.desc()).all()
+    # Newest 100 only: the list grows forever and older items are never shown.
+    return (
+        db.query(Notification)
+        .filter(Notification.user_id == current_user.id)
+        .order_by(Notification.created_at.desc())
+        .limit(100)
+        .all()
+    )
 
 @router.post("/{notif_id}/read")
 def mark_read(notif_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

@@ -11,7 +11,7 @@ from app.timeutils import utcnow_naive
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app import models
@@ -97,7 +97,7 @@ def _user_response(user: models.User, token: str) -> dict:
             "xp": user.xp,
             "level": user.level,
             "streak": user.streak,
-            "avatar_seed": user.avatar_seed or user.email,
+            "avatar_seed": user.effective_avatar_seed,
             "avatar_type": user.avatar_type,
             "theme": user.theme,
         }
@@ -117,11 +117,13 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
     check_length(req.name, MAX_NAME, "Name")
     check_length(req.college, MAX_SHORT_TEXT, "College")
 
-    if db.query(models.User).filter(models.User.email == req.email).first():
+    # Emails are case-insensitive: "Jane@uni.edu" and "jane@uni.edu" are one account.
+    email = req.email.strip().lower()
+    if db.query(models.User).filter(func.lower(models.User.email) == email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user = models.User(
-        email    = req.email,
+        email    = email,
         password = hash_password(req.password),
         name     = req.name,
         college  = req.college if req.college else None,
@@ -164,7 +166,7 @@ def login(req: LoginRequest, request: Request, db: Session = Depends(get_db)):
                 detail="Too many failed login attempts. Try again in a few minutes.",
             )
 
-    user = db.query(models.User).filter(models.User.email == req.email).first()
+    user = db.query(models.User).filter(func.lower(models.User.email) == req.email.strip().lower()).first()
     if not user or not user.password or not verify_password(req.password, user.password):
         with _login_lock:
             _recent_failures(key, now).append(now)
@@ -232,7 +234,7 @@ async def google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
             db.commit()
         else:
             user = models.User(
-                email     = email,
+                email     = email.strip().lower(),
                 google_id = google_id,
                 name      = name,
                 avatar_url= avatar,
@@ -285,7 +287,7 @@ def get_me(
         "xp":           current_user.xp,
         "level":        current_user.level,
         "streak":       current_user.streak,
-        "avatar_seed":  current_user.avatar_seed or current_user.email,
+        "avatar_seed":  current_user.effective_avatar_seed,
         "avatar_type":  current_user.avatar_type,
         "theme":        current_user.theme,
         "is_profile_complete": bool(current_user.name),
@@ -315,6 +317,8 @@ def update_profile(
     for field in ("phone", "branch", "year", "enrollment", "college", "avatar_seed", "avatar_type", "theme"):
         check_length(getattr(data, field), MAX_SHORT_TEXT, field.replace("_", " ").capitalize())
     # "" is how the app clears an image, so only validate non-empty values.
+    # Decide this before the name is overwritten below.
+    completing_profile = bool(data.name and data.name.strip()) and not current_user.name
     if data.avatar_url:
         data.avatar_url = safe_url(data.avatar_url, "Avatar URL")
     if data.banner_url:
@@ -343,7 +347,7 @@ def update_profile(
     if data.theme        is not None: current_user.theme        = data.theme
 
     # Bonus XP for completing profile (first time)
-    if data.name and not current_user.name:
+    if completing_profile:
         add_xp(db, current_user, "complete_profile")
 
     db.commit()
@@ -371,8 +375,19 @@ def my_created_events(
 ):
     import re
     from app.routes.events import _event_to_dict, _parse_co_hosts, _colleges_match
-    events = db.query(models.Event).order_by(models.Event.created_at.desc()).all()
     user_email = (current_user.email or "").strip().lower()
+    # Narrow in SQL first (own events, or events whose co-host fields mention my
+    # email) instead of loading every event; the exact rules are applied below.
+    candidates = [models.Event.creator_id == current_user.id]
+    if user_email:
+        candidates.append(func.lower(models.Event.co_hosts).contains(user_email))
+        candidates.append(func.lower(models.Event.co_host_email) == user_email)
+    events = (
+        db.query(models.Event)
+        .filter(or_(*candidates))
+        .order_by(models.Event.created_at.desc())
+        .all()
+    )
     user_college = (current_user.college or "").strip().lower()
 
     def _is_my_managed_event(e: models.Event) -> bool:
@@ -535,7 +550,7 @@ def get_user_by_id(user_id: int, db: Session = Depends(get_db), current_user: mo
         "xp":           user.xp,
         "level":        user.level,
         "streak":       user.streak,
-        "avatar_seed":  user.avatar_seed or user.email,
+        "avatar_seed":  user.effective_avatar_seed,
         "avatar_type":  user.avatar_type,
         "theme":        user.theme,
         "friend_status": friend_status,

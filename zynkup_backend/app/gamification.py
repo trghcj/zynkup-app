@@ -375,7 +375,7 @@ def get_user_stats(db: Session, user: models.User):
         **stats,
         "achievements": unlocked_badges,
         "badges": badges,
-        "avatar_seed": user.avatar_seed or user.email,
+        "avatar_seed": user.effective_avatar_seed,
         "avatar_type": user.avatar_type,
         "theme": user.theme,
     }

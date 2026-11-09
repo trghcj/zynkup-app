@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -29,6 +30,13 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
   WebSocketChannel? _channel;
   int? _currentUserId;
 
+  // Connection state, so a dropped socket (network switch, phone asleep,
+  // server restart) reconnects instead of silently going quiet.
+  bool _connected = false;
+  bool _disposed = false;
+  int _reconnectAttempts = 0;
+  Timer? _reconnectTimer;
+
   @override
   void initState() {
     super.initState();
@@ -56,12 +64,29 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
   }
 
   void _connectWebSocket() {
+    if (_disposed) return;
     final url = ApiService.getClubChatWebSocketUrl(widget.clubId);
-    _channel = WebSocketChannel.connect(Uri.parse(url));
-    _channel!.stream.listen((message) {
+    final channel = WebSocketChannel.connect(Uri.parse(url));
+    _channel = channel;
+    channel.ready.then((_) {
+      if (_disposed || !identical(_channel, channel)) return;
+      final wasReconnect = _reconnectAttempts > 0;
+      _reconnectAttempts = 0;
+      if (mounted) setState(() => _connected = true);
+      if (wasReconnect) _syncMissedMessages();
+    }).catchError((_) {
+      // The stream's onError/onDone below schedules the retry.
+    });
+    channel.stream.listen((message) {
       if (mounted) {
-        final data = jsonDecode(message);
-        if (data is Map && data['action'] == 'error') {
+        dynamic data;
+        try {
+          data = jsonDecode(message);
+        } catch (_) {
+          return;
+        }
+        if (data is! Map) return;
+        if (data['action'] == 'error') {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(data['detail']?.toString() ?? 'Message not sent')),
           );
@@ -99,9 +124,35 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
           }
         });
       }
-    }, onError: (err) {
-      // Handle error
-    });
+    }, onError: (_) {
+      // onDone follows and handles the reconnect.
+    }, onDone: () => _handleSocketClosed(channel));
+  }
+
+  void _handleSocketClosed(WebSocketChannel channel) {
+    if (_disposed || !identical(_channel, channel)) return;
+    if (mounted) setState(() => _connected = false);
+    // 1008 = the server refused us (e.g. removed from the club): don't retry.
+    if (channel.closeCode == 1008) return;
+    final delay = Duration(seconds: [2, 4, 8, 16, 30][_reconnectAttempts.clamp(0, 4)]);
+    _reconnectAttempts++;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(delay, _connectWebSocket);
+  }
+
+  /// After a reconnect, fetch recent history and add anything we missed.
+  Future<void> _syncMissedMessages() async {
+    final history = await ApiService.getClubChatHistory(widget.clubId);
+    if (!mounted) return;
+    final known = _messages.map((m) => m['id']).whereType<int>().toSet();
+    final missed = history
+        .cast<Map<String, dynamic>>()
+        .reversed
+        .where((m) => m['id'] is int && !known.contains(m['id']))
+        .toList();
+    if (missed.isEmpty) return;
+    setState(() => _messages.addAll(missed));
+    _scrollToBottom();
   }
 
 
@@ -121,6 +172,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
 
   @override
   void dispose() {
+    _disposed = true;
+    _reconnectTimer?.cancel();
     _channel?.sink.close();
     _messageController.dispose();
     _scrollController.dispose();
@@ -129,7 +182,15 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
 
   void _sendMessage() {
     final text = _messageController.text.trim();
-    if (text.isNotEmpty && _channel != null) {
+    if (text.isEmpty) return;
+    if (!_connected || _channel == null) {
+      // Keep the text so it isn't lost while we reconnect.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reconnecting to chat... try again in a moment')),
+      );
+      return;
+    }
+    if (_channel != null) {
       final payload = {
         'content': text
       };
@@ -400,6 +461,30 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
 
     return Column(
       children: [
+        if (!_connected)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: ZynkColors.gold),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Connecting to chat...',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: ListView.builder(
             controller: _scrollController,

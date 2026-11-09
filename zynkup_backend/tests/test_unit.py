@@ -206,5 +206,64 @@ class DailyXpCapTests(unittest.TestCase):
             self.assertIn(action, DAILY_XP_CAPS)
 
 
+class StoreUploadTests(unittest.TestCase):
+    def _request(self):
+        from unittest.mock import MagicMock
+        req = MagicMock()
+        req.url_for.return_value = "http://test/uploads/x"
+        return req
+
+    def test_uses_cloudinary_when_configured(self):
+        from unittest.mock import patch
+        from app import uploads
+        calls = []
+
+        def fake_upload(contents, **options):
+            calls.append(options)
+            return {"secure_url": "https://res.cloudinary.com/x", "public_id": "zynkup/abc"}
+
+        with patch.dict("os.environ", {"CLOUDINARY_CLOUD_NAME": "demo"}), \
+             patch.object(uploads.cloudinary.uploader, "upload", fake_upload):
+            url, name = asyncio.run(uploads.store_upload(self._request(), b"img", ".png"))
+            self.assertEqual((url, name), ("https://res.cloudinary.com/x", "zynkup/abc"))
+            asyncio.run(uploads.store_upload(self._request(), b"%PDF", ".pdf", prefix="chat_"))
+        self.assertEqual(calls[0]["resource_type"], "image")
+        self.assertEqual(calls[1]["resource_type"], "raw")
+        self.assertTrue(calls[1]["public_id"].startswith("chat_"))
+        self.assertTrue(calls[1]["public_id"].endswith(".pdf"))
+
+    def test_cloudinary_failure_is_a_clean_502(self):
+        from unittest.mock import patch
+        from app import uploads
+
+        def boom(*_a, **_k):
+            raise RuntimeError("network down")
+
+        with patch.dict("os.environ", {"CLOUDINARY_CLOUD_NAME": "demo"}), \
+             patch.object(uploads.cloudinary.uploader, "upload", boom):
+            with self.assertRaises(HTTPException) as ctx:
+                asyncio.run(uploads.store_upload(self._request(), b"img", ".png"))
+        self.assertEqual(ctx.exception.status_code, 502)
+
+    def test_local_fallback_writes_file(self):
+        from pathlib import Path
+        from app import uploads
+        url, name = asyncio.run(uploads.store_upload(self._request(), b"data", ".png"))
+        path = Path(uploads.UPLOAD_DIR) / name
+        self.assertTrue(path.exists())
+        self.assertEqual(path.read_bytes(), b"data")
+        path.unlink()
+
+
+class AvatarSeedTests(unittest.TestCase):
+    def test_seed_falls_back_to_id_not_email(self):
+        from app.models import User
+        u = User(id=7, email="secret.person@uni.edu")
+        self.assertEqual(u.effective_avatar_seed, "zynkup-7")
+        self.assertNotIn("secret", u.resolved_avatar_url)
+        u.avatar_seed = "my seed&x"
+        self.assertIn("seed=my%20seed%26x", u.resolved_avatar_url)
+
+
 if __name__ == "__main__":
     unittest.main()

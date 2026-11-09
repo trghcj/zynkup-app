@@ -18,7 +18,7 @@ from sqlalchemy.exc import OperationalError
 from app.database import Base, engine
 from app.routes import users, events, analytics, admin, clubs, notifications, feed, friends
 from app.auth import get_current_user
-from app.uploads import read_upload_limited
+from app.uploads import read_upload_limited, store_upload
 from app import models
 
 import cloudinary
@@ -258,19 +258,7 @@ async def upload_file(
 
     contents = await read_upload_limited(file, MAX_UPLOAD_BYTES)
 
-    try:
-        if os.getenv("CLOUDINARY_CLOUD_NAME"):
-            upload_result = cloudinary.uploader.upload(contents, folder="zynkup")
-            public_url = upload_result.get("secure_url")
-            filename = upload_result.get("public_id")
-        else:
-            filename = f"{uuid.uuid4().hex}{ext}"
-            file_path = Path(UPLOAD_DIR) / filename
-            file_path.write_bytes(contents)
-            public_url = _public_upload_url(request, filename)
-    except Exception as e:
-        logger.error(f"Upload failed: {e}")
-        raise HTTPException(status_code=500, detail="Upload failed")
+    public_url, filename = await store_upload(request, contents, ext)
 
     logger.info(f"Uploaded {filename} by user {current_user.id}")
     return {"url": public_url, "filename": filename}

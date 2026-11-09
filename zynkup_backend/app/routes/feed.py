@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from pydantic import BaseModel, field_serializer
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
@@ -249,7 +249,22 @@ def create_post(post_data: FeedPostCreate, db: Session = Depends(get_db), curren
 
 @router.get("/", response_model=List[FeedPostResponse])
 def get_feed(db: Session = Depends(get_db), current_user: Optional[User] = Depends(get_optional_current_user)):
-    posts = db.query(FeedPost).filter(FeedPost.report_count < 10).order_by(FeedPost.created_at.desc()).limit(100).all()
+    # Load each post's comments, reactions, poll, author and club in a few
+    # batched queries instead of several queries per post.
+    posts = (
+        db.query(FeedPost)
+        .options(
+            selectinload(FeedPost.comments),
+            selectinload(FeedPost.reactions),
+            selectinload(FeedPost.poll),
+            joinedload(FeedPost.author),
+            joinedload(FeedPost.club),
+        )
+        .filter(FeedPost.report_count < 10)
+        .order_by(FeedPost.created_at.desc())
+        .limit(100)
+        .all()
+    )
 
     now = utcnow_naive()
     user_memberships = set()

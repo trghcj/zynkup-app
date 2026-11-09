@@ -2,6 +2,7 @@
 import uuid
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, func, UniqueConstraint
 from sqlalchemy.orm import relationship
+from urllib.parse import quote
 from .database import Base
 
 
@@ -43,11 +44,24 @@ class User(Base):
     activities    = relationship("ActivityLog", back_populates="user")
 
     @property
+    def full_name(self) -> str:
+        """Best display name (used by the co-host routes)."""
+        return (self.name or self.display_name or "").strip()
+
+    @property
+    def effective_avatar_seed(self) -> str:
+        """Seed for the generated avatar. Never the email address: avatar URLs
+        are public (feed, chat, club members) and are sent to DiceBear."""
+        if self.avatar_seed:
+            return self.avatar_seed
+        return f"zynkup-{self.id}" if self.id is not None else "zynkup"
+
+    @property
     def resolved_avatar_url(self) -> str:
         if self.avatar_url:
             return self.avatar_url
             
-        seed = self.avatar_seed or self.email or "User"
+        seed = quote(self.effective_avatar_seed, safe="")
         type_str = self.avatar_type or "rings"
         
         collection = 'adventurer'
