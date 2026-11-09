@@ -10,6 +10,7 @@ import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/theme/theme_provider.dart';
 import 'package:zynkup/core/widgets/zynk_toast.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
+import 'package:zynkup/core/utils/safe_launch.dart';
 
 class EditEventSheet extends StatefulWidget {
   final Event event;
@@ -646,8 +647,8 @@ class _EditEventSheetState extends State<EditEventSheet> {
                             IconButton(
                               icon: const Icon(Icons.open_in_new_rounded, size: 18),
                               tooltip: 'Test link',
-                              onPressed: () => launchUrl(
-                                Uri.parse(_registrationUrlController.text.trim()),
+                              onPressed: () => launchSafeUrl(
+                                _registrationUrlController.text.trim(),
                                 mode: LaunchMode.externalApplication,
                               ),
                             ),

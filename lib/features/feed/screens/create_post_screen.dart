@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
+import 'package:zynkup/core/widgets/poll_composer.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -29,6 +30,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Uint8List? _bannerBytes;
   String? _bannerName;
+
+  PollDraft? _poll;
 
   @override
   void dispose() {
@@ -86,6 +89,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
   }
 
+  Future<void> _editPoll() async {
+    final poll = await showPollComposer(context, initial: _poll);
+    if (poll != null && mounted) setState(() => _poll = poll);
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -116,6 +124,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         linkTitle: linkTitle.isNotEmpty ? linkTitle : null,
         linkType: linkUrl.isNotEmpty ? _detectedLinkType : null,
         clubId: widget.clubId,
+        pollQuestion: _poll?.question,
+        pollOptions: _poll?.options,
       );
 
       if (!mounted) return;
@@ -207,7 +217,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           filled: false,
                           counterStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55), fontSize: 11),
                         ),
-                        validator: (v) => v == null || v.trim().isEmpty
+                        // A poll can stand on its own, so text is optional then.
+                        validator: (v) => _poll == null && (v == null || v.trim().isEmpty)
                             ? 'Share a bit of text with the campus'
                             : null,
                       ),
@@ -411,6 +422,33 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 24),
+
+                    // Poll
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Poll (Optional)',
+                          style: TextStyle(
+                            color: ZynkColors.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (_poll == null)
+                          TextButton.icon(
+                            key: const Key('add_poll_button'),
+                            onPressed: _editPoll,
+                            icon: const Icon(Icons.poll_rounded, size: 18),
+                            label: const Text('Add Poll'),
+                          ),
+                      ],
+                    ),
+                    if (_poll != null) ...[
+                      const SizedBox(height: 10),
+                      _buildPollPreview(_poll!),
+                    ],
                     const SizedBox(height: 40),
 
                     // Publish Button
@@ -426,6 +464,61 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPollPreview(PollDraft poll) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 6, 14),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(ZynkRadius.lg),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.poll_rounded, color: ZynkColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  poll.question,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Edit poll',
+                icon: const Icon(Icons.edit_rounded, size: 18),
+                onPressed: _editPoll,
+              ),
+              IconButton(
+                tooltip: 'Remove poll',
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () => setState(() => _poll = null),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          for (final option in poll.options)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 6, right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(option, style: TextStyle(color: scheme.onSurface, fontSize: 13)),
+            ),
+        ],
       ),
     );
   }

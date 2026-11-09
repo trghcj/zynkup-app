@@ -217,6 +217,7 @@ class FeedPost(Base):
     like_records = relationship("FeedLike", back_populates="post", cascade="all, delete-orphan")
     reactions = relationship("FeedReaction", back_populates="post", cascade="all, delete-orphan")
     poll = relationship("FeedPoll", back_populates="post", uselist=False, cascade="all, delete-orphan")
+    report_records = relationship("FeedReport", cascade="all, delete-orphan")
     club = relationship("Club")
 
 
@@ -231,6 +232,17 @@ class FeedComment(Base):
 
     post   = relationship("FeedPost", back_populates="comments")
     author = relationship("User")
+
+
+class FeedReport(Base):
+    """One row per (post, reporter), so a single account can only report a post once."""
+    __tablename__ = "feed_reports"
+    __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_feed_report_post_user"),)
+
+    id         = Column(Integer, primary_key=True, index=True)
+    post_id    = Column(Integer, ForeignKey("feed_posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
 
 
 class FeedLike(Base):
@@ -299,6 +311,20 @@ class ClubMessage(Base):
 
     club = relationship("Club")
     user = relationship("User")
+    poll = relationship("ClubChatPoll", uselist=False, cascade="all, delete-orphan", passive_deletes=True)
+
+
+class ClubChatPoll(Base):
+    """A poll attached to a club chat message. Votes are {user_id: option_index}."""
+    __tablename__ = "club_chat_polls"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    message_id = Column(Integer, ForeignKey("club_messages.id", ondelete="CASCADE"), nullable=False, unique=True)
+    question   = Column(Text, nullable=False)
+    options    = Column(Text, nullable=False, default="[]")
+    votes      = Column(Text, nullable=False, default="{}")
+    created_at = Column(DateTime, server_default=func.now())
+
 
 class UserHiddenMessage(Base):
     __tablename__ = "user_hidden_messages"

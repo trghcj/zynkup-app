@@ -11,6 +11,7 @@ import 'package:zynkup/core/widgets/event_card_widget.dart';
 import 'package:zynkup/core/widgets/zynk_background.dart';
 import 'package:zynkup/core/widgets/college_picker_sheet.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
+import 'package:zynkup/core/utils/safe_launch.dart';
 
 class CreateEventScreen extends StatefulWidget {
   final int? clubId;
@@ -1101,7 +1102,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextButton.icon(
-                  onPressed: () => launchUrl(Uri.parse(formUrl), mode: LaunchMode.externalApplication),
+                  onPressed: () => launchSafeUrl(formUrl, mode: LaunchMode.externalApplication),
                   icon: const Icon(Icons.open_in_new_rounded, size: 16),
                   label: const Text('Test Form Link in Browser'),
                 ),

@@ -21,8 +21,6 @@ doc/api/
 *.dart.js
 *.info.json
 *.js
-# Cloud Functions source is hand-written, not generated
-!functions/index.js
 *.js_
 *.js.deps
 *.js.map
@@ -128,3 +126,6 @@ service-account*.json
 !pubspec.yaml
 !analysis_options.yaml
 !devtools_options.yaml
+
+# JavaScript dependencies
+node_modules/

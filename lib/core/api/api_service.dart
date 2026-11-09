@@ -872,6 +872,8 @@ class ApiService {
     String? linkTitle,
     String? linkType,
     int? clubId,
+    String? pollQuestion,
+    List<String>? pollOptions,
   }) async {
     await loadToken();
     try {
@@ -886,6 +888,8 @@ class ApiService {
           if (linkTitle != null) "link_title": linkTitle,
           if (linkType != null) "link_type": linkType,
           if (clubId != null) "club_id": clubId,
+          if (pollQuestion != null) "poll_question": pollQuestion,
+          if (pollOptions != null) "poll_options": pollOptions,
         }),
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
@@ -1578,6 +1582,24 @@ class ApiService {
       return res.statusCode == 200;
     } catch (_) {
       return false;
+    }
+  }
+
+  /// Votes on (or changes a vote in) a club chat poll. Returns the updated
+  /// poll, or null if the vote failed.
+  static Future<Map<String, dynamic>?> voteClubChatPoll(int clubId, int messageId, int optionIndex) async {
+    try {
+      await loadToken();
+      final res = await http.post(
+        Uri.parse("$baseUrl/clubs/$clubId/chat/$messageId/poll/vote"),
+        headers: await _headers,
+        body: jsonEncode({"option_index": optionIndex}),
+      );
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      return body is Map<String, dynamic> ? body['poll'] as Map<String, dynamic>? : null;
+    } catch (_) {
+      return null;
     }
   }
 

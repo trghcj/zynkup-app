@@ -18,6 +18,9 @@ from app.database import get_db
 from app.auth import get_current_user, get_optional_current_user
 from app.gamification import add_xp
 from app.uploads import read_upload_limited
+from app.validation import MAX_EVENT_DESCRIPTION, MAX_SHORT_TEXT, check_length, safe_link
+
+MAX_EVENT_TITLE = 200
 from app.fcm import send_fcm_notification, EVENT_JOINED, ATTENDANCE_MARKED
 
 router = APIRouter(prefix="/events", tags=["Events"])
@@ -66,6 +69,16 @@ class EventUpdate(BaseModel):
     registration_url: Optional[str] = None
     registration_url_type: Optional[str] = None
     co_host_email: Optional[str] = None
+
+
+def _validate_event_payload(payload) -> None:
+    """Length limits and a safe http(s) registration link (400 on failure)."""
+    check_length(payload.title, MAX_EVENT_TITLE, "Title")
+    check_length(payload.venue, MAX_EVENT_TITLE, "Venue")
+    check_length(payload.description, MAX_EVENT_DESCRIPTION, "Description")
+    check_length(payload.category, MAX_SHORT_TEXT, "Category")
+    if payload.registration_url:
+        payload.registration_url = safe_link(payload.registration_url, "Registration link")
 
 
 def _is_valid_image_source(value: str) -> bool:
@@ -297,6 +310,7 @@ def create_event(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    _validate_event_payload(payload)
     try:
         # Robust date parsing
         date_str = payload.date
@@ -439,6 +453,7 @@ def update_event(
         raise HTTPException(status_code=404, detail="Event not found")
     if not can_manage_event(event, current_user):
         raise HTTPException(status_code=403, detail="Only event organizers can edit this event")
+    _validate_event_payload(payload)
     if payload.title is not None:
         event.title = payload.title.strip()
     if payload.description is not None:

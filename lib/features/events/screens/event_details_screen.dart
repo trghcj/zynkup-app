@@ -21,6 +21,7 @@ import 'package:zynkup/features/events/screens/event_participants_screen.dart';
 import 'package:zynkup/features/events/widgets/edit_event_sheet.dart';
 import 'package:zynkup/core/services/bookmark_service.dart';
 import 'package:zynkup/core/widgets/college_picker_sheet.dart';
+import 'package:zynkup/core/utils/safe_launch.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   const EventDetailsScreen({
@@ -446,7 +447,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: () {
-                    launchUrl(Uri.parse(formUrl), mode: LaunchMode.externalApplication);
+                    launchSafeUrl(formUrl, mode: LaunchMode.externalApplication);
                   },
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text(

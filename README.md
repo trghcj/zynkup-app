@@ -58,7 +58,6 @@ graph TD
     B -->|Image and file uploads| D[Cloudinary]
     B -->|Push notifications| E[Firebase Cloud Messaging]
     E --> A
-    F[Firebase Cloud Functions] -->|Event approval alerts| E
 ```
 
 - The app signs users in with email and password or Google. The backend verifies credentials and issues its own JWT, which the app keeps in secure storage.
@@ -73,8 +72,9 @@ graph TD
 | Backend API | FastAPI (Python), SQLAlchemy, PyJWT |
 | Database | PostgreSQL (SQLite for local development and tests) |
 | Media storage | Cloudinary |
-| Notifications | Firebase Cloud Messaging, Firebase Cloud Functions |
-| Hosting | Render (API), Vercel and Firebase Hosting (web) |
+| Notifications | Firebase Cloud Messaging (sent by the backend) |
+| Authentication | Email and password, Google Sign-In (Firebase Auth on web) |
+| Hosting | Render (API), Vercel (web) |
 | CI | GitHub Actions: Flutter analyze and test, backend tests on SQLite and Postgres, CodeQL |
 
 ## Screenshots
@@ -148,12 +148,35 @@ Without `API_BASE_URL`, the app connects to the production API. On the Android e
 
 ### 4. Build Android APKs
 
+Build one smaller APK per CPU architecture (recommended for distribution):
+
 ```bash
-flutter build apk --release --split-per-abi   # one smaller APK per CPU architecture
-flutter build apk --release                   # one universal APK
+flutter build apk --split-per-abi
 ```
 
-Output is written to `build/app/outputs/flutter-apk/`.
+Build a single universal APK that runs on any Android device:
+
+```bash
+flutter build apk --release
+```
+
+Output is written to `build/app/outputs/flutter-apk/`:
+
+| Build output | Published as |
+| :--- | :--- |
+| `app-arm64-v8a-release.apk` | `release/zynkup-arm64-v8a-release.apk` |
+| `app-armeabi-v7a-release.apk` | `release/zynkup-armeabi-v7a-release.apk` |
+| `app-x86_64-release.apk` | `release/zynkup-x86_64-release.apk` |
+| `app-release.apk` | `release/Zynkup.apk` |
+
+To update the downloads linked at the top of this README, copy the builds into `release/`:
+
+```bash
+for abi in arm64-v8a armeabi-v7a x86_64; do
+  cp build/app/outputs/flutter-apk/app-$abi-release.apk release/zynkup-$abi-release.apk
+done
+cp build/app/outputs/flutter-apk/app-release.apk release/Zynkup.apk
+```
 
 ## Testing
 
@@ -181,7 +204,6 @@ zynkup-app/
 ├── zynkup_backend/         FastAPI backend
 │   ├── app/                Routes, models, auth and helpers
 │   └── tests/              Backend unit and integration tests
-├── functions/              Firebase Cloud Functions
 ├── release/                Prebuilt Android APKs
 ├── android/, ios/, web/    Platform projects
 └── .github/workflows/      CI and deployment pipelines

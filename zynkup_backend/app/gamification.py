@@ -22,6 +22,18 @@ XP_RULES = {
     "first_event_bonus": 50,
 }
 
+# Max number of XP awards per UTC day for actions a user can repeat at will,
+# so spamming posts/comments or join/leave toggling can't farm levels.
+# The action itself still succeeds; it just stops earning XP.
+DAILY_XP_CAPS = {
+    "create_post": 5,
+    "create_comment": 10,
+    "create_club": 2,
+    "join_club": 10,
+    "register_event": 10,
+    "accept_friend": 10,
+}
+
 ACTION_NOTIFICATIONS = {
     "create_event": {
         "title": "🎉 Event Created! (+50 XP)",
@@ -171,6 +183,17 @@ def add_xp(db: Session, user: models.User, action: str, amount: int = None):
                     return
                 # Reserve immediately to block parallel thread race conditions
                 _awarded_daily_logins.add(user_key)
+
+        daily_cap = DAILY_XP_CAPS.get(action)
+        if daily_cap is not None:
+            today_start = datetime.combine(datetime.now(timezone.utc).date(), datetime.min.time())
+            awarded_today = db.query(models.ActivityLog).filter(
+                models.ActivityLog.user_id == user.id,
+                models.ActivityLog.action == action,
+                models.ActivityLog.created_at >= today_start,
+            ).count()
+            if awarded_today >= daily_cap:
+                return
 
         # Check for first event bonus
         bonus_awarded = False

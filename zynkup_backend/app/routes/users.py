@@ -21,6 +21,7 @@ from app.auth import (
     create_access_token, get_current_user,
 )
 from app.gamification import add_xp, get_user_stats
+from app.validation import MAX_BIO, MAX_NAME, MAX_SHORT_TEXT, check_length, safe_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -112,6 +113,9 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
             status_code=400,
             detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters",
         )
+    check_length(req.password, 128, "Password")
+    check_length(req.name, MAX_NAME, "Name")
+    check_length(req.college, MAX_SHORT_TEXT, "College")
 
     if db.query(models.User).filter(models.User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -305,6 +309,17 @@ def update_profile(
     db:   Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    check_length(data.name, MAX_NAME, "Name")
+    check_length(data.display_name, MAX_NAME, "Display name")
+    check_length(data.bio, MAX_BIO, "Bio")
+    for field in ("phone", "branch", "year", "enrollment", "college", "avatar_seed", "avatar_type", "theme"):
+        check_length(getattr(data, field), MAX_SHORT_TEXT, field.replace("_", " ").capitalize())
+    # "" is how the app clears an image, so only validate non-empty values.
+    if data.avatar_url:
+        data.avatar_url = safe_url(data.avatar_url, "Avatar URL")
+    if data.banner_url:
+        data.banner_url = safe_url(data.banner_url, "Banner URL")
+
     if data.name         is not None: current_user.name         = data.name
     if data.display_name is not None: current_user.display_name = data.display_name
     if data.phone        is not None: current_user.phone        = data.phone
