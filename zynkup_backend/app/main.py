@@ -18,6 +18,7 @@ from sqlalchemy.exc import OperationalError
 from app.database import Base, engine
 from app.routes import users, events, analytics, admin, clubs, notifications, feed, friends
 from app.auth import get_current_user
+from app.uploads import read_upload_limited
 from app import models
 
 import cloudinary
@@ -236,6 +237,7 @@ repair_event_schema()
 
 # ── Uploads ──────────────────────────────────────────────────────────────────
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
+MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 
 
 def _public_upload_url(request: Request, filename: str) -> str:
@@ -254,9 +256,7 @@ async def upload_file(
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail="Unsupported file type")
 
-    contents = await file.read()
-    if len(contents) > 15 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File too large. Max 15MB")
+    contents = await read_upload_limited(file, MAX_UPLOAD_BYTES)
 
     try:
         if os.getenv("CLOUDINARY_CLOUD_NAME"):

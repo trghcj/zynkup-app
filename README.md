@@ -1,64 +1,81 @@
-# ZynkUp 🎯
+# ZynkUp
 
 <p align="center">
-  <a href="release/Zynkup.apk"><img src="https://img.shields.io/badge/-%E2%AC%87%20DOWNLOAD%20UNIVERSAL%20APK-4CAF50?style=for-the-badge" alt="Download APK"></a>
-  <img src="https://img.shields.io/badge/VERSION-1.7.0-0088cc?style=for-the-badge" alt="Version 1.7.0">
-  <img src="https://img.shields.io/badge/PLATFORM-ANDROID-4CAF50?style=for-the-badge" alt="Platform Android">
-  <img src="https://img.shields.io/badge/BUILT%20WITH-FLUTTER-02569B?style=for-the-badge" alt="Built with Flutter">
+  <a href="release/Zynkup.apk"><img src="https://img.shields.io/badge/Download-Universal%20APK-4CAF50?style=for-the-badge" alt="Download APK"></a>
+  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Web-4CAF50?style=for-the-badge" alt="Platform: Android and Web">
+  <img src="https://img.shields.io/badge/Built%20with-Flutter-02569B?style=for-the-badge" alt="Built with Flutter">
+  <img src="https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge" alt="API: FastAPI">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License: MIT"></a>
 </p>
 
-### 📦 Split APK Downloads (Optimized Architecture)
-| Architecture | Target Devices | Direct Download |
+ZynkUp is a campus event and community platform for college students. Students discover and register for events, join and follow clubs, chat with club members, and share updates on a campus feed. Organizers create events, manage co-hosts, and check attendees in with QR passes.
+
+**Web app:** [zynkup-app.vercel.app](https://zynkup-app.vercel.app)
+
+## Download (Android)
+
+| Architecture | Devices | Download |
 | :--- | :--- | :--- |
-| **ARM64-v8a** *(Recommended)* | Modern Android Phones & Tablets | [Download ARM64 APK](release/zynkup-arm64-v8a-release.apk) |
-| **ARMEABI-v7a** | Older 32-bit Android Devices | [Download ARMv7 APK](release/zynkup-armeabi-v7a-release.apk) |
-| **x86_64** | Android Emulators & Chromebooks | [Download x86_64 APK](release/zynkup-x86_64-release.apk) |
-| **Universal APK** | All Android Devices (Fat Binary) | [Download Universal APK](release/Zynkup.apk) |
+| ARM64-v8a (recommended) | Most modern Android phones and tablets | [zynkup-arm64-v8a-release.apk](release/zynkup-arm64-v8a-release.apk) |
+| ARMEABI-v7a | Older 32-bit Android devices | [zynkup-armeabi-v7a-release.apk](release/zynkup-armeabi-v7a-release.apk) |
+| x86_64 | Android emulators and Chromebooks | [zynkup-x86_64-release.apk](release/zynkup-x86_64-release.apk) |
+| Universal | Any Android device (larger download) | [Zynkup.apk](release/Zynkup.apk) |
 
----
+If you are unsure which to choose, use the universal APK. Android may ask you to allow installation from unknown sources before installing.
 
-> 📌 **Note:** Enable *Install from Unknown Sources* in Android settings before installing the APK.
+## Features
 
----
+**Events**
+- Browse, search and register for campus events, including inter-college competitions
+- QR-code tickets with organizer-side scanning for attendance
+- Co-host management with verified-email access for organizers from other colleges
+- Event galleries for photos and documents after the event
 
-**ZynkUp** is a mature, content-first campus social network and event management platform. Built with **Flutter** and powered by a robust **FastAPI & Supabase** backend, ZynkUp helps students connect, discover communities, follow student clubs, and manage campus events seamlessly through a responsive, light-green accented UI.
+**Clubs and communities**
+- Create, join or follow clubs, with a "My Clubs" hub (Created, Joined, Following) and category filters
+- Members-only real-time club chat with attachments, message editing and deletion
+- Custom member titles (for example "Tech Lead") on top of owner, admin and member permission levels
+- Push and in-app notifications to followers when a club posts an event or update
+
+**Campus feed**
+- Posts with photos, polls, reactions and comments
+- Link previews for YouTube, Instagram and general web links
+- Bookmarks for events and posts
+
+**Profiles and engagement**
+- Profile with banner, avatar, college and activity timeline
+- XP, levels and daily streaks earned through participation
+- Friend requests, with contact details visible only to friends
 
 ## Architecture
 
 ```mermaid
 graph TD
-    A[Flutter App Android/Web] -->|Authentication| B[Firebase Auth]
-    A -->|Push Notifications| C[Firebase Cloud Messaging]
-    A -->|Realtime / REST| D[FastAPI & Supabase Backend]
-    D --> E[PostgreSQL Database]
-    D --> F[Supabase Storage]
-    D --> G[Gamification & Activity Engine]
-    G -->|XP & Level-Up Events| C
-    D -->|Club Updates / New Events| C
+    A[Flutter app<br/>Android and Web] -->|REST + WebSocket, JWT| B[FastAPI backend<br/>Render]
+    A -->|Google Sign-In| G[Google OAuth]
+    B -->|Verify Google ID token| G
+    B --> C[(PostgreSQL)]
+    B -->|Image and file uploads| D[Cloudinary]
+    B -->|Push notifications| E[Firebase Cloud Messaging]
+    E --> A
+    F[Firebase Cloud Functions] -->|Event approval alerts| E
 ```
 
-## Features
-- **🎨 Content-First Adaptive UI:** A mature, refined, and responsive interface with clean editorial typography and a minimalist Zynkup light-green / lime interaction system in both dark and light modes.
-- **🏰 "My Clubs" Dedicated Hub:** Centralized screen to view, manage, and filter all your student organizations across three tabs: **Created**, **Joined**, and **Following** with instant real-time search and category filtering (`Technical`, `Cultural`, `Sports`, `Academic`, `Social`, `General`).
-- **🔔 Club Following & Instant Notifications:** Follow any campus club with a single tap. Followers immediately receive dual FCM push notifications and in-app Notification Center alerts whenever the club publishes a new event or feed post.
-- **🔗 Embedded Social & Web Links:** Rich native preview cards in feed posts for YouTube (auto video thumbnails + play badge), Instagram (gradient badge cards), and interactive web links launched seamlessly via `url_launcher`.
-- **🎖️ Custom Role Titles & Permission Tiers:** Club leadership can assign custom organizational titles (e.g., *Lead Designer*, *Tech Lead*, *Event Coordinator*, *Secretary*) to members while retaining backend security tiers (`Admin`, `Moderator`, `Member`).
-- **✏️ Multi-Asset Post Editing & Safety Modals:** Complete post editing capability (update caption text, attached photos, and club banners) with confirmation prompts on post and event deletion.
-- **🏆 Gamification & XP Rewards:** Real-time XP rewards across all key student actions (hosting events, founding clubs, joining communities, publishing feed posts, commenting, event check-ins, friend requests, and daily streaks) with automatic Level-Up progression.
-- **📅 Event Management:** Discover, host, and manage campus events with dynamic ticketing, attendance tracking, and QR-code passes.
-- **🤝 Campus Communities:** Discover and found campus clubs with role-based access, college affiliations (Delhi colleges directory), and club-specific chats.
-- **💬 Social Campus Feed:** Share updates, photos, and polls directly to the campus feed with real-time likes, replies, and reactions.
-- **📱 Profile Activity Timeline:** Chronological timeline tracking student milestones with clear distinction between founded clubs, joined clubs, hosted events, and feed posts.
-- **🔒 Secure Authentication:** Seamless login and session management powered by Firebase Auth.
-- **☁️ Cloud Media:** Seamless image uploads and robust media hosting integrated with Supabase Storage.
+- The app signs users in with email and password or Google. The backend verifies credentials and issues its own JWT, which the app keeps in secure storage.
+- Club chat runs over WebSockets. Everything else is REST.
+- Media is stored in Cloudinary when it is configured, otherwise on the server's local disk.
 
-## Tech Stack
-- **Frontend:** Flutter (Dart)
-- **Backend & Database:** FastAPI & Supabase (PostgreSQL)
-- **Authentication:** Firebase Auth
-- **Real-Time Data:** Supabase Realtime
-- **Serverless Automation:** Supabase Edge Functions (Deno/TypeScript)
-- **Push Notifications:** Firebase Cloud Messaging (FCM v1 API)
+## Tech stack
+
+| Layer | Technology |
+| :--- | :--- |
+| Mobile and web app | Flutter (Dart) |
+| Backend API | FastAPI (Python), SQLAlchemy, PyJWT |
+| Database | PostgreSQL (SQLite for local development and tests) |
+| Media storage | Cloudinary |
+| Notifications | Firebase Cloud Messaging, Firebase Cloud Functions |
+| Hosting | Render (API), Vercel and Firebase Hosting (web) |
+| CI | GitHub Actions: Flutter analyze and test, backend tests on SQLite and Postgres, CodeQL |
 
 ## Screenshots
 
@@ -71,55 +88,113 @@ graph TD
   <img src="assets/screenshots/profile.jpeg" width="200" alt="Profile">
 </p>
 
-## Setup Guide
+## Getting started
 
-### 1️⃣ Clone the repository
+### Prerequisites
+
+- Flutter SDK (Dart 3.8 or later)
+- Python 3.11
+- PostgreSQL, or Docker to run it with `docker-compose`
+
+### 1. Clone the repository
+
 ```bash
 git clone https://github.com/trghcj/zynkup-app.git
 cd zynkup-app
 ```
 
-### 2️⃣ Environment Configuration
-Create a `.env` file in the root of the project and add your Supabase connection strings:
-```env
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
+### 2. Run the backend
+
+Create `zynkup_backend/.env` (see [.env.example](.env.example)):
+
+| Variable | Required | Purpose |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string, for example `postgresql://user:pass@localhost:5432/zynkup` |
+| `JWT_SECRET` | Yes | Secret used to sign login tokens. Use a random value of at least 32 characters |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | Token lifetime (default 1440) |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | No | Media storage. Without them, uploads are saved locally |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | No | Path to a Firebase service account JSON file, needed for push notifications |
+| `GOOGLE_CLIENT_ID` | No | Comma-separated Google OAuth client IDs to accept (defaults to the app's own) |
+| `CORS_ORIGINS`, `CORS_ORIGIN_REGEX` | No | Allowed web origins (default: the ZynkUp Vercel deployments and localhost) |
+| `PUBLIC_BACKEND_URL` | No | Public base URL used for links to locally stored uploads |
+| `ADMIN_SETUP_KEY` | No | Enables admin maintenance endpoints, sent in the `X-Admin-Setup-Key` header |
+
+Then start the API:
+
+```bash
+cd zynkup_backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
 
-### 3️⃣ Firebase Setup (Auth & Push Notifications)
-Add your `google-services.json` file (downloaded from the Firebase Console) into the `android/app/` directory to enable Authentication and Cloud Messaging.
+The API runs at `http://127.0.0.1:8000`, with interactive documentation at `/docs`.
 
-### 4️⃣ Run Flutter App
+Alternatively, run PostgreSQL and the backend together with Docker. This reads its settings from `.env.docker`:
+
+```bash
+docker-compose up --build
+```
+
+### 3. Run the Flutter app
+
+Add `android/app/google-services.json` from the Firebase Console. It enables push notifications and Google Sign-In on Android.
+
 ```bash
 flutter pub get
-flutter run
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000
 ```
 
-### 5️⃣ Build Compressed Split APKs (Android)
-To drastically reduce the APK size by creating separate APKs for each CPU architecture, run the following command:
+Without `API_BASE_URL`, the app connects to the production API. On the Android emulator, use `http://10.0.2.2:8000` to reach a backend running on your computer.
+
+### 4. Build Android APKs
+
 ```bash
-flutter build apk --split-per-abi
+flutter build apk --release --split-per-abi   # one smaller APK per CPU architecture
+flutter build apk --release                   # one universal APK
 ```
-The compressed APKs will be output to `build/app/outputs/flutter-apk/`.
 
-## Folder Structure
+Output is written to `build/app/outputs/flutter-apk/`.
+
+## Testing
+
+```bash
+# Flutter
+flutter analyze
+flutter test
+
+# Backend: unit and integration tests (uses a temporary SQLite database)
+cd zynkup_backend
+python -m unittest discover -s tests -t . -v
+```
+
+To run the backend tests against PostgreSQL instead, set `TEST_DATABASE_URL` to a PostgreSQL connection string. CI runs the backend tests on both databases for every backend change.
+
+## Project structure
+
 ```text
 zynkup-app/
-│
-├── lib/                 # Core Flutter frontend source code
-│   ├── core/            # App routing, themes, and shared logic
-│   ├── features/        # Feature-based modules (clubs, feed, events, profile, auth, etc.)
-│   └── main.dart        # Application entry point
-│
-├── assets/              # Local images, icons, and fonts
-├── android/             # Android native code & Firebase config
-├── zynkup_backend/      # FastAPI backend service & routes
-├── .env                 # Environment variables (Supabase Keys)
-└── README.md
+├── lib/                    Flutter app
+│   ├── core/               API client, theme, shared widgets, utilities
+│   ├── features/           Feature modules: auth, events, clubs, feed, profile, notifications, analytics
+│   └── main.dart           Entry point
+├── test/                   Flutter tests
+├── zynkup_backend/         FastAPI backend
+│   ├── app/                Routes, models, auth and helpers
+│   └── tests/              Backend unit and integration tests
+├── functions/              Firebase Cloud Functions
+├── release/                Prebuilt Android APKs
+├── android/, ios/, web/    Platform projects
+└── .github/workflows/      CI and deployment pipelines
 ```
 
-## 🤝 Contributing
-Contributions are welcome! Feel free to fork this repo, create a feature branch, and submit a pull request.
+## Contributing
 
-## ⭐ Support
-If you like this project, give it a star ⭐ on GitHub!
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md), then open a pull request against `main`. Make sure `flutter analyze`, `flutter test` and the backend tests pass before submitting.
+
+## Security
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), not in public issues.
+
+## License
+
+ZynkUp is released under the [MIT License](LICENSE).

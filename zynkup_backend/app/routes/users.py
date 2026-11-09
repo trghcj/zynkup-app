@@ -7,6 +7,7 @@ from collections import defaultdict, deque
 from threading import Lock
 from typing import Optional
 from datetime import datetime, timezone
+from app.timeutils import utcnow_naive
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
@@ -418,7 +419,7 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
         timeline.append({
             "type": "event_registration",
             "title": f"Registered for {r.event.title}",
-            "date": _format_datetime_utc(r.created_at or datetime.utcnow()),
+            "date": _format_datetime_utc(r.created_at or utcnow_naive()),
             "target_id": r.event_id
         })
 
@@ -428,7 +429,7 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
         timeline.append({
             "type": "event_created",
             "title": f"Created {e.title}",
-            "date": _format_datetime_utc(e.created_at or datetime.utcnow()),
+            "date": _format_datetime_utc(e.created_at or utcnow_naive()),
             "target_id": e.id
         })
 
@@ -439,14 +440,14 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
             timeline.append({
                 "type": "club_created",
                 "title": f"Created {m.club.name}",
-                "date": _format_datetime_utc(m.joined_at or m.club.created_at or datetime.utcnow()),
+                "date": _format_datetime_utc(m.joined_at or m.club.created_at or utcnow_naive()),
                 "target_id": m.club_id
             })
         elif m.club:
             timeline.append({
                 "type": "club_join",
                 "title": f"Joined {m.club.name}",
-                "date": _format_datetime_utc(m.joined_at or datetime.utcnow()),
+                "date": _format_datetime_utc(m.joined_at or utcnow_naive()),
                 "target_id": m.club_id
             })
 
@@ -456,7 +457,7 @@ def get_timeline(db: Session = Depends(get_db), current_user: models.User = Depe
         timeline.append({
             "type": "post_created",
             "title": "Shared a new campus update",
-            "date": _format_datetime_utc(p.created_at or datetime.utcnow()),
+            "date": _format_datetime_utc(p.created_at or utcnow_naive()),
             "target_id": p.id
         })
 

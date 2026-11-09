@@ -61,10 +61,11 @@ def create_notification_helper(db, user_id: int, title: str, body: str, type: st
     Deduplicates identical notifications within a 5-minute window to avoid spamming the user.
     """
     from datetime import datetime, timedelta
+    from app.timeutils import utcnow_naive
     from app import models
     try:
         # Check for recent identical notification within 5 minutes to avoid duplicates
-        five_mins_ago = datetime.utcnow() - timedelta(minutes=5)
+        five_mins_ago = utcnow_naive() - timedelta(minutes=5)
         existing = db.query(models.Notification).filter(
             models.Notification.user_id == user_id,
             models.Notification.type == type,

@@ -7,6 +7,7 @@ from app.auth import get_current_user
 from app.gamification import get_user_stats
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from app.timeutils import utcnow_naive
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -42,7 +43,7 @@ def get_heatmap_data(
     current_user: models.User = Depends(get_current_user)
 ):
     # Get last 90 days of activity
-    ninety_days_ago = datetime.utcnow() - timedelta(days=90)
+    ninety_days_ago = utcnow_naive() - timedelta(days=90)
     
     activities = db.query(
         func.date(models.ActivityLog.created_at).label("date"),
@@ -56,7 +57,7 @@ def get_heatmap_data(
 
 @router.get("/campus-stats")
 def get_campus_stats(db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = utcnow_naive()
     one_day_ago = now - timedelta(days=1)
     seven_days_later = now + timedelta(days=7)
 
