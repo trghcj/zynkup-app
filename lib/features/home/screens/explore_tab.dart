@@ -98,7 +98,7 @@ class _ExploreTabState extends State<ExploreTab> {
           // ── Search bar + greeting ──────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 16, ZynkLayout.gutter(context), 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -135,7 +135,7 @@ class _ExploreTabState extends State<ExploreTab> {
                 height: 34,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                   itemCount: _categories.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
@@ -192,7 +192,7 @@ class _ExploreTabState extends State<ExploreTab> {
                 height: 32,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                   itemCount: _filters.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
@@ -249,7 +249,7 @@ class _ExploreTabState extends State<ExploreTab> {
             SliverFillRemaining(child: _empty())
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+              padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 100),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (_, i) => Padding(

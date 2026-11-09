@@ -65,7 +65,7 @@ class _EventCardWidgetState extends State<EventCardWidget> {
                   children: [
                     _Banner(event: widget.event, compact: widget.compact),
               Padding(
-                padding: const EdgeInsets.all(14),
+                padding: EdgeInsets.all(ZynkLayout.isCompact(context) ? 12 : 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -220,7 +220,8 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = compact ? 86.0 : 136.0;
+    // Slightly shorter banner on phones so more of the card fits on screen.
+    final height = compact ? 86.0 : (ZynkLayout.isCompact(context) ? 120.0 : 136.0);
     final image = event.imageUrls.isNotEmpty ? event.imageUrls.first : null;
     if (image == null || image.isEmpty) {
       return _GradientBanner(event: event, height: height);

@@ -1255,7 +1255,7 @@ class _OverviewTab extends StatelessWidget {
       user,
     ).where((badge) => badge.unlocked).take(5).toList();
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ZynkLayout.gutter(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1536,7 +1536,7 @@ class _TimelineTab extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context), vertical: 16),
       child: ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -1570,7 +1570,7 @@ class _TimelineTab extends StatelessWidget {
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(ZynkLayout.cardPadding(context)),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
@@ -1724,7 +1724,7 @@ class _EventsTabState extends State<_EventsTab> {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+      padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 20, ZynkLayout.gutter(context), 30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1908,7 +1908,7 @@ class _BadgesTab extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(ZynkLayout.gutter(context)),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -1919,7 +1919,7 @@ class _BadgesTab extends StatelessWidget {
           final bool unlocked = badge['unlocked'] ?? true;
 
           return Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(ZynkLayout.cardPadding(context)),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(ZynkRadius.lg),
@@ -2139,7 +2139,7 @@ class _BookmarksTabState extends State<_BookmarksTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context), vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -2193,8 +2193,8 @@ class _BookmarksTabState extends State<_BookmarksTab> {
         const SizedBox(height: 8),
         if (_filter == 'Events') ...[
           if (_events.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
               child: _EmptyState(
                 icon: Icons.bookmark_border_rounded,
                 title: 'No Saved Events',
@@ -2204,7 +2204,7 @@ class _BookmarksTabState extends State<_BookmarksTab> {
             )
           else
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
               child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -2221,8 +2221,8 @@ class _BookmarksTabState extends State<_BookmarksTab> {
             ),
         ] else ...[
           if (_posts.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
               child: _EmptyState(
                 icon: Icons.bookmark_border_rounded,
                 title: 'No Saved Posts',

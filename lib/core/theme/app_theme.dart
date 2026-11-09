@@ -118,6 +118,25 @@ class ZynkSpacing {
   static const xxl = 48.0;
 }
 
+/// Screen-size aware spacing. Phones (narrower than [compactBreakpoint]) get
+/// tighter page gutters and card padding so cards use more of the screen;
+/// tablets, desktop and web keep the original, roomier values.
+class ZynkLayout {
+  static const double compactBreakpoint = 600;
+
+  static bool isCompact(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < compactBreakpoint;
+
+  /// Horizontal page gutter: 12 on phones, 20 elsewhere.
+  static double gutter(BuildContext context) => isCompact(context) ? 12 : 20;
+
+  /// Inner padding of content cards: 12 on phones, 16 elsewhere.
+  static double cardPadding(BuildContext context) => isCompact(context) ? 12 : 16;
+
+  /// Vertical space between stacked cards: 12 on phones, 20 elsewhere.
+  static double cardGap(BuildContext context) => isCompact(context) ? 12 : 20;
+}
+
 class ZynkRadius {
   static const sm = 8.0;
   static const md = 12.0;

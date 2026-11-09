@@ -63,7 +63,7 @@ class _MyEventsTabState extends State<MyEventsTab> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 14),
+                    padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 22, ZynkLayout.gutter(context), 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -182,7 +182,7 @@ class _MyEventsTabState extends State<MyEventsTab> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 800),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
+                      padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 110),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           if (constraints.maxWidth > 600) {

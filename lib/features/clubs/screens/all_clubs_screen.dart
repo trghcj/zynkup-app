@@ -157,7 +157,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 960),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 16, ZynkLayout.gutter(context), 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -270,7 +270,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 960),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                         child: Column(
                           children: List.generate(
                             4,
@@ -302,7 +302,7 @@ class _AllClubsScreenState extends State<AllClubsScreen> {
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                  padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 40),
                   sliver: SliverToBoxAdapter(
                     child: Center(
                       child: ConstrainedBox(

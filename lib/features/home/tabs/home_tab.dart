@@ -134,7 +134,7 @@ class _HomeTabState extends State<HomeTab> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 960),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                      padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 12, ZynkLayout.gutter(context), 16),
                       child: TextField(
                         controller: _searchController,
                         style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
@@ -210,7 +210,7 @@ class _HomeTabState extends State<HomeTab> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 960),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -235,8 +235,8 @@ class _HomeTabState extends State<HomeTab> {
                           if (res == true && mounted) _load();
                         },
                         child: Container(
-                          width: isDesktop ? 300 : MediaQuery.of(context).size.width - 40,
-                          padding: const EdgeInsets.all(16),
+                          width: isDesktop ? 300 : MediaQuery.of(context).size.width - 2 * ZynkLayout.gutter(context),
+                          padding: EdgeInsets.all(ZynkLayout.cardPadding(context)),
                           decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
                           child: Row(
                             children: [
@@ -271,7 +271,7 @@ class _HomeTabState extends State<HomeTab> {
                         itemCount: matchedEvents.length,
                         itemBuilder: (context, index) => EventCardWidget(event: matchedEvents[index], onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: matchedEvents[index])))),
                       )
-                    : Column(children: matchedEvents.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
+                    : Column(children: matchedEvents.map((e) => Padding(padding: EdgeInsets.only(bottom: ZynkLayout.isCompact(context) ? 12 : 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
                 ]
               ],
             ),
@@ -288,7 +288,7 @@ class _HomeTabState extends State<HomeTab> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 960),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
               child: Column(
                 children: List.generate(4, (index) => const Padding(padding: EdgeInsets.only(bottom: 20), child: ZSkeleton(width: double.infinity, height: 140, borderRadius: 16))),
               ),
@@ -316,7 +316,7 @@ class _HomeTabState extends State<HomeTab> {
             children: [
               _Header(activeStudents: _activeStudents, eventsThisWeek: _eventsThisWeek, activeAvatars: _activeAvatars),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -341,7 +341,7 @@ class _HomeTabState extends State<HomeTab> {
               ),
               // Upcoming / Trending Title
                Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
+                padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 16, ZynkLayout.gutter(context), 16),
                 child: Text(
                   'Upcoming Events',
                   style: TextStyle(
@@ -370,7 +370,7 @@ class _HomeTabState extends State<HomeTab> {
                 )
               else
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                   child: isDesktop 
                     ? GridView.builder(
                         shrinkWrap: true,
@@ -379,7 +379,7 @@ class _HomeTabState extends State<HomeTab> {
                         itemCount: upcoming.length,
                         itemBuilder: (context, index) => EventCardWidget(event: upcoming[index], onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: upcoming[index])))),
                       )
-                    : Column(children: upcoming.map((e) => Padding(padding: const EdgeInsets.only(bottom: 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
+                    : Column(children: upcoming.map((e) => Padding(padding: EdgeInsets.only(bottom: ZynkLayout.isCompact(context) ? 12 : 16), child: EventCardWidget(event: e, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailsScreen(event: e)))))).toList()),
                 ),
               
               const SizedBox(height: 28),
@@ -416,7 +416,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+      padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 22, ZynkLayout.gutter(context), 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -542,7 +542,7 @@ class _Section extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+            padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 12, ZynkLayout.gutter(context), 14),
             child: Row(
               children: [
                 Container(
@@ -572,7 +572,7 @@ class _Section extends StatelessWidget {
           ),
           if (events.isEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+              padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 10, ZynkLayout.gutter(context), 20),
               child: Text(
                 'No events found.',
                 style: TextStyle(
@@ -587,7 +587,7 @@ class _Section extends StatelessWidget {
                 
                 if (isDesktop) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                     child: Wrap(
                       spacing: 16,
                       runSpacing: 16,
@@ -613,7 +613,7 @@ class _Section extends StatelessWidget {
                   height: 310,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
                     itemCount: events.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 14),
                     itemBuilder: (context, index) => TweenAnimationBuilder<double>(
@@ -666,7 +666,7 @@ class _ClubsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+          padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 8, ZynkLayout.gutter(context), 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -725,7 +725,7 @@ class _ClubsSection extends StatelessWidget {
         ),
         if (clubs.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
             child: Container(
               height: 90,
               width: double.infinity,
@@ -863,7 +863,7 @@ class _PastEventsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+          padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 16, ZynkLayout.gutter(context), 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -914,7 +914,7 @@ class _PastEventsSection extends StatelessWidget {
           height: 180,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context)),
             itemCount: displayedEvents.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
             itemBuilder: (context, index) {

@@ -1018,7 +1018,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
             color: isDark ? ZynkColors.darkMuted : const Color(0xFF64748B),
           ),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        actionsPadding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 0, ZynkLayout.gutter(context), 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -1257,7 +1257,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
                     ),
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding: EdgeInsets.all(ZynkLayout.gutter(context)),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -1668,7 +1668,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           if (_isMember)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 16, ZynkLayout.gutter(context), 8),
                 child: GestureDetector(
                   onTap: () async {
                     final result = await Navigator.push(
@@ -1859,7 +1859,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
           if (_canHostEvent)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                padding: EdgeInsets.fromLTRB(ZynkLayout.gutter(context), 16, ZynkLayout.gutter(context), 8),
                 child: ZynkButton(
                   label: 'Host an Event',
                   icon: Icons.add_rounded,
@@ -2028,7 +2028,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
               ),
             )
           : GridView.builder(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(ZynkLayout.gutter(context)),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
@@ -2283,7 +2283,7 @@ class _ClubEventCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        margin: EdgeInsets.symmetric(horizontal: ZynkLayout.gutter(context), vertical: 8),
         decoration: BoxDecoration(
           // Dark theme keeps the original dark card; light theme uses a white surface
           // so the onSurface-colored title and venue stay readable.
@@ -2320,7 +2320,7 @@ class _ClubEventCard extends StatelessWidget {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(ZynkLayout.cardPadding(context)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2426,7 +2426,7 @@ class _ClubProfileSkeleton extends StatelessWidget {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(ZynkLayout.gutter(context)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
