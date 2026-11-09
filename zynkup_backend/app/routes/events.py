@@ -17,7 +17,7 @@ from app import models
 from app.database import get_db
 from app.auth import get_current_user, get_optional_current_user
 from app.gamification import add_xp
-from app.uploads import read_upload_limited
+from app.uploads import read_upload_limited, store_upload
 from app.validation import MAX_EVENT_DESCRIPTION, MAX_SHORT_TEXT, check_length, safe_link
 
 MAX_EVENT_TITLE = 200
@@ -196,6 +196,15 @@ def _parse_co_hosts(raw: Optional[str]) -> List[dict]:
     return []
 
 
+def _mask_email(email: Optional[str]) -> str:
+    """'jane.doe@uni.edu' -> 'j***@uni.edu'. Never equal to a real address."""
+    email = (email or "").strip()
+    if "@" not in email:
+        return "***" if email else ""
+    local, domain = email.split("@", 1)
+    return f"{local[:1]}***@{domain}"
+
+
 def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
     if not user:
         return False
@@ -274,6 +283,12 @@ def _event_to_dict(
     co_hosts = _parse_co_hosts(event.co_hosts)
     if not co_hosts and event.co_host_email:
         co_hosts = [{"email": event.co_host_email.strip().lower(), "college": ""}]
+    co_host_email = event.co_host_email
+    if not can_manage:
+        # Event lists are public: only organizers see co-host email addresses.
+        # Everyone else gets a masked address (enough to show "N co-hosts").
+        co_hosts = [{**ch, "email": _mask_email(ch.get("email"))} for ch in co_hosts]
+        co_host_email = _mask_email(co_host_email) if co_host_email else None
 
     return {
         "id": event.id,
@@ -296,7 +311,7 @@ def _event_to_dict(
         "is_registered": registration is not None,
         "qr_code": registration.qr_code if registration else None,
         "is_inter_college": is_inter,
-        "co_host_email": event.co_host_email,
+        "co_host_email": co_host_email,
         "co_hosts": co_hosts,
         "can_manage": can_manage,
         "is_co_host": is_co_host,
@@ -623,14 +638,12 @@ async def upload_gallery(
         if mime not in ALLOWED_MIME:
             mime = EXT_MIME[ext]
         contents = await read_upload_limited(file, 15 * 1024 * 1024)
-        filename = f"{uuid.uuid4().hex}{ext}"
-        file_path = Path(UPLOAD_DIR) / filename
-        file_path.write_bytes(contents)
+        url, filename = await store_upload(request, contents, ext)
         additions.append({
             "name": file.filename or "gallery-file",
             "filename": filename,
             "mime": mime,
-            "url": _public_upload_url(request, filename),
+            "url": url,
         })
     try:
         event.gallery_files = _serialize_gallery(existing + additions)

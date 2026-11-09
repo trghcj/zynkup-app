@@ -63,14 +63,11 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-    except JWTError as e:
+        user_id = int(payload.get("sub"))
+    except (JWTError, TypeError, ValueError) as e:
         logger.warning(f"JWT decode failed: {e}")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    user = db.query(models.User).filter(models.User.id == user_id).first()
 
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")

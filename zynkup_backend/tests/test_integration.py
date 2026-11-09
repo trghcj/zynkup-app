@@ -571,5 +571,161 @@ class ErrorAndCorsTests(unittest.TestCase):
         self.assertEqual(own.headers.get("access-control-allow-origin"), "https://zynkup-app.vercel.app")
 
 
+class AccountEmailTests(unittest.TestCase):
+    def test_email_is_case_insensitive_for_signup_and_login(self):
+        local = _env.unique_email("caseuser").split("@")[0]
+        mixed = f"{local.capitalize()}@Example.com"
+        r = client.post("/users/signup", json={"email": mixed, "password": "password123", "name": "Case"})
+        self.assertEqual(r.status_code, 201, r.text)
+        self.assertEqual(r.json()["user"]["email"], mixed.lower())
+        dup = client.post("/users/signup", json={"email": mixed.lower(), "password": "password123"})
+        self.assertEqual(dup.status_code, 400)
+        login = client.post("/users/login", json={"email": mixed.upper(), "password": "password123"})
+        self.assertEqual(login.status_code, 200, login.text)
+
+    def test_complete_profile_xp_is_awarded_once(self):
+        email = _env.unique_email("noname")
+        token = client.post("/users/signup", json={"email": email, "password": "password123"}).json()["access_token"]
+        start = client.get("/users/me", headers=auth(token)).json()["xp"]
+        client.put("/users/me", headers=auth(token), json={"name": "Finally Named"})
+        client.put("/users/me", headers=auth(token), json={"name": "Renamed"})
+        xp = client.get("/users/me", headers=auth(token)).json()["xp"]
+        self.assertEqual(xp - start, 20)
+
+    def test_token_with_non_numeric_subject_is_401(self):
+        from app.auth import create_access_token
+        bad = create_access_token({"sub": "not-a-number"})
+        self.assertEqual(client.get("/users/me", headers=auth(bad)).status_code, 401)
+
+
+class EmailPrivacyTests(unittest.TestCase):
+    def test_generated_avatars_never_contain_the_email(self):
+        owner, owner_id, owner_email = signup("avatarowner")
+        viewer, _, _ = signup("avatarviewer")
+        club_id = create_club(owner)
+        local = owner_email.split("@")[0]
+
+        profile = client.get(f"/users/{owner_id}", headers=auth(viewer)).json()
+        self.assertIsNone(profile["email"])
+        self.assertNotIn(local, profile["avatar_seed"])
+        self.assertNotIn(local, profile["avatar_url"])
+
+        members = client.get(f"/clubs/{club_id}/members").json()  # public endpoint
+        self.assertTrue(members)
+        for m in members:
+            self.assertNotIn(local, m["avatar_url"])
+
+    def test_co_host_emails_only_visible_to_organizers(self):
+        owner, _, _ = signup("cohostowner")
+        cohost, _, cohost_email = signup("cohostuser")
+        stranger, _, _ = signup("cohoststranger")
+        client.put("/users/me", headers=auth(cohost), json={"college": "Test Institute"})
+        event_id = create_event(owner)
+        r = client.post(f"/events/{event_id}/co-hosts", headers=auth(owner),
+                        json={"email": cohost_email, "college": "Test Institute"})
+        self.assertEqual(r.status_code, 200, r.text)
+
+        def event_as(token=None):
+            headers = auth(token) if token else {}
+            return client.get(f"/events/{event_id}", headers=headers).json()
+
+        public = event_as()
+        self.assertEqual(len(public["co_hosts"]), 1)  # the count is still shown
+        self.assertIn("***@", public["co_hosts"][0]["email"])
+        self.assertNotIn(cohost_email, json.dumps(public))
+        self.assertNotIn(cohost_email, json.dumps(event_as(stranger)))
+        listed = next(e for e in client.get("/events/?limit=100").json() if e["id"] == event_id)
+        self.assertNotIn(cohost_email, json.dumps(listed))
+
+        self.assertEqual(event_as(owner)["co_hosts"][0]["email"], cohost_email)
+        as_cohost = event_as(cohost)
+        self.assertTrue(as_cohost["can_manage"])
+        self.assertEqual(as_cohost["co_hosts"][0]["email"], cohost_email)
+
+        mine = client.get("/users/my-events", headers=auth(cohost)).json()
+        self.assertIn(event_id, [e["id"] for e in mine])
+        theirs = client.get("/users/my-events", headers=auth(stranger)).json()
+        self.assertNotIn(event_id, [e["id"] for e in theirs])
+
+
+class CoHostFlowTests(unittest.TestCase):
+    """These paths used to crash with a 500 (User.full_name did not exist)."""
+
+    def test_create_and_edit_event_with_co_host_email(self):
+        owner, _, _ = signup("cohostcreator")
+        _, _, cohost_email = signup("cohostinvite")
+        r = client.post("/events/", headers=auth(owner), json={
+            "title": "Joint Event", "description": "d", "venue": "Hall",
+            "date": (datetime.utcnow() + timedelta(days=3)).isoformat() + "Z",
+            "category": "tech", "co_host_email": cohost_email,
+        })
+        self.assertEqual(r.status_code, 201, r.text)
+        event_id = r.json()["id"] if "id" in r.json() else int(r.json()["event"]["id"])
+
+        _, _, second_email = signup("cohostsecond")
+        r = client.put(f"/events/{event_id}", headers=auth(owner), json={"co_host_email": second_email})
+        self.assertEqual(r.status_code, 200, r.text)
+        emails = [c["email"] for c in r.json()["co_hosts"]]
+        self.assertIn(second_email, emails)
+
+
+class ChatSocketResourceTests(unittest.TestCase):
+    def test_sticker_type_is_kept(self):
+        owner, _, _ = signup("stickerowner")
+        club_id = create_club(owner)
+        with client.websocket_connect(f"/clubs/{club_id}/chat/ws?token={owner}") as ws:
+            ws.send_json({"content": "", "attachment_url": "https://example.com/fire.png", "attachment_type": "sticker"})
+            self.assertEqual(ws.receive_json()["message"]["attachment_type"], "sticker")
+
+    def test_many_open_chats_do_not_exhaust_the_db_pool(self):
+        # Each idle socket used to hold a pooled DB connection for its whole
+        # lifetime. Open more sockets than the pool allows (5 + 10 overflow),
+        # then make sure normal requests and posting still work.
+        owner, _, _ = signup("poolowner")
+        club_id = create_club(owner)
+        from contextlib import ExitStack
+        with ExitStack() as stack:
+            sockets = [
+                stack.enter_context(client.websocket_connect(f"/clubs/{club_id}/chat/ws?token={owner}"))
+                for _ in range(20)
+            ]
+            self.assertEqual(client.get("/users/me", headers=auth(owner)).status_code, 200)
+            sockets[-1].send_text("still works")
+            self.assertEqual(sockets[-1].receive_json()["message"]["content"], "still works")
+
+    def test_broadcast_drops_dead_sockets(self):
+        import asyncio
+        from app.routes.clubs import ClubConnectionManager
+
+        class Dead:
+            async def send_json(self, _):
+                raise RuntimeError("closed")
+
+        class Alive:
+            def __init__(self):
+                self.got = []
+
+            async def send_json(self, msg):
+                self.got.append(msg)
+
+        mgr = ClubConnectionManager()
+        alive = Alive()
+        mgr.active_connections[1] = [Dead(), alive]
+        asyncio.run(mgr.broadcast({"x": 1}, 1))
+        self.assertEqual(alive.got, [{"x": 1}])
+        self.assertEqual(mgr.active_connections[1], [alive])
+
+
+class NotificationLimitTests(unittest.TestCase):
+    def test_list_is_capped(self):
+        token, user_id, _ = signup("notifheavy")
+        from app.database import SessionLocal
+        from app.models import Notification
+        with SessionLocal() as db:
+            db.add_all([Notification(user_id=user_id, title=f"n{i}", body="b", type="t") for i in range(120)])
+            db.commit()
+        self.assertEqual(len(client.get("/notifications", headers=auth(token)).json()), 100)
+
+
 if __name__ == "__main__":
     unittest.main()

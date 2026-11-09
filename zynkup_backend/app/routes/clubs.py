@@ -4,18 +4,18 @@ import os
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request, WebSocket, WebSocketDisconnect
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
 from app.timeutils import utcnow_naive
 
-from ..database import get_db
+from ..database import SessionLocal, get_db
 from ..models import Club, ClubMember, ClubFollower, User, Event, Registration, FeedPost, FeedLike, FeedComment, ClubMessage, ClubChatPoll, FeedPoll, FeedReaction
 from ..auth import get_current_user, get_optional_current_user
 from ..polls import poll_to_dict
-from ..uploads import read_upload_limited
+from ..uploads import read_upload_limited, store_upload
 from ..validation import (
     MAX_CLUB_DESCRIPTION, MAX_CUSTOM_ROLE, MAX_NAME, MAX_SHORT_TEXT, check_length, clean_poll, safe_url,
 )
@@ -614,14 +614,12 @@ async def upload_club_gallery(
         if mime not in ALLOWED_MIME:
             mime = EXT_MIME[ext]
         contents = await read_upload_limited(file, 15 * 1024 * 1024)
-        filename = f"{uuid.uuid4().hex}{ext}"
-        file_path = Path(UPLOAD_DIR) / filename
-        file_path.write_bytes(contents)
+        url, filename = await store_upload(request, contents, ext)
         additions.append({
             "name": file.filename or "gallery-file",
             "filename": filename,
             "mime": mime,
-            "url": _public_upload_url(request, filename),
+            "url": url,
         })
     try:
         club.gallery_files = _serialize_gallery(existing + additions)
@@ -678,7 +676,20 @@ def get_club_feed(club_id: int, db: Session = Depends(get_db), current_user: Opt
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
 
-    posts = db.query(FeedPost).filter(FeedPost.club_id == club_id, FeedPost.report_count < 10).order_by(FeedPost.created_at.desc()).limit(100).all()
+    posts = (
+        db.query(FeedPost)
+        .options(
+            selectinload(FeedPost.comments),
+            selectinload(FeedPost.reactions),
+            selectinload(FeedPost.poll),
+            joinedload(FeedPost.author),
+            joinedload(FeedPost.club),
+        )
+        .filter(FeedPost.club_id == club_id, FeedPost.report_count < 10)
+        .order_by(FeedPost.created_at.desc())
+        .limit(100)
+        .all()
+    )
 
     liked_post_ids = set()
     if current_user:
@@ -739,12 +750,13 @@ class ClubConnectionManager:
                 self.active_connections[club_id].remove(websocket)
 
     async def broadcast(self, message: dict, club_id: int):
-        if club_id in self.active_connections:
-            for connection in self.active_connections[club_id]:
-                try:
-                    await connection.send_json(message)
-                except Exception:
-                    pass
+        # Iterate over a copy: sockets can disconnect while we are sending.
+        for connection in list(self.active_connections.get(club_id, [])):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                # A socket that can't be written to is gone; stop tracking it.
+                self.disconnect(connection, club_id)
 
 def _format_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
     if dt is None:
@@ -813,42 +825,36 @@ def get_club_chat_history(club_id: int, db: Session = Depends(get_db), current_u
     return result
 
 @router.websocket("/{club_id}/chat/ws")
-async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db: Session = Depends(get_db)):
-    # Very basic token validation for ws
+async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str):
+    # A chat socket stays open for as long as the chat screen is visible, so it
+    # must not hold a pooled DB connection while idle (a handful of open chats
+    # would otherwise exhaust the pool and hang every other request). Each step
+    # below opens its own short-lived session instead.
     from ..auth import verify_access_token
     payload = verify_access_token(token)
-    if not payload:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
-        
-    user_id_str = payload.get("sub")
-    if not user_id_str:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
-        
-    try:
-        user_id = int(user_id_str)
-    except (TypeError, ValueError):
+    user_id = None
+    if payload:
+        try:
+            user_id = int(payload.get("sub"))
+        except (TypeError, ValueError):
+            user_id = None
+    if user_id is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    # check membership
-    member = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == user_id).first()
-    if not member:
+    with SessionLocal() as db:
+        is_member = db.query(ClubMember.id).filter(
+            ClubMember.club_id == club_id, ClubMember.user_id == user_id
+        ).first() is not None
+    if not is_member:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
-        
-    user = member.user
 
     await manager.connect(websocket, club_id)
     try:
         while True:
             data = await websocket.receive_text()
-            
-            # Save to db
-            from ..models import ClubMessage
-            import json
-            
+
             content = data
             attachment_url = None
             attachment_type = None
@@ -884,57 +890,61 @@ async def club_chat_websocket(websocket: WebSocket, club_id: int, token: str, db
             content = content[:MAX_CHAT_MESSAGE_CHARS]
             if not isinstance(attachment_url, str) or not attachment_url.startswith(("https://", "http://")):
                 attachment_url = None
-            if attachment_type not in (None, "image", "pdf", "doc"):
+            if attachment_type not in (None, "image", "pdf", "doc", "sticker"):
                 attachment_type = None
             if not content.strip() and not attachment_url:
                 continue
 
-            # Re-check membership on every message so someone who was removed
-            # (or left) can't keep posting through a socket opened earlier.
-            still_member = db.query(ClubMember).filter(
-                ClubMember.club_id == club_id, ClubMember.user_id == user_id
-            ).first() is not None
-            if not still_member:
+            msg_dict = None
+            with SessionLocal() as db:
+                # Re-check membership on every message so someone who was removed
+                # (or left) can't keep posting through a socket opened earlier.
+                member = db.query(ClubMember).filter(
+                    ClubMember.club_id == club_id, ClubMember.user_id == user_id
+                ).first()
+                if member is not None:
+                    new_msg = ClubMessage(
+                        club_id=club_id,
+                        user_id=user_id,
+                        content=content,
+                        attachment_url=attachment_url,
+                        attachment_type=attachment_type,
+                    )
+                    if poll_question is not None:
+                        new_msg.poll = ClubChatPoll(
+                            question=poll_question,
+                            options=json.dumps(poll_options),
+                            votes="{}",
+                        )
+                    db.add(new_msg)
+                    db.commit()
+                    db.refresh(new_msg)
+                    user = member.user
+                    msg_dict = {
+                        "id": new_msg.id,
+                        "content": new_msg.content,
+                        "attachment_url": new_msg.attachment_url,
+                        "attachment_type": new_msg.attachment_type,
+                        "is_edited": False,
+                        "is_deleted": False,
+                        "created_at": _format_datetime_utc(new_msg.created_at),
+                        "user_id": user_id,
+                        "user_name": user.name or user.display_name or "User",
+                        "user_avatar": user.resolved_avatar_url,
+                        "user_role": member.role,
+                        "poll": _chat_poll_dict(new_msg),
+                    }
+
+            if msg_dict is None:
                 manager.disconnect(websocket, club_id)
                 await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
                 return
 
-            new_msg = ClubMessage(
-                club_id=club_id, 
-                user_id=user_id, 
-                content=content,
-                attachment_url=attachment_url,
-                attachment_type=attachment_type
-            )
-            if poll_question is not None:
-                new_msg.poll = ClubChatPoll(
-                    question=poll_question,
-                    options=json.dumps(poll_options),
-                    votes="{}",
-                )
-            db.add(new_msg)
-            db.commit()
-            db.refresh(new_msg)
-            
-            # Broadcast
-            msg_dict = {
-                "id": new_msg.id,
-                "content": new_msg.content,
-                "attachment_url": new_msg.attachment_url,
-                "attachment_type": new_msg.attachment_type,
-                "is_edited": False,
-                "is_deleted": False,
-                "created_at": _format_datetime_utc(new_msg.created_at),
-                "user_id": user_id,
-                "user_name": user.name or user.display_name or "User",
-                "user_avatar": user.resolved_avatar_url,
-                "user_role": member.role,
-                "poll": _chat_poll_dict(new_msg),
-            }
-            
             await manager.broadcast({"action": "new", "message": msg_dict}, club_id)
-            
     except WebSocketDisconnect:
+        pass
+    finally:
+        # Also covers unexpected errors, so dead sockets never stay registered.
         manager.disconnect(websocket, club_id)
 
 from pydantic import BaseModel
@@ -1080,25 +1090,13 @@ async def upload_club_chat_attachment(
 
     contents = await read_upload_limited(file, MAX_CHAT_UPLOAD_BYTES)
 
-    # Remove club_id from filename to completely eliminate any user input from the path.
-    # The UUID is sufficiently unique on its own.
-    filename = f"chat_{uuid.uuid4().hex}{ext}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    
-    # Enforce that the file path stays within UPLOAD_DIR (CodeQL standard check)
-    if not os.path.abspath(file_path).startswith(os.path.abspath(UPLOAD_DIR)):
-        raise HTTPException(status_code=400, detail="Invalid file path")
-    
     # Determine type
     attachment_type = "doc"
     if ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
         attachment_type = "image"
     elif ext == ".pdf":
         attachment_type = "pdf"
-        
-    with open(file_path, "wb") as f:
-        f.write(contents)
 
-    url = _public_upload_url(request, filename)
+    url, _ = await store_upload(request, contents, ext, prefix="chat_")
     return {"url": url, "type": attachment_type}
 

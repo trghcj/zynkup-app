@@ -37,21 +37,15 @@ class ApiService {
     userStatsChanged.value++;
   }
 
+  /// Real-time notification socket.
+  ///
+  /// The backend has no `/ws/notifications` endpoint, so connecting only ever
+  /// failed (an unhandled socket error on every login). Notifications arrive
+  /// through FCM push and the notification list instead. Kept as a no-op so
+  /// callers don't change; re-enable once the server exposes the endpoint.
   static Future<void> initWebSocket() async {
-    await loadToken();
-    if (_token == null) return;
-    final wsUrl = baseUrl.replaceAll('https://', 'wss://').replaceAll('http://', 'ws://');
-    final url = Uri.parse("$wsUrl/ws/notifications?token=$_token");
-    try {
-      _wsChannel?.sink.close();
-      _wsChannel = WebSocketChannel.connect(url);
-      _wsChannel!.stream.listen((message) {
-        try {
-          final data = jsonDecode(message);
-          latestNotification.value = data;
-        } catch (_) {}
-      });
-    } catch (_) {}
+    _wsChannel?.sink.close();
+    _wsChannel = null;
   }
 
   static void disposeWebSocket() {
