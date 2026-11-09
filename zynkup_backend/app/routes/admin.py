@@ -1,19 +1,15 @@
-import os
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app import models
 from app.database import get_db
-from app.auth import require_role
+from app.auth import require_role, require_admin_setup_key
 
 router = APIRouter(prefix="/admin", tags=["Admin controls"])
 
 
-@router.put("/set-role")
-def set_role(email: str, role: str, setup_key: str, db: Session = Depends(get_db)):
-    secret = os.getenv("ADMIN_SETUP_KEY", "")
-    if not secret or setup_key != secret:
-        raise HTTPException(status_code=403, detail="Invalid setup key")
+@router.put("/set-role", dependencies=[Depends(require_admin_setup_key)])
+def set_role(email: str, role: str, db: Session = Depends(get_db)):
     if role not in ("user", "organizer", "admin"):
         raise HTTPException(status_code=400, detail="Invalid role")
     user = db.query(models.User).filter(models.User.email == email).first()
@@ -38,12 +34,10 @@ def report_event(
     db.commit()
     return {"message": "Event reported", "report_count": event.report_count}
 
-@router.get("/cleanup-broken-images")
-def cleanup_broken_images(setup_key: str, db: Session = Depends(get_db)):
-    secret = os.getenv("ADMIN_SETUP_KEY", "")
-    if not secret or setup_key != secret:
-        raise HTTPException(status_code=403, detail="Invalid setup key")
-        
+# POST (not GET): this endpoint rewrites data, so it must not be triggerable by
+# link prefetchers or crawlers.
+@router.post("/cleanup-broken-images", dependencies=[Depends(require_admin_setup_key)])
+def cleanup_broken_images(db: Session = Depends(get_db)):
     club_cleans = 0
     post_cleans = 0
     event_cleans = 0
