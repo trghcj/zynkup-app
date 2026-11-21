@@ -669,6 +669,56 @@ class CoHostFlowTests(unittest.TestCase):
         self.assertIn(second_email, emails)
 
 
+class ClubEventAndMembershipTests(unittest.TestCase):
+    def setUp(self):
+        self.owner, _, _ = signup("hostowner")
+        self.member, self.member_id, _ = signup("hostmember")
+        self.outsider, _, _ = signup("hostoutsider")
+        self.club_id = create_club(self.owner)
+        client.post(f"/clubs/{self.club_id}/join", headers=auth(self.member))
+
+    def _create(self, token, club_id):
+        return client.post("/events/", headers=auth(token), json={
+            "title": "Club Event", "description": "d", "venue": "Hall",
+            "date": (datetime.utcnow() + timedelta(days=3)).isoformat() + "Z",
+            "category": "tech", "club_id": club_id,
+        })
+
+    def test_only_club_hosts_can_create_club_events(self):
+        self.assertEqual(self._create(self.outsider, self.club_id).status_code, 403)
+        self.assertEqual(self._create(self.member, self.club_id).status_code, 403)
+        self.assertEqual(self._create(self.owner, self.club_id).status_code, 201)
+        client.put(f"/clubs/{self.club_id}/members/{self.member_id}/role",
+                   headers=auth(self.owner), json={"role": "moderator"})
+        self.assertEqual(self._create(self.member, self.club_id).status_code, 201)
+        self.assertEqual(self._create(self.owner, 999999).status_code, 404)
+
+    def test_creator_cannot_leave_own_club(self):
+        r = client.post(f"/clubs/{self.club_id}/join", headers=auth(self.owner))
+        self.assertEqual(r.status_code, 400)
+        members = client.get(f"/clubs/{self.club_id}/members").json()
+        self.assertIn("creator", [m["role"] for m in members])
+
+    def test_duplicate_membership_and_registration_rows_are_rejected(self):
+        from sqlalchemy.exc import IntegrityError
+        from app.database import SessionLocal
+        from app.models import ClubMember, Registration
+        with SessionLocal() as db:
+            db.add(ClubMember(club_id=self.club_id, user_id=self.member_id, role="member"))
+            with self.assertRaises(IntegrityError):
+                db.commit()
+            db.rollback()
+        event_id = create_event(self.owner)
+        client.post(f"/events/{event_id}/register", headers=auth(self.member))
+        with SessionLocal() as db:
+            db.add(Registration(user_id=self.member_id, event_id=event_id))
+            with self.assertRaises(IntegrityError):
+                db.commit()
+            db.rollback()
+        again = client.post(f"/events/{event_id}/register", headers=auth(self.member))
+        self.assertEqual(again.json()["message"], "Already registered")
+
+
 class ChatSocketResourceTests(unittest.TestCase):
     def test_sticker_type_is_kept(self):
         owner, _, _ = signup("stickerowner")

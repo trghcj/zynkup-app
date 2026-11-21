@@ -235,6 +235,68 @@ def repair_event_schema() -> None:
 
 repair_event_schema()
 
+
+def ensure_unique_indexes() -> None:
+    """Add the one-per-user unique indexes to databases created before they
+    existed (create_all only builds new tables).
+
+    Each index gets its own transaction so one failure can't block the others.
+    If old duplicate rows already exist, creating the index fails; we log it and
+    leave the data alone instead of deleting anything automatically.
+    """
+    indexes = {
+        "uq_club_member_user": "club_members (club_id, user_id)",
+        "uq_registration_user_event": "registrations (user_id, event_id)",
+    }
+    for name, target in indexes.items():
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS {name} ON {target}"))
+        except Exception as exc:
+            logger.warning(
+                f"Could not add unique index {name} (duplicate rows probably exist; "
+                f"remove them and restart to enable it): {exc}"
+            )
+
+
+ensure_unique_indexes()
+
+
+# Lookups that run on almost every request (XP caps, notifications, likes,
+# chat history...). Postgres does not index foreign keys by itself, so without
+# these each query scans the whole table and slows down as data grows.
+PERFORMANCE_INDEXES = {
+    "ix_activities_user_action_created": "activities (user_id, action, created_at)",
+    "ix_notifications_user_created": "notifications (user_id, created_at)",
+    "ix_feed_posts_created": "feed_posts (created_at)",
+    "ix_feed_posts_club": "feed_posts (club_id)",
+    "ix_feed_posts_author": "feed_posts (author_id)",
+    "ix_feed_likes_post": "feed_likes (post_id)",
+    "ix_feed_likes_user": "feed_likes (user_id)",
+    "ix_feed_comments_post": "feed_comments (post_id)",
+    "ix_feed_reactions_post": "feed_reactions (post_id)",
+    "ix_club_messages_club_created": "club_messages (club_id, created_at)",
+    "ix_club_members_user": "club_members (user_id)",
+    "ix_club_followers_user": "club_followers (user_id)",
+    "ix_registrations_event": "registrations (event_id)",
+    "ix_events_creator": "events (creator_id)",
+    "ix_events_club": "events (club_id)",
+    "ix_friend_requests_sender": "friend_requests (sender_id)",
+    "ix_friend_requests_receiver": "friend_requests (receiver_id)",
+    "ix_user_hidden_messages_user": "user_hidden_messages (user_id)",
+}
+
+
+def ensure_performance_indexes() -> None:
+    for name, target in PERFORMANCE_INDEXES.items():
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {target}"))
+        except Exception as exc:
+            logger.warning(f"Could not add index {name}: {exc}")
+
+
+ensure_performance_indexes()
 # ── Uploads ──────────────────────────────────────────────────────────────────
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024

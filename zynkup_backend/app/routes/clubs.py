@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -431,6 +432,10 @@ def join_club(club_id: int, db: Session = Depends(get_db), current_user: User = 
 
     existing = db.query(ClubMember).filter(ClubMember.club_id == club_id, ClubMember.user_id == current_user.id).first()
     if existing:
+        # The creator can't leave: they'd lose admin rights and chat access to
+        # their own club. They can delete the club instead.
+        if club.creator_id == current_user.id:
+            raise HTTPException(status_code=400, detail="You created this club, so you can't leave it. You can delete it instead.")
         # Toggle leave if already joined to make it toggleable, or handle standard leave/join
         db.delete(existing)
         db.commit()
@@ -443,7 +448,12 @@ def join_club(club_id: int, db: Session = Depends(get_db), current_user: User = 
     if not db.query(ClubFollower).filter(ClubFollower.club_id == club_id, ClubFollower.user_id == current_user.id).first():
         db.add(ClubFollower(club_id=club_id, user_id=current_user.id))
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A second, simultaneous tap already joined; treat it as success.
+        db.rollback()
+        return {"message": "Joined club successfully", "joined": True}
 
     # Award XP for joining a club
     try:
@@ -468,7 +478,10 @@ def toggle_follow_club(club_id: int, db: Session = Depends(get_db), current_user
     else:
         new_follower = ClubFollower(club_id=club_id, user_id=current_user.id)
         db.add(new_follower)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()  # a simultaneous tap already followed
         is_following = True
 
     count = db.query(ClubFollower).filter(ClubFollower.club_id == club_id).count()
