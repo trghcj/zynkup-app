@@ -24,6 +24,9 @@ class HomeTab extends StatefulWidget {
 class _HomeTabState extends State<HomeTab> {
   var _events = <Event>[];
   bool _loading = true;
+  // True when the events request failed (shown as "couldn't load" + Retry,
+  // not as "no upcoming events").
+  bool _loadFailed = false;
   int _activeStudents = 0;
   int _eventsThisWeek = 0;
   List<String> _activeAvatars = [];
@@ -97,8 +100,12 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> _load() async {
+    var eventsFailed = false;
     final results = await Future.wait([
-      ApiService.getEvents(force: true, limit: 50),
+      ApiService.fetchEvents(force: true, limit: 50).catchError((_) {
+        eventsFailed = true;
+        return <dynamic>[];
+      }),
       ApiService.getCampusStats(),
       ApiService.getClubs(),
     ]);
@@ -115,6 +122,7 @@ class _HomeTabState extends State<HomeTab> {
       _eventsThisWeek = statsData['events_this_week'] as int? ?? 0;
       _activeAvatars = List<String>.from(statsData['active_avatars'] ?? []);
       _clubs = clubsData;
+      _loadFailed = eventsFailed;
       _loading = false;
     });
   }
@@ -352,7 +360,18 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 ),
               ),
-              if (upcoming.isEmpty)
+              if (upcoming.isEmpty && _loadFailed)
+                ZEmptyState(
+                  icon: Icons.cloud_off_rounded,
+                  title: "Couldn't load events",
+                  subtitle: 'Check your connection and try again. If the app was idle, the server can take up to a minute to wake up.',
+                  actionLabel: 'Retry',
+                  onAction: () {
+                    setState(() => _loading = true);
+                    _load();
+                  },
+                )
+              else if (upcoming.isEmpty)
                 ZEmptyState(
                   icon: Icons.event_busy_rounded, 
                   title: 'No upcoming events', 

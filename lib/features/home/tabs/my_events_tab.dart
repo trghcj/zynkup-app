@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
 import 'package:zynkup/core/widgets/event_card_widget.dart';
+import 'package:zynkup/core/widgets/zynk_empty_state.dart';
 import 'package:zynkup/features/events/models/event_model.dart';
 import 'package:zynkup/features/events/screens/event_details_screen.dart';
 
@@ -16,6 +17,9 @@ class _MyEventsTabState extends State<MyEventsTab> {
   var _created = <Event>[];
   var _registered = <Event>[];
   bool _loading = true;
+  // True when loading failed, so we show "couldn't load" + Retry instead of
+  // telling the user they have no events or tickets.
+  bool _loadFailed = false;
   int _segment = 0;
   String _filter = 'All Events';
 
@@ -26,10 +30,18 @@ class _MyEventsTabState extends State<MyEventsTab> {
   }
 
   Future<void> _load() async {
-    final createdRaw = await ApiService.getMyEvents();
-    final registeredRaw = await ApiService.getMyRegistrations();
+    var failed = false;
+    final createdRaw = await ApiService.fetchMyEvents().catchError((_) {
+      failed = true;
+      return <dynamic>[];
+    });
+    final registeredRaw = await ApiService.fetchMyRegistrations().catchError((_) {
+      failed = true;
+      return <dynamic>[];
+    });
     if (!mounted) return;
     setState(() {
+      _loadFailed = failed;
       _created = createdRaw
           .map((item) => Event.fromJson(item as Map<String, dynamic>))
           .toList();
@@ -138,6 +150,20 @@ class _MyEventsTabState extends State<MyEventsTab> {
               const SliverFillRemaining(
                 child: Center(
                   child: CircularProgressIndicator(color: ZynkColors.gold),
+                ),
+              )
+            else if (events.isEmpty && _loadFailed)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: ZEmptyState(
+                  icon: Icons.cloud_off_rounded,
+                  title: "Couldn't load your events",
+                  subtitle: 'Check your connection and try again. If the app was idle, the server can take up to a minute to wake up.',
+                  actionLabel: 'Retry',
+                  onAction: () {
+                    setState(() => _loading = true);
+                    _load();
+                  },
                 ),
               )
             else if (events.isEmpty)

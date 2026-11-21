@@ -337,7 +337,22 @@ class ApiService {
 
   // ── Events ─────────────────────────────────────────────────────────────────
 
+  /// Returns an empty list on failure. Screens that must tell "no events"
+  /// apart from "couldn't load" use [fetchEvents] instead.
   static Future<List<dynamic>> getEvents({
+    bool force = false,
+    int skip = 0,
+    int limit = 20,
+  }) async {
+    try {
+      return await fetchEvents(force: force, skip: skip, limit: limit);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Like [getEvents], but throws [ApiException] when the request fails.
+  static Future<List<dynamic>> fetchEvents({
     bool force = false,
     int skip = 0,
     int limit = 20,
@@ -354,10 +369,8 @@ class ApiService {
         if (skip == 0) _cachedEvents = list;
         return list;
       }
-      return [];
-    } catch (_) {
-      return [];
-    }
+    } catch (_) {}
+    throw const ApiException("Couldn't load events.");
   }
 
   static Future<Map<String, dynamic>?> getEventById(int eventId) async {
@@ -573,32 +586,46 @@ class ApiService {
   /// Returns [{qr_code, attended, registered_at, event}, ...]
   static Future<List<dynamic>> getMyRegistrations() async {
     try {
-      await loadToken();
-      if (!hasToken) return [];
-      final res = await http.get(
-        Uri.parse("$baseUrl/users/my-registrations"),
-        headers: await _headers,
-      );
-      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
-      return [];
+      return await fetchMyRegistrations();
     } catch (_) {
       return [];
     }
   }
 
+  /// Like [getMyRegistrations], but throws [ApiException] when the request fails.
+  static Future<List<dynamic>> fetchMyRegistrations() async {
+    await loadToken();
+    if (!hasToken) return [];
+    try {
+      final res = await http.get(
+        Uri.parse("$baseUrl/users/my-registrations"),
+        headers: await _headers,
+      );
+      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
+    } catch (_) {}
+    throw const ApiException("Couldn't load your tickets.");
+  }
+
   static Future<List<dynamic>> getMyEvents() async {
     try {
-      await loadToken();
-      if (!hasToken) return [];
+      return await fetchMyEvents();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Like [getMyEvents], but throws [ApiException] when the request fails.
+  static Future<List<dynamic>> fetchMyEvents() async {
+    await loadToken();
+    if (!hasToken) return [];
+    try {
       final res = await http.get(
         Uri.parse("$baseUrl/users/my-events"),
         headers: await _headers,
       );
       if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
-      return [];
-    } catch (_) {
-      return [];
-    }
+    } catch (_) {}
+    throw const ApiException("Couldn't load your events.");
   }
 
   // ── QR Attendance (creator scans attendee QR) ──────────────────────────────
@@ -812,6 +839,16 @@ class ApiService {
   // ── Feed ───────────────────────────────────────────────────────────────────
   static Future<List<dynamic>> getFeed() async {
     try {
+      return await fetchFeed();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Like [getFeed], but throws [ApiException] when the request fails, so the
+  /// feed can show "couldn't load" instead of an empty campus.
+  static Future<List<dynamic>> fetchFeed() async {
+    try {
       await loadToken();
       final res = await http.get(
         Uri.parse("$baseUrl/feed/"),
@@ -820,10 +857,8 @@ class ApiService {
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as List<dynamic>;
       }
-      return [];
-    } catch (_) {
-      return [];
-    }
+    } catch (_) {}
+    throw const ApiException("Couldn't load the feed.");
   }
 
   static Future<List<dynamic>> getClubFeed(int clubId) async {

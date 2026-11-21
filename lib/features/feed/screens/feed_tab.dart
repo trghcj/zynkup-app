@@ -34,6 +34,9 @@ class FeedTab extends StatefulWidget {
 
 class _FeedTabState extends State<FeedTab> {
   bool _loading = true;
+  // True when the feed request failed, so we show "couldn't load" with a
+  // Retry button instead of the "campus is quiet" empty state.
+  bool _loadFailed = false;
   List<dynamic> _posts = [];
   List<dynamic> _events = [];
   List<dynamic> _clubs = [];
@@ -63,8 +66,12 @@ class _FeedTabState extends State<FeedTab> {
     setState(() => _loading = true);
     final user = ApiService.hasToken ? await ApiService.getCurrentUser() : null;
 
+    var feedFailed = false;
     final results = await Future.wait([
-      ApiService.getFeed(),
+      ApiService.fetchFeed().catchError((_) {
+        feedFailed = true;
+        return <dynamic>[];
+      }),
       ApiService.getEvents(),
       ApiService.getClubs(),
     ]);
@@ -72,6 +79,7 @@ class _FeedTabState extends State<FeedTab> {
     if (mounted) {
       setState(() {
         _currentUserId = int.tryParse(user?['id']?.toString() ?? '');
+        _loadFailed = feedFailed;
         _posts = results[0];
         _events = results[1];
         _clubs = results[2];
@@ -565,6 +573,16 @@ class _FeedTabState extends State<FeedTab> {
                     ),
                   ),
                 ),
+              ),
+            )
+          else if (_loadFailed && _posts.isEmpty)
+            SliverToBoxAdapter(
+              child: ZEmptyState(
+                icon: Icons.cloud_off_rounded,
+                title: "Couldn't load the feed",
+                subtitle: 'Check your connection and try again. If the app was idle, the server can take up to a minute to wake up.',
+                actionLabel: 'Retry',
+                onAction: _load,
               ),
             )
           else if (filteredPosts.isEmpty)

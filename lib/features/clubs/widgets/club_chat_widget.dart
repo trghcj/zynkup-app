@@ -202,38 +202,38 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
   Future<void> _showAttachmentPicker() async {
     showModalBottomSheet(
       context: context,
-      backgroundColor: ZynkColors.darkSurface,
+      backgroundColor: _ChatPalette.of(context).sheet,
       builder: (ctx) {
         return SafeArea(
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.image, color: ZynkColors.gold),
-                title: const Text('Upload Image', style: TextStyle(color: Colors.white)),
+                leading: Icon(Icons.image, color: _ChatPalette.of(context).accent),
+                title: Text('Upload Image', style: TextStyle(color: _ChatPalette.of(context).sheetText)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickAndUploadAttachment(fp.FileType.image);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.insert_drive_file, color: ZynkColors.gold),
-                title: const Text('Upload Document', style: TextStyle(color: Colors.white)),
+                leading: Icon(Icons.insert_drive_file, color: _ChatPalette.of(context).accent),
+                title: Text('Upload Document', style: TextStyle(color: _ChatPalette.of(context).sheetText)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickAndUploadAttachment(fp.FileType.custom, allowedExtensions: ['pdf', 'doc', 'docx']);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.emoji_emotions, color: ZynkColors.gold),
-                title: const Text('Send Sticker', style: TextStyle(color: Colors.white)),
+                leading: Icon(Icons.emoji_emotions, color: _ChatPalette.of(context).accent),
+                title: Text('Send Sticker', style: TextStyle(color: _ChatPalette.of(context).sheetText)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showStickerPicker();
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.poll_rounded, color: ZynkColors.gold),
-                title: const Text('Create Poll', style: TextStyle(color: Colors.white)),
+                leading: Icon(Icons.poll_rounded, color: _ChatPalette.of(context).accent),
+                title: Text('Create Poll', style: TextStyle(color: _ChatPalette.of(context).sheetText)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _createPoll();
@@ -260,7 +260,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     
     showModalBottomSheet(
       context: context,
-      backgroundColor: ZynkColors.darkSurface,
+      backgroundColor: _ChatPalette.of(context).sheet,
       builder: (ctx) {
         return SafeArea(
           child: Padding(
@@ -370,15 +370,15 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: ZynkColors.darkSurface,
+      backgroundColor: _ChatPalette.of(context).sheet,
       builder: (ctx) {
         return SafeArea(
           child: Wrap(
             children: [
               if (within5Mins && !isDeleted && !isPoll)
                 ListTile(
-                  leading: const Icon(Icons.edit, color: ZynkColors.gold),
-                  title: const Text('Edit', style: TextStyle(color: Colors.white)),
+                  leading: Icon(Icons.edit, color: _ChatPalette.of(context).accent),
+                  title: Text('Edit', style: TextStyle(color: _ChatPalette.of(context).sheetText)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _showEditDialog(msg);
@@ -394,8 +394,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                   },
                 ),
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.white70),
-                title: const Text('Delete for me', style: TextStyle(color: Colors.white70)),
+                leading: Icon(Icons.delete, color: _ChatPalette.of(context).sheetMuted),
+                title: Text('Delete for me', style: TextStyle(color: _ChatPalette.of(context).sheetMuted)),
                 onTap: () {
                   Navigator.pop(ctx);
                   ApiService.deleteClubChatMessage(widget.clubId, msg['id']);
@@ -416,11 +416,11 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ZynkColors.darkSurface,
-        title: const Text('Edit Message', style: TextStyle(color: Colors.white)),
+        backgroundColor: _ChatPalette.of(context).sheet,
+        title: Text('Edit Message', style: TextStyle(color: _ChatPalette.of(context).sheetText)),
         content: TextField(
           controller: editController,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: _ChatPalette.of(context).sheetText),
           decoration: const InputDecoration(
             hintText: 'New message...',
             hintStyle: TextStyle(color: ZynkColors.darkMuted),
@@ -431,7 +431,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            child: Text('Cancel', style: TextStyle(color: _ChatPalette.of(context).sheetMuted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ZynkColors.gold),
@@ -509,6 +509,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                 );
               }
               final isMe = _currentUserId != null && msg['user_id'] == _currentUserId;
+              final palette = _ChatPalette.of(context);
               final name = msg['user_name'] ?? 'User';
               final avatar = msg['user_avatar'] ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=$name';
               final content = msg['content'] ?? '';
@@ -544,7 +545,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isMe ? ZynkColors.gold : ZynkColors.darkSurface2,
+                            color: isMe ? ZynkColors.gold : palette.bubble,
                             borderRadius: BorderRadius.only(
                               topLeft: const Radius.circular(ZynkRadius.md),
                               topRight: const Radius.circular(ZynkRadius.md),
@@ -560,15 +561,15 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(name, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    Text(name, style: TextStyle(color: isMe ? Colors.black54 : palette.bubbleMuted, fontSize: 11, fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 6),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                       decoration: BoxDecoration(
-                                        color: role == 'admin' ? (isMe ? Colors.black12 : ZynkColors.gold.withValues(alpha: 0.2)) : Colors.white10,
+                                        color: role == 'admin' ? (isMe ? Colors.black12 : ZynkColors.gold.withValues(alpha: 0.2)) : (isMe ? Colors.white10 : palette.chip),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
-                                      child: Text(role.toUpperCase(), style: TextStyle(color: role == 'admin' ? (isMe ? Colors.black87 : ZynkColors.gold) : (isMe ? Colors.black54 : Colors.white70), fontSize: 8, fontWeight: FontWeight.bold)),
+                                      child: Text(role.toUpperCase(), style: TextStyle(color: role == 'admin' ? (isMe ? Colors.black87 : palette.adminChipText) : (isMe ? Colors.black54 : palette.chipText), fontSize: 8, fontWeight: FontWeight.bold)),
                                     ),
                                   ],
                                 ),
@@ -584,7 +585,7 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                 Text(
                                   content, 
                                   style: TextStyle(
-                                    color: isMe ? Colors.black87 : ZynkColors.offWhite,
+                                    color: isMe ? Colors.black87 : palette.bubbleText,
                                     fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
                                   )
                                 ),
@@ -609,9 +610,9 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(Icons.insert_drive_file, color: isMe ? Colors.black54 : Colors.white70, size: 20),
+                                            Icon(Icons.insert_drive_file, color: isMe ? Colors.black54 : palette.bubbleMuted, size: 20),
                                             const SizedBox(width: 8),
-                                            Text('View Document', style: TextStyle(color: isMe ? Colors.black87 : Colors.white)),
+                                            Text('View Document', style: TextStyle(color: isMe ? Colors.black87 : palette.bubbleText)),
                                           ],
                                         ),
                                       ),
@@ -622,8 +623,8 @@ class _ClubChatWidgetState extends State<ClubChatWidget> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (isEdited)
-                                    Text('(Edited) ', style: TextStyle(color: isMe ? Colors.black45 : ZynkColors.darkMuted, fontSize: 10, fontStyle: FontStyle.italic)),
-                                  Text(timeStr, style: TextStyle(color: isMe ? Colors.black54 : ZynkColors.darkMuted, fontSize: 10)),
+                                    Text('(Edited) ', style: TextStyle(color: isMe ? Colors.black45 : palette.bubbleMuted, fontSize: 10, fontStyle: FontStyle.italic)),
+                                  Text(timeStr, style: TextStyle(color: isMe ? Colors.black54 : palette.bubbleMuted, fontSize: 10)),
                                   if (isMe) ...[
                                     const SizedBox(width: 4),
                                     GestureDetector(
@@ -732,10 +733,11 @@ class ChatPollCard extends StatelessWidget {
     final total = votes.length;
     final myVote = currentUserId == null ? null : votes[currentUserId.toString()];
 
-    final textColor = isMine ? Colors.black87 : ZynkColors.offWhite;
-    final mutedColor = isMine ? Colors.black54 : ZynkColors.darkMuted;
+    final palette = _ChatPalette.of(context);
+    final textColor = isMine ? Colors.black87 : palette.bubbleText;
+    final mutedColor = isMine ? Colors.black54 : palette.bubbleMuted;
     final fillColor = isMine ? Colors.black.withValues(alpha: 0.12) : ZynkColors.gold.withValues(alpha: 0.25);
-    final trackColor = isMine ? Colors.black.withValues(alpha: 0.06) : Colors.white.withValues(alpha: 0.06);
+    final trackColor = isMine ? Colors.black.withValues(alpha: 0.06) : palette.pollTrack;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
@@ -837,4 +839,31 @@ class ChatPollCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Chat colours. Dark theme keeps the original values exactly; light theme
+/// gets matching light surfaces so other people's bubbles and the menus no
+/// longer render as dark blocks on a light screen. Your own bubbles stay gold.
+class _ChatPalette {
+  _ChatPalette.of(BuildContext context)
+      : dark = Theme.of(context).brightness == Brightness.dark;
+
+  final bool dark;
+
+  // Bottom sheets and the edit dialog
+  Color get sheet => dark ? ZynkColors.darkSurface : ZynkColors.lightSurface;
+  Color get sheetText => dark ? Colors.white : ZynkColors.lightText;
+  Color get sheetMuted => dark ? Colors.white70 : ZynkColors.lightMuted;
+  // Brand lime is too faint on white, so light theme uses a deeper olive.
+  Color get accent => dark ? ZynkColors.gold : const Color(0xFF6B7417);
+
+  // Other people's message bubbles
+  Color get bubble => dark ? ZynkColors.darkSurface2 : ZynkColors.lightElevated;
+  Color get bubbleText => dark ? ZynkColors.offWhite : ZynkColors.lightText;
+  Color get bubbleMuted => dark ? ZynkColors.darkMuted : ZynkColors.lightMuted;
+  Color get chip => dark ? Colors.white10 : Colors.black.withValues(alpha: 0.06);
+  Color get chipText => dark ? Colors.white70 : ZynkColors.lightMuted;
+  Color get adminChipText => dark ? ZynkColors.gold : const Color(0xFF6B7417);
+  Color get pollTrack =>
+      dark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05);
 }
