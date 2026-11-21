@@ -265,5 +265,31 @@ class AvatarSeedTests(unittest.TestCase):
         self.assertIn("seed=my%20seed%26x", u.resolved_avatar_url)
 
 
+class StreakTests(unittest.TestCase):
+    def test_streak_counts_calendar_days(self):
+        from app.gamification import next_streak
+        d = datetime(2026, 11, 20, 22, 0)
+        # Next morning, only 11 hours later: still the next calendar day.
+        self.assertEqual(next_streak(3, d, datetime(2026, 11, 21, 9, 0)), 4)
+        self.assertEqual(next_streak(3, d, datetime(2026, 11, 20, 23, 30)), 3)  # same day
+        self.assertEqual(next_streak(3, d, datetime(2026, 11, 23, 9, 0)), 1)    # missed a day
+        self.assertEqual(next_streak(0, None, d), 1)
+        self.assertEqual(next_streak(None, d, d), 1)
+
+
+class NotificationPayloadTests(unittest.TestCase):
+    def test_caller_data_is_not_mutated(self):
+        from app.database import SessionLocal
+        from app.fcm import create_notification_helper
+        from app.models import User
+        with SessionLocal() as db:
+            user = User(email=_env.unique_email("payload"), fcm_token="tok")
+            db.add(user)
+            db.commit()
+            shared = {"club_id": "1"}
+            create_notification_helper(db, user.id, "t", "b", "TEST", data=shared)
+            self.assertEqual(shared, {"club_id": "1"})
+
+
 if __name__ == "__main__":
     unittest.main()

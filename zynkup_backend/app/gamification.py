@@ -266,6 +266,24 @@ def add_xp(db: Session, user: models.User, action: str, amount: int = None):
         # We don't raise here — gamification should not break the core app
         print(f"GAMIFICATION ERROR: {e}")
 
+def next_streak(streak, last_active, now) -> int:
+    """Daily streak by calendar day (UTC).
+
+    Active again on the next calendar day: +1. Same day: unchanged. A day or
+    more missed: back to 1. (It used to compare 24-hour periods, so someone
+    active every day at different times rarely saw it grow.)
+    """
+    streak = streak or 0
+    if last_active is None or streak <= 0:
+        return 1
+    days = (now.date() - last_active.date()).days
+    if days == 0:
+        return streak
+    if days == 1:
+        return streak + 1
+    return 1
+
+
 def log_activity(db: Session, user: models.User, action: str, xp_gained: int):
     try:
         activity = models.ActivityLog(
@@ -275,17 +293,8 @@ def log_activity(db: Session, user: models.User, action: str, xp_gained: int):
         )
         db.add(activity)
         # Update last_active and streak logic
-        user.streak = user.streak or 0
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        if user.last_active:
-            delta = now - user.last_active
-            if delta.days == 1:
-                user.streak += 1
-            elif delta.days > 1:
-                user.streak = 1 # Reset to 1 if more than a day missed
-        else:
-            user.streak = 1
-        
+        user.streak = next_streak(user.streak, user.last_active, now)
         user.last_active = now
     except Exception as e:
         print(f"LOG ACTIVITY ERROR: {e}")

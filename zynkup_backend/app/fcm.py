@@ -1,5 +1,6 @@
 import os
 import logging
+from concurrent.futures import ThreadPoolExecutor
 import firebase_admin
 from firebase_admin import credentials, messaging
 from dotenv import load_dotenv
@@ -31,6 +32,18 @@ try:
         logger.warning(f"Firebase service account file not found at {firebase_key_path}. FCM pushes disabled.")
 except Exception as e:
     logger.error(f"Failed to initialize Firebase Admin SDK: {e}")
+
+# Pushes go out from a small background pool. Sending them inline made a
+# request (e.g. creating a club event) wait for one Firebase round trip per
+# follower, which could take long enough to time out.
+_push_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="fcm-push")
+
+
+def queue_fcm_notification(token: str, title: str, body: str, data: dict = None) -> None:
+    if not token or not firebase_admin._apps:
+        return
+    _push_pool.submit(send_fcm_notification, token, title, body, dict(data or {}))
+
 
 def send_fcm_notification(token: str, title: str, body: str, data: dict = None):
     """
@@ -89,10 +102,11 @@ def create_notification_helper(db, user_id: int, title: str, body: str, type: st
         if send_push:
             recipient = db.query(models.User).filter(models.User.id == user_id).first()
             if recipient and recipient.fcm_token:
-                payload = data or {}
+                # Copy: callers may reuse the same dict for many recipients.
+                payload = {k: str(v) for k, v in (data or {}).items()}
                 payload["notification_id"] = str(notif.id)
                 payload["type"] = type
-                send_fcm_notification(
+                queue_fcm_notification(
                     token=recipient.fcm_token,
                     title=title,
                     body=body,

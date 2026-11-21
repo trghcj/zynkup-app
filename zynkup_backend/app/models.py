@@ -117,7 +117,8 @@ class Event(Base):
 
 class Registration(Base):
     __tablename__ = "registrations"
-
+    # One registration per user per event (a double-tap used to create two).
+    __table_args__ = (UniqueConstraint("user_id", "event_id", name="uq_registration_user_event"),)
     id         = Column(Integer, primary_key=True, index=True)
     user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
     event_id   = Column(Integer, ForeignKey("events.id"), nullable=False)
@@ -169,7 +170,8 @@ class Club(Base):
 
 class ClubMember(Base):
     __tablename__ = "club_members"
-
+    # One membership per user per club (a double-tap used to create two).
+    __table_args__ = (UniqueConstraint("club_id", "user_id", name="uq_club_member_user"),)
     id          = Column(Integer, primary_key=True, index=True)
     club_id     = Column(Integer, ForeignKey("clubs.id"), nullable=False)
     user_id     = Column(Integer, ForeignKey("users.id"), nullable=False)

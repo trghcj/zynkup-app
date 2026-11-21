@@ -5,7 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
+import 'package:zynkup/core/api/timed_http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:zynkup/core/api/api_service.dart';
 import 'package:zynkup/core/theme/app_theme.dart';
@@ -214,8 +214,8 @@ class _ClubProfileScreenState extends State<ClubProfileScreen> with SingleTicker
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update membership. Please try again.'),
+          SnackBar(
+            content: Text(result?['message']?.toString() ?? 'Failed to update membership. Please try again.'),
             backgroundColor: ZynkColors.error,
             behavior: SnackBarBehavior.floating,
           ),

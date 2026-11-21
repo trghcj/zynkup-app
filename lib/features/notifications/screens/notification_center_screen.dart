@@ -182,10 +182,29 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Text(
-                      'Failed to load notifications:\n\n$_error',
-                      style: const TextStyle(color: ZynkColors.error, fontSize: 14),
-                      textAlign: TextAlign.center,
+                    // The raw error (e.g. "TimeoutException ...") means nothing
+                    // to users; it stays in _error for debugging only.
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Couldn't load notifications.\nCheck your connection and try again.",
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() => _loading = true);
+                            _fetchNotifications();
+                          },
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Retry'),
+                        ),
+                      ],
                     ),
                   ),
                 )

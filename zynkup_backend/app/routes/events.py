@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app import models
 from app.database import get_db
@@ -205,6 +206,24 @@ def _mask_email(email: Optional[str]) -> str:
     return f"{local[:1]}***@{domain}"
 
 
+CLUB_EVENT_HOST_ROLES = {"owner", "admin", "moderator"}
+
+
+def _require_club_event_host(db: Session, club_id: int, user: models.User) -> None:
+    """Only a club's creator, admins and moderators (or a site admin) may publish
+    an event under that club; it is shown as the club's and pushed to followers."""
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+    if club.creator_id == user.id or getattr(user, "role", None) == "admin":
+        return
+    member = db.query(models.ClubMember).filter(
+        models.ClubMember.club_id == club_id, models.ClubMember.user_id == user.id
+    ).first()
+    if not member or (member.role or "").lower() not in CLUB_EVENT_HOST_ROLES:
+        raise HTTPException(status_code=403, detail="Only club admins and moderators can host events for this club")
+
+
 def can_manage_event(event: models.Event, user: Optional[models.User]) -> bool:
     if not user:
         return False
@@ -346,6 +365,8 @@ def create_event(
         ).count()
         if created_today >= MAX_EVENTS_PER_DAY:
             raise HTTPException(status_code=429, detail="You can create up to 5 events per day")
+        if payload.club_id is not None:
+            _require_club_event_host(db, payload.club_id, current_user)
 
         image_urls = ",".join(url for url in (payload.image_urls or []) if _is_valid_image_source(url))
         co_host_email = payload.co_host_email.strip().lower() if payload.co_host_email and payload.co_host_email.strip() else None
@@ -429,7 +450,8 @@ def create_event(
                 detail="Database schema mismatch. Please run the SQL migration on Render."
             )
         logger.error(f"CRITICAL ERROR during event creation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Server error: {error_msg}")
+        # Details stay in the server log; never send raw exception text to clients.
+        raise HTTPException(status_code=500, detail="Could not create the event. Please try again.")
 
 
 MAX_EVENTS_PAGE = 100
@@ -557,7 +579,16 @@ def register_event(
         return {"message": "Already registered", "qr_code": existing.qr_code}
     registration = models.Registration(user_id=current_user.id, event_id=event_id)
     db.add(registration)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A simultaneous tap already registered; return that registration.
+        db.rollback()
+        existing = db.query(models.Registration).filter(
+            models.Registration.user_id == current_user.id,
+            models.Registration.event_id == event_id,
+        ).first()
+        return {"message": "Already registered", "qr_code": existing.qr_code if existing else None}
     db.refresh(registration)
 
     # Award XP for registering

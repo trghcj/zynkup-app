@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:zynkup/core/api/timed_http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -1037,6 +1037,13 @@ class ApiService {
         invalidateUserCache();
         return {'success': true, 'joined': body['joined'] == true};
       }
+      // Pass the server's reason through (e.g. a creator can't leave their club).
+      try {
+        final detail = (jsonDecode(res.body) as Map<String, dynamic>)['detail'];
+        if (detail is String && detail.isNotEmpty) {
+          return {'success': false, 'message': detail};
+        }
+      } catch (_) {}
       return null;
     } catch (_) {
       return null;
